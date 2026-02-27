@@ -1,0 +1,118 @@
+# File name for crust EOS data table
+CrustEOS: TOVBSk24Crust.dat
+
+# File name for output H5 file (excluding file extension)
+OutputFile: EMHD_Sim_Data_LLB
+
+# Order of Runge-Kutta timestep method (2 or 3)
+RK_order: 2
+
+# true for varying cell-center spacing in "radial"- (x-)direction or false otherwise. Defaults to false if unspecified.
+varying_mesh: false
+
+# Resolution in x-direction
+Nx: 200
+
+# Resolution in y-direction
+Ny: 200
+
+# Lower limit of simulation domain in x-direction in cm
+x_min: 0
+
+# Upper limit of simulation domain in x-direction in cm #9.1e4
+x_max: 9.1e4
+
+# Lower limit of simulation domain in y-direction in cm
+y_min: -5e4
+
+# Upper limit of simulation domain in y-direction in cm
+y_max: 5e4
+
+# Maximum time in years
+t_max: 5e2
+
+# Courant number
+k_C: 0.04
+
+# cutoff (energy) density in g/cm^3 (lowest density to include in simulation domain) #1.4e10
+rho_cutoff: 5e9
+
+# Temperature of crust in K (used to compute electrical conductivity)
+temperature: 3e8
+
+# Maximum number of snapshots to save to H5 file
+saves_number: 500
+
+# Cadence (number of timesteps) to print energy conservation information to terminal
+ECons_cadence: 100
+
+# Print out divB calculation every ECons_cadence timesteps (true = on or false = off)
+divBCheck: false
+
+#Initial uniform Bx and By field, specified by magnitude B_pol_init (in G) and angle to the horizontal theta_B (in degrees)
+B_pol_init: 1e14
+theta_B: 90
+
+#Initial Bz field B_tor_init on (true) or off (false), specified by its maximum value B_tor_max (in G), x-position center and width (B_tor_x_center,B_tor_x_width) (in cm)
+# and y-position center and width (B_tor_y_center,B_tor_y_width) (in cm) #8.4e4
+B_tor_init: true
+B_tor_max: -1e13
+B_tor_x_center: 0
+B_tor_x_width: 1e3
+B_tor_y_center: 0
+B_tor_y_width: 1e15
+
+# Lower boundary conditions on perpendicular magnetic field i.e., Bx ("perfect_conducting" = 0 or "continuous")
+B_perp_lower: continuous
+
+# Lower boundary conditions on parallel magnetic field i.e., By and Bz ("perfect_conducting" = continuous or "zero" = 0 or "shearing" = continuous By, Bz time-dependent function)
+# If "shearing", B_parallel_shear_type options include:
+# "uniform": fixes constant shearing field with magnitudes B_y = B_parallel_lower_shear_y and B_z = B_parallel_lower_shear_z (in G). Need to use E_parallel_lower = "continuous"
+# "current_sheet": uses current sheet at y=0 with magnitude B_z = B_parallel_lower_shear_z (in G) on either side of sheet
+B_parallel_lower: shearing 
+B_parallel_shear_type: uniform
+B_parallel_lower_shear_By: 0
+B_parallel_lower_shear_Bz: -1e13
+
+# Lower boundary conditions on perpendicular electric field i.e., Ex ("perfect_conducting" = continuous)
+E_perp_lower: perfect_conducting
+
+# Lower boundary conditions on parallel electric field i.e., Ey and Ez ("perfect_conducting" = 0 or "continuous")
+E_parallel_lower: continuous
+
+# Upper boundary condition on poloidal field i.e., Bx and By ("vacuum" = potential field or "continuous")
+B_pol_upper: continuous
+
+# Upper boundary condition on toroidal field i.e., Bz ("vacuum" = 0 or "continuous")
+B_tor_upper: continuous
+
+# Upper boundary conditions on perpendicular electric field i.e., Ex ("vacuum" = 0 or "continuous")
+E_perp_upper: continuous
+
+# Upper boundary conditions on parallel electric field i.e., Ey and Ez ("vacuum" = 0 or "continuous")
+E_parallel_upper: continuous
+
+# Toroidal velocity shear. Options:
+# "none": no shearing toroidal velocity
+# "aftershock": series of aftershocks, timed based on Omori-Utsu law with amplitudes drawn from a power law
+# "LL12": based on analytic solution of Levin and Lyutikov, MNRAS 427, 1574 (2012)
+# "LLB16": based on analytic solution of Li, Levin and Beloborodov, ApJ 833, 189 (2016)
+# "fixedToroidal"
+# "toroidalBreak"
+tor_vel_shear: none
+
+# Toroidal velocity shear duration in years t_w and toroidal velocity shear centered time in years t_m. Determine initial rise time = t_m - t_w/2  #30
+# Magnitude of toroidal velocity shear vc_mag in units of c. #1e-13
+t_w: 0.1
+t_m: -1e-5
+vc_mag: 1e-14
+
+# Steepness of toroidal velocity shear rise. An exponent (the larger, the steeper the rise). Should be >~ 3
+tor_n: 30
+
+# Center and width (standard deviation) of Gaussian toroidal velocity shear in x(y)-direction in cm. Defaults to 5e4, 0, 0, 0.
+x0_tor: 6.5e4
+xwidth_tor: 1e3
+y0_tor: 0
+ywidth_tor: 1e5
+
