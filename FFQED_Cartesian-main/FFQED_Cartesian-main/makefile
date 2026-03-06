@@ -1,6 +1,6 @@
 CXX=g++
-#CFLAGS=-O3 -std=c++23
-CFLAGS=-O2 -O3
+CFLAGS=-O3 -std=c++17
+#CFLAGS=-O2 -O3
 
 # Use Homebrew paths dynamically
 MPI_PREFIX=$(shell brew --prefix open-mpi)

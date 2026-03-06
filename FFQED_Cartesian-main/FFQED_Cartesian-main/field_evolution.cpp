@@ -18,8 +18,7 @@ struct Fields
     VectorField & H;
     VectorField & D;
     ScalarField & Rho;
-    const & dm;
-
+    const Domain & dm;  
 };
 
 double compute_A1_x(int i, int j, const Fields & f){
@@ -54,25 +53,26 @@ double compute_A1_y(int i, int j, const Fields & f){
     
     double Ex = 0.25 * (f.E[0][i][j] + f.E[0][i][j+1] + f.E[0][i-1][j] + f.E[0][i-1][j+1]);   
 
-    double Bz = 0.5 * (f.B[2][i][j] + f.B[2][i-1][j]);
-
     double Ez = 0.5 * (f.E[2][i][j] + f.E[2][i][j+1]);
 
     double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
     double Bx_i_minus_1_j = 0.5 * (f.B[0][i-1][j] + f.B[0][i][j]);
     double By_j = 0.5 * (f.B[1][i][j+1] + f.B[1][i][j]);
     double By_i_minus_1_j = 0.5 * (f.B[1][i-1][j+1] + f.B[1][i-1][j]); 
-    double Bz = f.B[2][i][j];
+    double Bz = f.B[2][i][j];                          
     double Bz_i_minus_1_j = f.B[2][i-1][j];
 
     double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    double B_ij_minus_1 = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
+    double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
             
-    double Bz_A_1_x = 0.5 * (Bz + Bz_j_minus_1);
+    double Bz_A_1_y = 0.5 * (Bz + Bz_i_minus_1_j);    
+
+    double Ez_A_1_y = 0.5 * (f.E[2][i][j] + f.E[2][i-1][j]);  
+    double Ex_A_1_y = Ex;                                       
 
     double ExB_y = Ez_A_1_y * f.B[0][i][j]  - Ex_A_1_y * Bz_A_1_y;
 
-    return (2.0 * rho_avg * ExB_y)/(B_ij_minus_1 + B_ij);
+    return (2.0 * rho_avg * ExB_y)/(B_i_minus_1_j + B_ij);
 }
 
 double compute_A1_z(int i, int j, const Fields & f){
@@ -86,13 +86,12 @@ double compute_A1_z(int i, int j, const Fields & f){
     double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
     double Bx_i_minus_1_j = 0.5 * (f.B[0][i][j] + f.B[0][i-1][j]);
     double Bx_i_j_minus_1 = 0.5 * (f.B[0][i+1][j-1] + f.B[0][i][j-1]);
-    double Bx_ij_minus_1 = 0.5 * (f.B[0][i][j-1] + f.B[0][i-1][j-1]); //fix
+    double Bx_ij_minus_1 = 0.5 * (f.B[0][i][j-1] + f.B[0][i-1][j-1]);
 
     double By_j = 0.5 * (f.B[1][i][j+1] + f.B[1][i][j]);
     double By_j_minus_1 = 0.5 * (f.B[1][i][j-1] + f.B[1][i][j]); 
     double By_i_minus_1_j = 0.5 * (f.B[1][i-1][j+1] + f.B[1][i-1][j]);
     double By_ij_minus_1 = 0.5 * (f.B[1][i-1][j] + f.B[1][i-1][j-1]);  
-    
 
     double Bz = f.B[2][i][j];
     double Bz_i_minus_1_j = f.B[2][i-1][j];
@@ -107,56 +106,55 @@ double compute_A1_z(int i, int j, const Fields & f){
     double B_squared = 2 * (1)/((B_ij + B_i_minus_1_j + B_ij_minus_1 + B_i_j_minus_1));
 
     return (4 * rho_avg * (Ex_By_A - Ey_Bx_A))/(B_squared);
-
 }
 
 double compute_A2_x(int i, int j, const Fields & f){
         
-        // Calculation of (A_2)_x
+    // Calculation of (A_2)_x
 
-        // Calculates B dot (curl(H)) at i,j
+    // Calculates B dot (curl(H)) at i,j
 
-        double Bx_Hz_A = f.B[0][i][j] * (f.H[2][i][j+1] - f.H[2][i][j])/(f.dm.Deltay); // at i - 1/2, j, f.dm. might be a problem
-        double Bx_Hz_B = f.B[0][i+1][j] * (f.H[2][i+1][j+1] - f.H[2][i+1][j])/(f.dm.Deltay); // at i + 1/2, j
+    double Bx_Hz_A = f.B[0][i][j] * (f.H[2][i][j+1] - f.H[2][i][j])/(f.dm.Deltay); // at i - 1/2, j
+    double Bx_Hz_B = f.B[0][i+1][j] * (f.H[2][i+1][j+1] - f.H[2][i+1][j])/(f.dm.Deltay); // at i + 1/2, j
 
-        double Bx_Hz_AB = 0.5 * (Bx_Hz_A + Bx_Hz_B); // at i , j
+    double Bx_Hz_AB = 0.5 * (Bx_Hz_A + Bx_Hz_B); // at i , j
 
-        double By_Hz_A = f.B[1][i][j+1] * (f.H[2][i+1][j+1] - f.H[2][i][j+1])/(f.dm.Deltax[i]); // at i, j + 1/2
-        double By_Hz_B = f.B[1][i][j] * (f.H[2][i+1][j] - f.H[2][i][j])/(f.dm.Deltax[i]); // at i, j - 1/2
+    double By_Hz_A = f.B[1][i][j+1] * (f.H[2][i+1][j+1] - f.H[2][i][j+1])/(f.dm.Deltax[i]); // at i, j + 1/2
+    double By_Hz_B = f.B[1][i][j] * (f.H[2][i+1][j] - f.H[2][i][j])/(f.dm.Deltax[i]); // at i, j - 1/2
 
-        double By_Hz_AB = 0.5 * (By_Hz_A + By_Hz_B); // at i,j
+    double By_Hz_AB = 0.5 * (By_Hz_A + By_Hz_B); // at i,j
 
-        double Bz_Hy_Hx_AB = f.B[2][i][j] * ((f.H[1][i+1][j] - f.H[1][i][j])/(f.dm.Deltax[i]) + (f.H[0][i][j] - f.H[0][i][j+1])/(f.dm.Deltay)); // at i,j
+    double Bz_Hy_Hx_AB = f.B[2][i][j] * ((f.H[1][i+1][j] - f.H[1][i][j])/(f.dm.Deltax[i]) + (f.H[0][i][j] - f.H[0][i][j+1])/(f.dm.Deltay)); // at i,j
 
-        double B_dot_curl_H_AB = Bx_Hz_AB -  By_Hz_AB + Bz_Hy_Hx_AB; // at i,j
+    double B_dot_curl_H_AB = Bx_Hz_AB - By_Hz_AB + Bz_Hy_Hx_AB; // at i,j
 
-        // Calculates B dot (curl(H)) at i , j-1
+    // Calculates B dot (curl(H)) at i , j-1
 
-        double Bx_Hz_C = f.B[0][i+1][j-1] * (f.H[2][i+1][j] - f.H[2][i+1][j-1])/(f.dm.Deltay); // at i + 1/2, j - 1
-        double Bx_Hz_D = f.B[0][i][j-1] * (f.H[2][i][j] - f.H[2][i][j-1])/(f.dm.Deltay); // at i - 1/2, j-1
+    double Bx_Hz_C = f.B[0][i+1][j-1] * (f.H[2][i+1][j] - f.H[2][i+1][j-1])/(f.dm.Deltay); // at i + 1/2, j - 1
+    double Bx_Hz_D = f.B[0][i][j-1] * (f.H[2][i][j] - f.H[2][i][j-1])/(f.dm.Deltay); // at i - 1/2, j-1
 
-        double Bx_Hz_CD = 0.5 * (Bx_Hz_C + Bx_Hz_D); // at i , j - 1
+    double Bx_Hz_CD = 0.5 * (Bx_Hz_C + Bx_Hz_D); // at i , j - 1
 
-        double By_Hz_C = f.B[1][i][j] * (f.H[2][i+1][j] - f.H[2][i][j])/(f.dm.Deltax[i]); // at i, j - 1/2
-        double By_Hz_D = f.B[1][i][j-1] * (f.H[2][i+1][j-1] - f.H[2][i][j-1])/(f.dm.Deltax[i]); // at i , j - 3/2
+    double By_Hz_C = f.B[1][i][j] * (f.H[2][i+1][j] - f.H[2][i][j])/(f.dm.Deltax[i]); // at i, j - 1/2
+    double By_Hz_D = f.B[1][i][j-1] * (f.H[2][i+1][j-1] - f.H[2][i][j-1])/(f.dm.Deltax[i]); // at i , j - 3/2
 
-        double By_Hz_CD = 0.5 * (By_Hz_C + By_Hz_D); // at i, j - 1
+    double By_Hz_CD = 0.5 * (By_Hz_C + By_Hz_D); // at i, j - 1
 
-        double Bz_Hy_Hx_CD = f.B[2][i][j-1] * ((f.H[1][i+1][j] - f.H[1][i][j])/(f.dm.Deltax[i]) + (f.H[0][i][j-1] - f.H[0][i][j])/(f.dm.Deltay)); // at i,j-1 //continue working
+    double Bz_Hy_Hx_CD = f.B[2][i][j-1] * ((f.H[1][i+1][j] - f.H[1][i][j])/(f.dm.Deltax[i]) + (f.H[0][i][j-1] - f.H[0][i][j])/(f.dm.Deltay)); // at i,j-1
 
-        double B_dot_curl_H_CD = Bx_Hz_CD -  By_Hz_CD + Bz_Hy_Hx_CD; // at i,j-1
+    double B_dot_curl_H_CD = Bx_Hz_CD - By_Hz_CD + Bz_Hy_Hx_CD; // at i,j-1
 
-        double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
-        double Bx_i_minus_1 = 0.5 * (f.B[0][i+1][j-1] + f.B[0][i][j-1]);
-        double By_j = 0.5 * (f.B[1][i][j+1] + f.B[1][i][j]);
-        double By_j_minus_1 = 0.5 * (f.B[1][i][j-1] + f.B[1][i][j]); 
-        double Bz = f.B[2][i][j];
-        double Bz_j_minus_1 = f.B[2][i][j-1];
+    double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
+    double Bx_i_minus_1 = 0.5 * (f.B[0][i+1][j-1] + f.B[0][i][j-1]);
+    double By_j = 0.5 * (f.B[1][i][j+1] + f.B[1][i][j]);
+    double By_j_minus_1 = 0.5 * (f.B[1][i][j-1] + f.B[1][i][j]); 
+    double Bz = f.B[2][i][j];
+    double Bz_j_minus_1 = f.B[2][i][j-1];
 
-        double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-        double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1)/4.0 +(By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_j_minus_1 * Bz_j_minus_1);
-        
-        return 0.5 * ((B_dot_curl_H_AB * Bx_i)/(B_ij) + (B_dot_curl_H_CD * Bx_i_minus_1)/(B_ij_minus_1));
+    double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
+    double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1)/4.0 +(By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_j_minus_1 * Bz_j_minus_1);
+    
+    return 0.5 * ((B_dot_curl_H_AB * Bx_i)/(B_ij) + (B_dot_curl_H_CD * Bx_i_minus_1)/(B_ij_minus_1));
 }
 
 double compute_A2_y(int i, int j, const Fields & f){
@@ -177,7 +175,7 @@ double compute_A2_y(int i, int j, const Fields & f){
 
     double Bz_Hy_Hx_AB = f.B[2][i][j] * ((f.H[1][i+1][j] - f.H[1][i][j])/(f.dm.Deltax[i]) + (f.H[0][i][j] - f.H[0][i][j+1])/(f.dm.Deltay)); // at i,j
 
-    double B_dot_curl_H_AB = Bx_Hz_AB -  By_Hz_AB + Bz_Hy_Hx_AB; // at i,j
+    double B_dot_curl_H_AB = Bx_Hz_AB - By_Hz_AB + Bz_Hy_Hx_AB; // at i,j
 
     // Calculates B dot (curl(H)) at i-1 , j
 
@@ -186,14 +184,14 @@ double compute_A2_y(int i, int j, const Fields & f){
 
     double Bx_Hz_CD = 0.5 * (Bx_Hz_C + Bx_Hz_D); // at i-1 , j
 
-    double By_Hz_C = f.B[1][i-1][j+1] * (f.H[2][i][j+1] - f.H[2][i-1][j+1])/(f.dm.Deltax[i]); // at i, j - 1/2
-    double By_Hz_D = f.B[1][i-1][j] * (f.H[2][i][j] - f.H[2][i-1][j])/(f.dm.Deltax[i]); // at i , j - 3/2
+    double By_Hz_C = f.B[1][i-1][j+1] * (f.H[2][i][j+1] - f.H[2][i-1][j+1])/(f.dm.Deltax[i]); // at i-1, j + 1/2
+    double By_Hz_D = f.B[1][i-1][j] * (f.H[2][i][j] - f.H[2][i-1][j])/(f.dm.Deltax[i]); // at i-1, j - 1/2
 
     double By_Hz_CD = 0.5 * (By_Hz_C + By_Hz_D); // at i-1, j
 
-    double Bz_Hy_Hx_CD = f.B[2][i-1][j] * ((f.H[1][i][j] - f.H[1][i-1][j])/(f.dm.Deltax[i]) + (H[0][i-1][j] - H[0][i-1][j+1])/(dm.Deltay)); // at i,j-1 //continue working
+    double Bz_Hy_Hx_CD = f.B[2][i-1][j] * ((f.H[1][i][j] - f.H[1][i-1][j])/(f.dm.Deltax[i]) + (f.H[0][i-1][j] - f.H[0][i-1][j+1])/(f.dm.Deltay)); 
 
-    double B_dot_curl_H_CD = Bx_Hz_CD -  By_Hz_CD + Bz_Hy_Hx_CD; // at i,j-1
+    double B_dot_curl_H_CD = Bx_Hz_CD - By_Hz_CD + Bz_Hy_Hx_CD; // at i-1,j
 
     double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
     double Bx_i_minus_1_j = 0.5 * (f.B[0][i][j] + f.B[0][i-1][j]);
@@ -206,7 +204,6 @@ double compute_A2_y(int i, int j, const Fields & f){
     double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
         
     return 0.5 * ((B_dot_curl_H_AB * By_j)/(B_ij) + (B_dot_curl_H_CD * By_i_minus_1_j)/(B_i_minus_1_j));
-            
 }
 
 double compute_A2_z(int i, int j, const Fields & f){
@@ -227,7 +224,7 @@ double compute_A2_z(int i, int j, const Fields & f){
 
     double Bz_Hy_Hx_AB = f.B[2][i][j] * ((f.H[1][i+1][j] - f.H[1][i][j])/(f.dm.Deltax[i]) + (f.H[0][i][j] - f.H[0][i][j+1])/(f.dm.Deltay)); // at i,j
 
-    double B_dot_curl_H_AB = Bx_Hz_AB -  By_Hz_AB + Bz_Hy_Hx_AB; // at i,j
+    double B_dot_curl_H_AB = Bx_Hz_AB - By_Hz_AB + Bz_Hy_Hx_AB; // at i,j
 
     // Calculates B dot (curl(H)) at i-1 , j
 
@@ -236,14 +233,14 @@ double compute_A2_z(int i, int j, const Fields & f){
 
     double Bx_Hz_CD = 0.5 * (Bx_Hz_C + Bx_Hz_D); // at i-1 , j
 
-    double By_Hz_C = f.B[1][i-1][j+1] * (f.H[2][i][j+1] - f.H[2][i-1][j+1])/(f.dm.Deltax[i]); // at i, j - 1/2
-    double By_Hz_D = f.B[1][i-1][j] * (f.H[2][i][j] - f.H[2][i-1][j])/(f.dm.Deltax[i]); // at i , j - 3/2
+    double By_Hz_C = f.B[1][i-1][j+1] * (f.H[2][i][j+1] - f.H[2][i-1][j+1])/(f.dm.Deltax[i]); // at i-1, j + 1/2
+    double By_Hz_D = f.B[1][i-1][j] * (f.H[2][i][j] - f.H[2][i-1][j])/(f.dm.Deltax[i]); // at i-1, j - 1/2
 
     double By_Hz_CD = 0.5 * (By_Hz_C + By_Hz_D); // at i-1, j
 
-    double Bz_Hy_Hx_CD = f.B[2][i-1][j] * ((f.H[1][i][j] - f.H[1][i-1][j])/(f.dm.Deltax[i]) + (H[0][i-1][j] - H[0][i-1][j+1])/(dm.Deltay)); // at i-1,j
+    double Bz_Hy_Hx_CD = f.B[2][i-1][j] * ((f.H[1][i][j] - f.H[1][i-1][j])/(f.dm.Deltax[i]) + (f.H[0][i-1][j] - f.H[0][i-1][j+1])/(f.dm.Deltay)); 
 
-    double B_dot_curl_H_CD = Bx_Hz_CD -  By_Hz_CD + Bz_Hy_Hx_CD; // at i-1,j
+    double B_dot_curl_H_CD = Bx_Hz_CD - By_Hz_CD + Bz_Hy_Hx_CD; // at i-1,j
 
     // Calculates B dot (curl(H)) at i-1, j-1
 
@@ -252,40 +249,40 @@ double compute_A2_z(int i, int j, const Fields & f){
 
     double Bx_Hz_EF = 0.5 * (Bx_Hz_E + Bx_Hz_F); // at i-1 , j-1
 
-    double By_Hz_E = f.B[1][i-1][j] * (f.H[2][i][j] - f.H[2][i-1][j])/(f.dm.Deltax[i]); // at i, j - 1/2
-    double By_Hz_F = f.B[1][i-1][j-1] * (f.H[2][i][j-1] - f.H[2][i-1][j-1])/(f.dm.Deltax[i]); // at i , j - 3/2
+    double By_Hz_E = f.B[1][i-1][j] * (f.H[2][i][j] - f.H[2][i-1][j])/(f.dm.Deltax[i]); // at i-1, j - 1/2
+    double By_Hz_F = f.B[1][i-1][j-1] * (f.H[2][i][j-1] - f.H[2][i-1][j-1])/(f.dm.Deltax[i]); // at i-1, j - 3/2
 
     double By_Hz_EF = 0.5 * (By_Hz_E + By_Hz_F); // at i-1, j-1
 
-    double Bz_Hy_Hx_EF = f.B[2][i-1][j-1] * ((f.H[1][i][j-1] - f.H[1][i-1][j-1])/(f.dm.Deltax[i]) + (H[0][i-1][j-1] - H[0][i-1][j])/(dm.Deltay)); // at i-1,j
+    double Bz_Hy_Hx_EF = f.B[2][i-1][j-1] * ((f.H[1][i][j-1] - f.H[1][i-1][j-1])/(f.dm.Deltax[i]) + (f.H[0][i-1][j-1] - f.H[0][i-1][j])/(f.dm.Deltay)); 
 
-    double B_dot_curl_H_EF = Bx_Hz_EF -  By_Hz_EF + Bz_Hy_Hx_EF; // at i-1,j-1
+    double B_dot_curl_H_EF = Bx_Hz_EF - By_Hz_EF + Bz_Hy_Hx_EF; // at i-1,j-1
 
     // Calculates B dot (curl(H)) at i, j-1
 
     double Bx_Hz_G = f.B[0][i+1][j-1] * (f.H[2][i+1][j] - f.H[2][i+1][j-1])/(f.dm.Deltay); // at i + 1/2, j - 1
     double Bx_Hz_H = f.B[0][i][j-1] * (f.H[2][i][j] - f.H[2][i][j-1])/(f.dm.Deltay); // at i - 1/2, j-1
 
-    double Bx_Hz_GH = 0.5 * (Bx_Hz_C + Bx_Hz_D); // at i , j - 1
+    double Bx_Hz_GH = 0.5 * (Bx_Hz_G + Bx_Hz_H); 
 
     double By_Hz_G = f.B[1][i][j] * (f.H[2][i+1][j] - f.H[2][i][j])/(f.dm.Deltax[i]); // at i, j - 1/2
-    double By_Hz_H = f.B[1][i][j-1] * (f.H[2][i+1][j-1] - f.H[2][i][j-1])/(f.dm.Deltax[i]); // at i , j - 3/2
+    double By_Hz_H = f.B[1][i][j-1] * (f.H[2][i+1][j-1] - f.H[2][i][j-1])/(f.dm.Deltax[i]); // at i, j - 3/2
 
-    double By_Hz_GH = 0.5 * (By_Hz_C + By_Hz_D); // at i, j - 1
+    double By_Hz_GH = 0.5 * (By_Hz_G + By_Hz_H); 
 
-    double Bz_Hy_Hx_GH = f.B[2][i][j-1] * ((f.H[1][i+1][j] - f.H[1][i][j])/(f.dm.Deltax[i]) + (f.H[0][i][j-1] - f.H[0][i][j])/(f.dm.Deltay)); // at i,j-1 //continue working
+    double Bz_Hy_Hx_GH = f.B[2][i][j-1] * ((f.H[1][i+1][j] - f.H[1][i][j])/(f.dm.Deltax[i]) + (f.H[0][i][j-1] - f.H[0][i][j])/(f.dm.Deltay)); // at i,j-1
+
     double B_dot_curl_H_GH = Bx_Hz_GH - By_Hz_GH + Bz_Hy_Hx_GH; 
 
     double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
     double Bx_i_minus_1_j = 0.5 * (f.B[0][i][j] + f.B[0][i-1][j]);
     double Bx_i_j_minus_1 = 0.5 * (f.B[0][i+1][j-1] + f.B[0][i][j-1]);
-    double Bx_ij_minus_1 = 0.5 * (f.B[0][i][j-1] + f.B[0][i-1][j-1]); //fix
+    double Bx_ij_minus_1 = 0.5 * (f.B[0][i][j-1] + f.B[0][i-1][j-1]);
 
     double By_j = 0.5 * (f.B[1][i][j+1] + f.B[1][i][j]);
     double By_j_minus_1 = 0.5 * (f.B[1][i][j-1] + f.B[1][i][j]); 
     double By_i_minus_1_j = 0.5 * (f.B[1][i-1][j+1] + f.B[1][i-1][j]);
     double By_ij_minus_1 = 0.5 * (f.B[1][i-1][j] + f.B[1][i-1][j-1]);  
-    
 
     double Bz = f.B[2][i][j];
     double Bz_i_minus_1_j = f.B[2][i-1][j];
@@ -302,23 +299,23 @@ double compute_A2_z(int i, int j, const Fields & f){
 
 double compute_A3_x(int i, int j, const Fields & f){
 
-    //Calculation of A_3_x
+    // Calculation of A_3_x
             
     // Calculates -D dot (curl(E)) at i,j
 
     double Dx_Ez_A = f.D[0][i][j] * (f.E[2][i][j] - f.E[2][i][j+1])/(f.dm.Deltay); // at i - 1/2, j
-    double Dx_Ez_B = f.D.[0][i+1][j] * (f.E[2][i+1][j] - f.E[2][i+1][j+1])/(f.dm.Deltay); // at i + 1/2, j
+    double Dx_Ez_B = f.D[0][i+1][j] * (f.E[2][i+1][j] - f.E[2][i+1][j+1])/(f.dm.Deltay); 
 
     double Dx_Ez_AB = 0.5 * (Dx_Ez_A + Dx_Ez_B); // at i , j
 
     double Dy_Ez_A = f.D[1][i][j+1] * (f.E[2][i+1][j+1] - f.E[2][i][j+1])/(f.dm.Deltax[i]); // at i, j + 1/2
     double Dy_Ez_B = f.D[1][i][j] * (f.E[2][i+1][j] - f.E[2][i][j])/(f.dm.Deltax[i]); // at i, j - 1/2
 
-    double Dy_Ez_AB = 0.5 * (Dy_Hz_A + Dy_Hz_B); // at i,j
+    double Dy_Ez_AB = 0.5 * (Dy_Ez_A + Dy_Ez_B); // FIX: was Dy_Hz_A + Dy_Hz_B
 
-    double Dz_Ey_Ex_AB = f.D[2][i][j] * ((f.E[0][i][j+1] - f.E[0][i][j])/(f.dm.Deltay) + (E[1][i][j] - E[1][i+1][j])/(dm.Deltax[i])); // at i,j
+    double Dz_Ey_Ex_AB = f.D[2][i][j] * ((f.E[0][i][j+1] - f.E[0][i][j])/(f.dm.Deltay) + (f.E[1][i][j] - f.E[1][i+1][j])/(f.dm.Deltax[i])); 
 
-    double D_dot_curl_E_AB = Dx_Ez_AB +  Dy_Ez_AB + Dz_Ey_Ex_AB; // at i,j
+    double D_dot_curl_E_AB = Dx_Ez_AB + Dy_Ez_AB + Dz_Ey_Ex_AB; // at i,j
 
     // Calculates -D dot (curl(E)) at i , j-1
 
@@ -332,9 +329,9 @@ double compute_A3_x(int i, int j, const Fields & f){
 
     double Dy_Ez_CD = 0.5 * (Dy_Ez_C + Dy_Ez_D); // at i, j - 1
 
-    double Dz_Ey_Ex_CD = f.D[2][i][j-1] * ((f.E[0][i][j] - f.E[0][i][j-1])/(f.dm.Deltay) + (E[1][i][j-1] - E[1][i+1][j-1])/(dm.Deltax[i])); // at i,j-1
+    double Dz_Ey_Ex_CD = f.D[2][i][j-1] * ((f.E[0][i][j] - f.E[0][i][j-1])/(f.dm.Deltay) + (f.E[1][i][j-1] - f.E[1][i+1][j-1])/(f.dm.Deltax[i])); 
 
-    double D_dot_curl_E_CD = Dx_Ez_CD +  Dy_Ez_CD + Dz_Ey_Ex_CD; // at i,j-1
+    double D_dot_curl_E_CD = Dx_Ez_CD + Dy_Ez_CD + Dz_Ey_Ex_CD; // at i,j-1
 
     double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
     double Bx_i_minus_1 = 0.5 * (f.B[0][i+1][j-1] + f.B[0][i][j-1]);
@@ -347,7 +344,6 @@ double compute_A3_x(int i, int j, const Fields & f){
     double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1)/4.0 +(By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_j_minus_1 * Bz_j_minus_1);
     
     return 0.5 * ((D_dot_curl_E_AB * Bx_i)/(B_ij) + (D_dot_curl_E_CD * Bx_i_minus_1)/(B_ij_minus_1));
-
 }
 
 double compute_A3_y(int i, int j, const Fields & f){
@@ -364,34 +360,32 @@ double compute_A3_y(int i, int j, const Fields & f){
     double Dy_Ez_A = f.D[1][i][j+1] * (f.E[2][i+1][j+1] - f.E[2][i][j+1])/(f.dm.Deltax[i]); // at i, j + 1/2
     double Dy_Ez_B = f.D[1][i][j] * (f.E[2][i+1][j] - f.E[2][i][j])/(f.dm.Deltax[i]); // at i, j - 1/2
 
-    double Dy_Ez_AB = 0.5 * (Dy_Hz_A + Dy_Hz_B); // at i,j
+    double Dy_Ez_AB = 0.5 * (Dy_Ez_A + Dy_Ez_B); // FIX: was Dy_Hz_A + Dy_Hz_B
 
-    double Dz_Ey_Ex_AB = f.D[2][i][j] * ((f.E[0][i][j+1] - f.E[0][i][j])/(f.dm.Deltay) + (E[1][i][j] - E[1][i+1][j])/(dm.Deltax[i])); // at i,j
+    double Dz_Ey_Ex_AB = f.D[2][i][j] * ((f.E[0][i][j+1] - f.E[0][i][j])/(f.dm.Deltay) + (f.E[1][i][j] - f.E[1][i+1][j])/(f.dm.Deltax[i])); 
 
-    double D_dot_curl_E_AB = Dx_Ez_AB +  Dy_Ez_AB + Dz_Ey_Ex_AB; // at i,j
+    double D_dot_curl_E_AB = Dx_Ez_AB + Dy_Ez_AB + Dz_Ey_Ex_AB; // at i,j
 
     // Calculates -D dot (curl(E)) at i-1 , j
 
     double Dx_Ez_C = f.D[0][i][j] * (f.E[2][i][j] - f.E[2][i][j+1])/(f.dm.Deltay); // at i - 1/2, j 
     double Dx_Ez_D = f.D[0][i-1][j] * (f.E[2][i-1][j-1] - f.E[2][i-1][j+1])/(f.dm.Deltay); // at i - 3/2, j
 
-    double Dx_Ez_CD = 0.5 * (Dx_Ez_G + Dx_Ez_H); // at i-1 , j
+    double Dx_Ez_CD = 0.5 * (Dx_Ez_C + Dx_Ez_D); // FIX: was Dx_Ez_G + Dx_Ez_H
 
-    double Dy_Ez_C = f.D[1][i-1][j+1] * (f.E[2][i][j+1] - f.E[2][i-1][j+1])/(f.dm.Deltax[i]); // at i, j - 1/2
-    double Dy_Ez_D = f.D[1][i-1][j] * (f.E[2][i][j] - f.E[2][i-1][j])/(f.dm.Deltax[i]); // at i , j - 3/2
+    double Dy_Ez_C = f.D[1][i-1][j+1] * (f.E[2][i][j+1] - f.E[2][i-1][j+1])/(f.dm.Deltax[i]); // at i-1, j + 1/2
+    double Dy_Ez_D = f.D[1][i-1][j] * (f.E[2][i][j] - f.E[2][i-1][j])/(f.dm.Deltax[i]); // at i-1, j - 1/2
 
-    double Dy_Ez_CD = 0.5 * (Dy_Ez_G + Dy_Ez_H); // at i-1, j
+    double Dy_Ez_CD = 0.5 * (Dy_Ez_C + Dy_Ez_D); // FIX: was Dy_Ez_G + Dy_Ez_H
 
-    double Dz_Ey_Ex_CD = f.D[2][i-1][j] * ((f.E[1][i-1][j] - f.E[1][i][j])/(f.dm.Deltax[i]) + (E[0][i-1][j] - E[0][i-1][j+1])/(dm.Deltay)); // at i-1,j
+    double Dz_Ey_Ex_CD = f.D[2][i-1][j] * ((f.E[1][i-1][j] - f.E[1][i][j])/(f.dm.Deltax[i]) + (f.E[0][i-1][j] - f.E[0][i-1][j+1])/(f.dm.Deltay)); 
 
     double D_dot_curl_E_CD = Dx_Ez_CD + Dy_Ez_CD + Dz_Ey_Ex_CD; // at i-1,j
 
     double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
     double Bx_i_minus_1_j = 0.5 * (f.B[0][i][j] + f.B[0][i-1][j]);
-
     double By_j = 0.5 * (f.B[1][i][j+1] + f.B[1][i][j]);
     double By_i_minus_1_j = 0.5 * (f.B[1][i-1][j+1] + f.B[1][i-1][j]);
- 
     double Bz = f.B[2][i][j];
     double Bz_i_minus_1_j = f.B[2][i-1][j];
 
@@ -402,7 +396,7 @@ double compute_A3_y(int i, int j, const Fields & f){
 }
 
 double compute_A3_z(int i, int j, const Fields & f){
-   // Calculation of A_3_z
+    // Calculation of A_3_z
 
     // Calculates -D dot (curl(E)) at i,j
 
@@ -414,11 +408,11 @@ double compute_A3_z(int i, int j, const Fields & f){
     double Dy_Ez_A = f.D[1][i][j+1] * (f.E[2][i+1][j+1] - f.E[2][i][j+1])/(f.dm.Deltax[i]); // at i, j + 1/2
     double Dy_Ez_B = f.D[1][i][j] * (f.E[2][i+1][j] - f.E[2][i][j])/(f.dm.Deltax[i]); // at i, j - 1/2
 
-    double Dy_Ez_AB = 0.5 * (Dy_Hz_A + Dy_Hz_B); // at i,j
+    double Dy_Ez_AB = 0.5 * (Dy_Ez_A + Dy_Ez_B); // FIX: was Dy_Hz_A + Dy_Hz_B
 
-    double Dz_Ey_Ex_AB = f.D[2][i][j] * ((f.E[0][i][j+1] - f.E[0][i][j])/(f.dm.Deltay) + (E[1][i][j] - E[1][i+1][j])/(dm.Deltax[i])); // at i,j
+    double Dz_Ey_Ex_AB = f.D[2][i][j] * ((f.E[0][i][j+1] - f.E[0][i][j])/(f.dm.Deltay) + (f.E[1][i][j] - f.E[1][i+1][j])/(f.dm.Deltax[i])); 
 
-    double D_dot_curl_E_AB = Dx_Ez_AB +  Dy_Ez_AB + Dz_Ey_Ex_AB; // at i,j
+    double D_dot_curl_E_AB = Dx_Ez_AB + Dy_Ez_AB + Dz_Ey_Ex_AB; // at i,j
 
     // Calculates -D dot (curl(E)) at i , j-1
 
@@ -432,23 +426,23 @@ double compute_A3_z(int i, int j, const Fields & f){
 
     double Dy_Ez_CD = 0.5 * (Dy_Ez_C + Dy_Ez_D); // at i, j - 1
 
-    double Dz_Ey_Ex_CD = f.D[2][i][j-1] * ((f.E[0][i][j] - f.E[0][i][j-1])/(f.dm.Deltay) + (E[1][i][j-1] - E[1][i+1][j-1])/(dm.Deltax[i])); // at i,j-1
+    double Dz_Ey_Ex_CD = f.D[2][i][j-1] * ((f.E[0][i][j] - f.E[0][i][j-1])/(f.dm.Deltay) + (f.E[1][i][j-1] - f.E[1][i+1][j-1])/(f.dm.Deltax[i])); 
 
-    double D_dot_curl_E_CD = Dx_Ez_CD +  Dy_Ez_CD + Dz_Ey_Ex_CD; // at i,j-1
+    double D_dot_curl_E_CD = Dx_Ez_CD + Dy_Ez_CD + Dz_Ey_Ex_CD; // at i,j-1
 
     // Calculates -D dot (curl(E)) at i-1, j-1
 
     double Dx_Ez_E = f.D[0][i][j-1] * (f.E[2][i][j-1] - f.E[2][i][j])/(f.dm.Deltay); // at i - 1/2, j-1 
     double Dx_Ez_F = f.D[0][i-1][j-1] * (f.E[2][i-1][j-1] - f.E[2][i-1][j])/(f.dm.Deltay); // at i - 3/2, j-1
 
-    double Dx_Ez_EF = 0.5 * (Dx_Hz_E + Dx_Hz_F); // at i-1 , j-1
+    double Dx_Ez_EF = 0.5 * (Dx_Ez_E + Dx_Ez_F); // FIX: was Dx_Hz_E + Dx_Hz_F
 
-    double Dy_Ez_E = f.D[1][i-1][j] * (f.E[2][i][j] - f.E[2][i-1][j])/(f.dm.Deltax[i]); // at i, j - 1/2
-    double Dy_Ez_F = f.D[1][i-1][j-1] * (f.E[2][i][j-1] - f.E[2][i-1][j-1])/(f.dm.Deltax[i]); // at i , j - 3/2
+    double Dy_Ez_E = f.D[1][i-1][j] * (f.E[2][i][j] - f.E[2][i-1][j])/(f.dm.Deltax[i]); // at i-1, j - 1/2
+    double Dy_Ez_F = f.D[1][i-1][j-1] * (f.E[2][i][j-1] - f.E[2][i-1][j-1])/(f.dm.Deltax[i]); // at i-1, j - 3/2
 
-    double Dy_Ez_EF = 0.5 * (Dy_Ez_E + Dy_Ez_F); // at i-1, j-1
+    double Dy_Ez_EF = 0.5 * (Dy_Ez_E + Dy_Ez_F); // FIX: was Dy_Hz_E + Dy_Hz_F
 
-    double Dz_Ey_Ex_EF = f.D[2][i-1][j-1] * ((f.E[1][i][j-1] - f.E[1][i-1][j-1])/(f.dm.Deltax[i]) + (E[0][i-1][j-1] - E[0][i-1][j])/(dm.Deltay)); // at i-1,j
+    double Dz_Ey_Ex_EF = f.D[2][i-1][j-1] * ((f.E[1][i][j-1] - f.E[1][i-1][j-1])/(f.dm.Deltax[i]) + (f.E[0][i-1][j-1] - f.E[0][i-1][j])/(f.dm.Deltay)); 
 
     double D_dot_curl_E_EF = Dx_Ez_EF + Dy_Ez_EF + Dz_Ey_Ex_EF; // at i-1,j-1
 
@@ -459,26 +453,24 @@ double compute_A3_z(int i, int j, const Fields & f){
 
     double Dx_Ez_GH = 0.5 * (Dx_Ez_G + Dx_Ez_H); // at i-1 , j
 
-    double Dy_Ez_G = f.D[1][i-1][j+1] * (f.E[2][i][j+1] - f.E[2][i-1][j+1])/(f.dm.Deltax[i]); // at i, j - 1/2
-    double Dy_Ez_H = f.D[1][i-1][j] * (f.E[2][i][j] - f.E[2][i-1][j])/(f.dm.Deltax[i]); // at i , j - 3/2
+    double Dy_Ez_G = f.D[1][i-1][j+1] * (f.E[2][i][j+1] - f.E[2][i-1][j+1])/(f.dm.Deltax[i]); // at i-1, j + 1/2
+    double Dy_Ez_H = f.D[1][i-1][j] * (f.E[2][i][j] - f.E[2][i-1][j])/(f.dm.Deltax[i]); // at i-1, j - 1/2
 
     double Dy_Ez_GH = 0.5 * (Dy_Ez_G + Dy_Ez_H); // at i-1, j
 
-    double Dz_Ey_Ex_GH = f.D[2][i-1][j] * ((f.E[1][i-1][j] - f.E[1][i][j])/(f.dm.Deltax[i]) + (E[0][i-1][j] - E[0][i-1][j+1])/(dm.Deltay)); // at i-1,j
+    double Dz_Ey_Ex_GH = f.D[2][i-1][j] * ((f.E[1][i-1][j] - f.E[1][i][j])/(f.dm.Deltax[i]) + (f.E[0][i-1][j] - f.E[0][i-1][j+1])/(f.dm.Deltay)); 
 
     double D_dot_curl_E_GH = Dx_Ez_GH + Dy_Ez_GH + Dz_Ey_Ex_GH; // at i-1,j
-
 
     double Bx_i = 0.5 * (f.B[0][i+1][j] + f.B[0][i][j]);
     double Bx_i_minus_1_j = 0.5 * (f.B[0][i][j] + f.B[0][i-1][j]);
     double Bx_i_j_minus_1 = 0.5 * (f.B[0][i+1][j-1] + f.B[0][i][j-1]);
-    double Bx_ij_minus_1 = 0.5 * (f.B[0][i][j-1] + f.B[0][i-1][j-1]); //fix
+    double Bx_ij_minus_1 = 0.5 * (f.B[0][i][j-1] + f.B[0][i-1][j-1]);
 
     double By_j = 0.5 * (f.B[1][i][j+1] + f.B[1][i][j]);
     double By_j_minus_1 = 0.5 * (f.B[1][i][j-1] + f.B[1][i][j]); 
     double By_i_minus_1_j = 0.5 * (f.B[1][i-1][j+1] + f.B[1][i-1][j]);
     double By_ij_minus_1 = 0.5 * (f.B[1][i-1][j] + f.B[1][i-1][j-1]);  
-    
 
     double Bz = f.B[2][i][j];
     double Bz_i_minus_1_j = f.B[2][i-1][j];
@@ -495,48 +487,31 @@ double compute_A3_z(int i, int j, const Fields & f){
 
 
 /*
-    Computes current divided by 4*pi/c components along cell edges in reduced units i.e., c*t_0/(L_0*B_0)*E
+    Computes current density J components in reduced units.
 
-    Input: B: magnetic field in reduced units at cell centers
+    Input: B, E, H, D: magnetic, electric, H, and displacement fields
+           Rho: charge density (ScalarField)
            N_GC: number of ghost cells
            dm: Domain object containing information about the simulation domain
-    Output: E, J: electric field and current density in reduced units
+    Output: J: current density in reduced units
 */
-void Compute_J(VectorField & B, VectorField & J, size_t N_GC, const Domain & dm)
+void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & D,
+               ScalarField & Rho, VectorField & J, size_t N_GC, const Domain & dm)
 {
-    double Deltax_n1;
+    Fields f{E, B, H, D, Rho, dm};
+
     for(size_t i=N_GC; i<B.shape()[1]-N_GC; i++){
-        Deltax_n1 = 0.5*(dm.Deltax[i-1]+dm.Deltax[i]);
         for(size_t j=N_GC; j<B.shape()[2]-N_GC; j++){
-
-            J[0][i][j] = compute_A1_x(i, j, Fields) + compute_A2_x(i, j, Fields) + compute_A3_x(i, j, Fields);
-            J[1][i][j] = compute_A1_y(i, j, Fields) + compute_A2_y(i, j, Fields) + compute_A3_y(i, j, Fields);
-            J[2][i][j] = compute_A1_z(i, j, Fields) + compute_A2_z(i, j, Fields) + compute_A3_z(i, j, Fields);
-        }
-    }
-
-    return;
-}
-
-void Compute_J(VectorField & B, VectorField & J, size_t N_GC, const Domain & dm)
-{
-    double Deltax_n1;
-    for(size_t i=N_GC; i<B.shape()[1]-N_GC; i++){
-        Deltax_n1 = 0.5*(dm.Deltax[i-1]+dm.Deltax[i]);
-        for(size_t j=N_GC; j<B.shape()[2]-N_GC; j++){
-
-            auto J_vec = compute_current_density(B, J, H, D, Rho, i, j)
             
-
-
-            J[0][i][j] = J_vec.Jx;
-            J[1][i][j] = J_vec.Jy;                                                                                                                                                                                                                                                                                                               
-            J[2][i][j] = J_vec.Jz;
+            J[0][i][j] = compute_A1_x(i, j, f) + compute_A2_x(i, j, f) + compute_A3_x(i, j, f);
+            J[1][i][j] = compute_A1_y(i, j, f) + compute_A2_y(i, j, f) + compute_A3_y(i, j, f);
+            J[2][i][j] = compute_A1_z(i, j, f) + compute_A2_z(i, j, f) + compute_A3_z(i, j, f);
         }
     }
 
     return;
 }
+
 
 double rn_uniform() {
     // Making rng static ensures that it stays the same

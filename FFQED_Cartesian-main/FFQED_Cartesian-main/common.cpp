@@ -30,7 +30,7 @@ constexpr double MeVtoErg = 1/6.2415e5; //conversion factor from MeV to erg
 constexpr double M_solar = 1.98847e33; //solar mass in g
 constexpr double alpha_e = 0.0072973525693; //electromagnetic fine structure constant (dimensionless)
 constexpr double eB_crit = M_e*M_e; //critical magnetic field times elementary charge in MeV^2
-constexpr double ComptonWL = hbarc/M_e; //reduced electron Compton wavelength hbar*c/(m_e*c^2) in fm (this is the Compton wavelength appearing in Chamel and Stoyanov 2020)
+constexpr double ComptonWL = hbarc/M_e; //reduced electron Compton wavelength hbar*c/(m_e*c^2) in fm
 constexpr double amu = 931.49410242; //1 amu in MeV
 constexpr double microU = 931.49410242*1.0e-6; //1 micro-u (10^{-6} atomic mass units) in MeV
 constexpr double gammaEM = 0.577215664901532; //Euler-Mascheroni constant
@@ -39,7 +39,6 @@ constexpr double sigma_SB = 5.670374e-5; //Stefan-Boltzmann constant in erg/cm^2
 constexpr double GaussConverter = 6.241509074e-8/hbarc; //conversion factor between 1 statCoulomb*Gauss to __ MeV/fm/hbarc = ___ fm^-2
 constexpr double GaussConverter2 = 6.241509074e-8*hbarc; //conversion factor between 1 statCoulomb*Gauss to __ MeV/fm*hbarc = ___ MeV^2
 constexpr double GaussConverter3 = 4.002719868e16; //conversion factor: 1 sqrt(MeV/fm^3) = 4.002719868e16 G
-
 
 constexpr double B_0 = 1e13; //characteristic magnetic field (G)
 constexpr double n_e0 = 1e-4; //characteristic electron density (fm^{-3})
@@ -50,10 +49,10 @@ constexpr double s_0 = 1e18; //characteristic entropy density (erg/K/cm^3)
 constexpr double E_0 = B_0*L_0/(c*t_0); //characteristic electric field (statV/cm)
 
 /*
-    Load simulation parameters from SimProfile.in
+    Load simulation parameters from SimSetup.in
     Inputs: world_rank: rank of current process
     Output: params: object of class SimParams
-            bcparams: object of class BCParams
+            Bparams: object of class BandBCParams
 */
 void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
 {
@@ -95,15 +94,15 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
         if(labels[j] == "Ny")
             params.Ny = stoul(values[j]);
         if(labels[j] == "x_min")
-            params.x_min = stod(values[j])/L_0; //Converts from cm to reduced units
+            params.x_min = stod(values[j])/L_0;
         if(labels[j] == "x_max")
-            params.x_max = stod(values[j])/L_0; //Converts from cm to reduced units
+            params.x_max = stod(values[j])/L_0;
         if(labels[j] == "y_min")
-            params.y_min = stod(values[j])/L_0; //Converts from cm to reduced units
+            params.y_min = stod(values[j])/L_0;
         if(labels[j] == "y_max")
-            params.y_max = stod(values[j])/L_0; //Converts from cm to reduced units
+            params.y_max = stod(values[j])/L_0;
         if(labels[j] == "t_max")
-            params.t_max = stod(values[j])*yr/t_0; //Converts from yr to reduced units
+            params.t_max = stod(values[j])*yr/t_0;
         if(labels[j] == "k_C")
             params.k_C = stod(values[j]);
         if(labels[j] == "rho_cutoff")
@@ -122,26 +121,49 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
         if(labels[j] == "OutputFile")
             params.OutputFile = values[j];
 
+        // ---- B field initial conditions ----
         if(labels[j] == "B_pol_init")
-            Bparams.B_pol_init = stod(values[j])/B_0; //Converts from G to reduced units
+            Bparams.B_pol_init = stod(values[j])/B_0;
         if(labels[j] == "theta_B")
-            Bparams.theta_B = stod(values[j])*pi/180.; //Converts from degrees to radians
+            Bparams.theta_B = stod(values[j])*pi/180.;
         if(labels[j] == "B_tor_init"){
             if(values[j] == "true")
                 Bparams.B_tor_init = true;
             else Bparams.B_tor_init = false;
         }
         if(labels[j] == "B_tor_max")
-            Bparams.B_tor_max = stod(values[j])/B_0; //Converts from G to reduced units
+            Bparams.B_tor_max = stod(values[j])/B_0;
         if(labels[j] == "B_tor_x_center")
-            Bparams.B_tor_x_center = stod(values[j])/L_0; //Converts from cm to reduced units
+            Bparams.B_tor_x_center = stod(values[j])/L_0;
         if(labels[j] == "B_tor_x_width")
-            Bparams.B_tor_x_width = stod(values[j])/L_0; //Converts from cm to reduced units
+            Bparams.B_tor_x_width = stod(values[j])/L_0;
         if(labels[j] == "B_tor_y_center")
-            Bparams.B_tor_y_center = stod(values[j])/L_0; //Converts from cm to reduced units
+            Bparams.B_tor_y_center = stod(values[j])/L_0;
         if(labels[j] == "B_tor_y_width")
-            Bparams.B_tor_y_width = stod(values[j])/L_0; //Converts from cm to reduced units
+            Bparams.B_tor_y_width = stod(values[j])/L_0;
 
+        // ---- D field initial conditions ---- (ADDED)
+        if(labels[j] == "D_pol_init")
+            Bparams.D_pol_init = stod(values[j])/B_0;
+        if(labels[j] == "theta_D")
+            Bparams.theta_D = stod(values[j])*pi/180.;
+        if(labels[j] == "D_tor_init"){
+            if(values[j] == "true")
+                Bparams.D_tor_init = true;
+            else Bparams.D_tor_init = false;
+        }
+        if(labels[j] == "D_tor_max")
+            Bparams.D_tor_max = stod(values[j])/B_0;
+        if(labels[j] == "D_tor_x_center")
+            Bparams.D_tor_x_center = stod(values[j])/L_0;
+        if(labels[j] == "D_tor_x_width")
+            Bparams.D_tor_x_width = stod(values[j])/L_0;
+        if(labels[j] == "D_tor_y_center")
+            Bparams.D_tor_y_center = stod(values[j])/L_0;
+        if(labels[j] == "D_tor_y_width")
+            Bparams.D_tor_y_width = stod(values[j])/L_0;
+
+        // ---- B field boundary conditions ----
         if(labels[j] == "B_perp_lower")
             Bparams.B_perp_lower = values[j];
         if(labels[j] == "B_parallel_lower")
@@ -149,13 +171,31 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
         if(labels[j] == "B_parallel_shear_type")
             Bparams.B_parallel_shear_type = values[j];
         if(labels[j] == "B_parallel_lower_shear_By")
-            Bparams.B_parallel_lower_shear_By = stod(values[j])/B_0; //Converts from G to reduced units
+            Bparams.B_parallel_lower_shear_By = stod(values[j])/B_0;
         if(labels[j] == "B_parallel_lower_shear_Bz")
-            Bparams.B_parallel_lower_shear_Bz = stod(values[j])/B_0; //Converts from G to reduced units
+            Bparams.B_parallel_lower_shear_Bz = stod(values[j])/B_0;
         if(labels[j] == "B_pol_upper")
             Bparams.B_pol_upper = values[j];
         if(labels[j] == "B_tor_upper")
             Bparams.B_tor_upper = values[j];
+
+        // ---- D field boundary conditions ---- (ADDED)
+        if(labels[j] == "D_perp_lower")
+            Bparams.D_perp_lower = values[j];
+        if(labels[j] == "D_parallel_lower")
+            Bparams.D_parallel_lower = values[j];
+        if(labels[j] == "D_parallel_shear_type")
+            Bparams.D_parallel_shear_type = values[j];
+        if(labels[j] == "D_parallel_lower_shear_Dy")
+            Bparams.D_parallel_lower_shear_Dy = stod(values[j])/B_0;
+        if(labels[j] == "D_parallel_lower_shear_Dz")
+            Bparams.D_parallel_lower_shear_Dz = stod(values[j])/B_0;
+        if(labels[j] == "D_pol_upper")
+            Bparams.D_pol_upper = values[j];
+        if(labels[j] == "D_tor_upper")
+            Bparams.D_tor_upper = values[j];
+
+        // ---- E field boundary conditions ----
         if(labels[j] == "E_perp_lower")
             Bparams.E_perp_lower = values[j];
         if(labels[j] == "E_parallel_lower"){
@@ -169,30 +209,38 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
         if(labels[j] == "E_parallel_upper")
             Bparams.E_parallel_upper = values[j];
 
-        if(labels[j] == "tor_vel_shear"){
+        // ---- H field boundary conditions ---- (ADDED)
+        if(labels[j] == "H_perp_lower")
+            Bparams.H_perp_lower = values[j];
+        if(labels[j] == "H_parallel_lower")
+            Bparams.H_parallel_lower = values[j];
+        if(labels[j] == "H_perp_upper")
+            Bparams.H_perp_upper = values[j];
+        if(labels[j] == "H_parallel_upper")
+            Bparams.H_parallel_upper = values[j];
+
+        // ---- Toroidal velocity shear ----
+        if(labels[j] == "tor_vel_shear")
             Bparams.tor_vel_shear = values[j];
-        }
-        //if(Bparams.tor_vel_shear != "none"){
-            if(labels[j] == "t_w")
-                Bparams.t_w = stod(values[j])*yr/t_0;
-            if(labels[j] == "t_m")
-                Bparams.t_m = stod(values[j])*yr/t_0;
-            if(labels[j] == "tor_n")
-                Bparams.tor_n = stod(values[j]);
-            if(labels[j] == "vc_mag")
-                Bparams.vc_mag = stod(values[j]);
-            if(labels[j] == "xwidth_tor")
-                Bparams.xwidth_tor = stod(values[j])/L_0;
-            if(labels[j] == "ywidth_tor")
-                Bparams.ywidth_tor = stod(values[j])/L_0;
-            if(labels[j] == "x0_tor")
-                Bparams.x0_tor = stod(values[j])/L_0;
-            if(labels[j] == "y0_tor")
-                Bparams.y0_tor = stod(values[j])/L_0;
-        //}
+        if(labels[j] == "t_w")
+            Bparams.t_w = stod(values[j])*yr/t_0;
+        if(labels[j] == "t_m")
+            Bparams.t_m = stod(values[j])*yr/t_0;
+        if(labels[j] == "tor_n")
+            Bparams.tor_n = stod(values[j]);
+        if(labels[j] == "vc_mag")
+            Bparams.vc_mag = stod(values[j]);
+        if(labels[j] == "xwidth_tor")
+            Bparams.xwidth_tor = stod(values[j])/L_0;
+        if(labels[j] == "ywidth_tor")
+            Bparams.ywidth_tor = stod(values[j])/L_0;
+        if(labels[j] == "x0_tor")
+            Bparams.x0_tor = stod(values[j])/L_0;
+        if(labels[j] == "y0_tor")
+            Bparams.y0_tor = stod(values[j])/L_0;
     }
 
-    //Print error if certain entries in params are empty
+    // ---- Validation block ----
     if( world_rank == 0 ){
         if( params.CrustEOS.empty() )
             std::cout << "Missing crust EOS data table name" << std::endl;
@@ -204,8 +252,7 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
             std::cout << "Missing y-direction resolution" << std::endl;
         if( params.x_min < 0. || params.x_max < 0. || params.y_min > 0. || params.y_max < 0. )
             std::cout << "Missing x_min, x_max, y_min or y_max" << std::endl;
-        if( params.t_max < 1e-20 )
-            std::cout << "Missing maximum run time" << std::endl;
+        // CHANGED: t_max = 0 is valid for initial condition verification runs, so no warning needed
         if( params.k_C < 1e-20 )
             std::cout << "Missing Courant number" << std::endl;
         if( params.rho_cutoff < 1e-20 )
@@ -219,39 +266,79 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
         if( params.OutputFile.empty() )
             std::cout << "Missing output file name" << std::endl;
 
+        // ---- B field BC validation ----
         if( Bparams.B_perp_lower.empty() ){
             Bparams.B_perp_lower = "perfect_conducting";
-            std::cout << "Missing lower boundary condition on perpendicular magnetic field; assuming perfect conducting" << std::endl;
+            std::cout << "Missing lower BC on perpendicular magnetic field; assuming perfect conducting" << std::endl;
         }
         if( Bparams.B_parallel_lower.empty() ){
             Bparams.B_parallel_lower = "perfect_conducting";
-            std::cout << "Missing lower boundary condition on parallel magnetic field; assuming perfect conducting" << std::endl;
-        }
-        if( Bparams.E_perp_lower.empty() ){
-            Bparams.E_perp_lower = "perfect_conducting";
-            std::cout << "Missing lower boundary condition on perpendicular electric field; assuming perfect conducting" << std::endl;
-        }
-        if( Bparams.E_parallel_lower.empty() ){
-            Bparams.E_parallel_lower = "perfect_conducting";
-            std::cout << "Missing upper boundary condition on parallel electric field; assuming perfect conducting" << std::endl;
+            std::cout << "Missing lower BC on parallel magnetic field; assuming perfect conducting" << std::endl;
         }
         if( Bparams.B_pol_upper.empty() ){
             Bparams.B_pol_upper = "vacuum";
-            std::cout << "Missing upper boundary condition on poloidal magnetic field; assuming vacuum" << std::endl;
+            std::cout << "Missing upper BC on poloidal magnetic field; assuming vacuum" << std::endl;
         }
         if( Bparams.B_tor_upper.empty() ){
             Bparams.B_tor_upper = "vacuum";
-            std::cout << "Missing upper boundary condition on toroidal magnetic field; assuming vacuum" << std::endl;
+            std::cout << "Missing upper BC on toroidal magnetic field; assuming vacuum" << std::endl;
+        }
+
+        // ---- D field BC validation ---- (ADDED)
+        if( Bparams.D_perp_lower.empty() ){
+            Bparams.D_perp_lower = "perfect_conducting";
+            std::cout << "Missing lower BC on perpendicular displacement field; assuming perfect conducting" << std::endl;
+        }
+        if( Bparams.D_parallel_lower.empty() ){
+            Bparams.D_parallel_lower = "perfect_conducting";
+            std::cout << "Missing lower BC on parallel displacement field; assuming perfect conducting" << std::endl;
+        }
+        if( Bparams.D_pol_upper.empty() ){
+            Bparams.D_pol_upper = "vacuum";
+            std::cout << "Missing upper BC on poloidal displacement field; assuming vacuum" << std::endl;
+        }
+        if( Bparams.D_tor_upper.empty() ){
+            Bparams.D_tor_upper = "vacuum";
+            std::cout << "Missing upper BC on toroidal displacement field; assuming vacuum" << std::endl;
+        }
+
+        // ---- E field BC validation ----
+        if( Bparams.E_perp_lower.empty() ){
+            Bparams.E_perp_lower = "perfect_conducting";
+            std::cout << "Missing lower BC on perpendicular electric field; assuming perfect conducting" << std::endl;
+        }
+        if( Bparams.E_parallel_lower.empty() ){
+            Bparams.E_parallel_lower = "perfect_conducting";
+            std::cout << "Missing lower BC on parallel electric field; assuming perfect conducting" << std::endl;
         }
         if( Bparams.E_perp_upper.empty() ){
             Bparams.E_perp_upper = "vacuum";
-            std::cout << "Missing upper boundary condition on perpendicular electric field; assuming vacuum" << std::endl;
+            std::cout << "Missing upper BC on perpendicular electric field; assuming vacuum" << std::endl;
         }
         if( Bparams.E_parallel_upper.empty() ){
             Bparams.E_parallel_upper = "vacuum";
-            std::cout << "Missing upper boundary condition on parallel electric field; assuming vacuum" << std::endl;
+            std::cout << "Missing upper BC on parallel electric field; assuming vacuum" << std::endl;
         }
 
+        // ---- H field BC validation ---- (ADDED)
+        if( Bparams.H_perp_lower.empty() ){
+            Bparams.H_perp_lower = "perfect_conducting";
+            std::cout << "Missing lower BC on perpendicular H field; assuming perfect conducting" << std::endl;
+        }
+        if( Bparams.H_parallel_lower.empty() ){
+            Bparams.H_parallel_lower = "perfect_conducting";
+            std::cout << "Missing lower BC on parallel H field; assuming perfect conducting" << std::endl;
+        }
+        if( Bparams.H_perp_upper.empty() ){
+            Bparams.H_perp_upper = "vacuum";
+            std::cout << "Missing upper BC on perpendicular H field; assuming vacuum" << std::endl;
+        }
+        if( Bparams.H_parallel_upper.empty() ){
+            Bparams.H_parallel_upper = "vacuum";
+            std::cout << "Missing upper BC on parallel H field; assuming vacuum" << std::endl;
+        }
+
+        // ---- Toroidal velocity shear validation ----
         if( Bparams.tor_vel_shear != "none" ){
             if( Bparams.t_w < 1e-20 )
                 std::cout << "Missing time width of toroidal velocity shear" << std::endl;
@@ -266,25 +353,20 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
             if( Bparams.ywidth_tor < 1e-20 )
                 std::cout << "Missing y-width of toroidal velocity shear" << std::endl;
         }
-
     }
 
     return;
-
 }
 
 /*
-
-    Partitions initial domain into partial domains to be evolved by each process, in 1 dimension (e.g., strips for a 2D domain decomposition)
-    Input: N: size of domain in direction to be partitions
+    Partitions initial domain into partial domains to be evolved by each process, in 1 dimension
+    Input: N: size of domain in direction to be partitioned
            num_procs: number of processes
            MyID: rank of this process
     Output: s, e: start and end indices of partition of array to be evolved by this process
-
 */
 void MPE_Decomp1D( size_t N, int num_procs, int MyID, size_t &s, size_t &e )
 {
-
     size_t nlocal, deficit;
 
     nlocal = N / num_procs;
@@ -304,7 +386,7 @@ void MPE_Decomp1D( size_t N, int num_procs, int MyID, size_t &s, size_t &e )
 }
 
 /*
-    Fills ghost cells by exchanging data between cells- for VectorField objects
+    Fills ghost cells by exchanging data between cells - for VectorField objects
     Input: A: local array A
            N_GC: number of ghost cells to exchange
            comm1D: MPI communicator for processes organized into Cartesian grid
@@ -312,10 +394,9 @@ void MPE_Decomp1D( size_t N, int num_procs, int MyID, size_t &s, size_t &e )
 */
 void exchng2Vector(VectorField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright)
 {
-
-    size_t N_comps = A.shape()[0]; //number of vector field components
-    size_t Nx = A.shape()[1]; //Extent of vector field in x-dimension. Includes ghost cells.
-    size_t Ny_loc = A.shape()[2]; //Extent of vector field in y-dimension. includes ghost cells.
+    size_t N_comps = A.shape()[0];
+    size_t Nx = A.shape()[1];
+    size_t Ny_loc = A.shape()[2];
 
     MPI_Datatype stridetype;
     MPI_Type_vector( N_comps*Nx, N_GC, Ny_loc, MPI_DOUBLE, &stridetype);
@@ -330,7 +411,7 @@ void exchng2Vector(VectorField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, i
 }
 
 /*
-    Fills ghost cells by exchanging data between cells- for ScalarField objects
+    Fills ghost cells by exchanging data between cells - for ScalarField objects
     Input: A: local array A
            N_GC: number of ghost cells to exchange
            comm1D: MPI communicator for processes organized into Cartesian grid
@@ -338,9 +419,8 @@ void exchng2Vector(VectorField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, i
 */
 void exchng2Scalar(ScalarField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright)
 {
-
-    size_t Nx = A.shape()[0]; //Extent of vector field in x-dimension. Includes ghost cells.
-    size_t Ny_loc = A.shape()[1]; //Extent of vector field in y-dimension. includes ghost cells.
+    size_t Nx = A.shape()[0];
+    size_t Ny_loc = A.shape()[1];
 
     MPI_Datatype stridetype;
     MPI_Type_vector( Nx, N_GC, Ny_loc, MPI_DOUBLE, &stridetype);
@@ -357,8 +437,8 @@ void exchng2Scalar(ScalarField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, i
 /*
     Computes cadence for saving simulation snapshots to H5 file
     Inputs: Deltat, t_max: timestep and maximum simulation time in reduced units
-            saves_number: unsigned integer containing maximum number of snapshots saved to H5 file
-    Output: cadence for saving simulation snapshots to H5 file (unsigned integer)
+            saves_number: maximum number of snapshots saved to H5 file
+    Output: cadence for saving simulation snapshots to H5 file
 */
 size_t save_cadenceCalc(double Deltat, double t_max, size_t saves_number){
 
@@ -376,13 +456,12 @@ size_t save_cadenceCalc(double Deltat, double t_max, size_t saves_number){
 }
 
 /*
-        Minmod function
-        Arguments: a, b, c: values to compare
-        Output: minmod(a,b,c)
+    Minmod function
+    Arguments: a, b, c: values to compare
+    Output: minmod(a,b,c)
 */
 double minmod(double a, double b, double c)
 {
-
     double result = 0.;
 
     if( a>0 && b>0 && c>0 ){
@@ -396,10 +475,10 @@ double minmod(double a, double b, double c)
 }
 
 /*
-        Trapezoid rule integration in 1D
-        Input: A: vector of integrand sampled in 1D every dx
-               dx: spacing between every sample of integrand
-        Output: integral
+    Trapezoid rule integration in 1D
+    Input: A: vector of integrand sampled in 1D every dx
+           dx: spacing between every sample of integrand
+    Output: integral
 */
 double TrapezoidIntegrator(std::vector<double> & A, double dx)
 {

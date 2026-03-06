@@ -25,8 +25,8 @@ extern const double MeVtoErg; //conversion factor from MeV to erg
 extern const double M_solar; //solar mass in g
 extern const double alpha_e; //electromagnetic fine structure extern constant (dimensionless)
 extern const double eB_crit; //critical magnetic field times elementary charge in MeV^2
-extern const double Cstruc; //lattice structure extern constant for bcc lattice (from Baiko, Potekhin and Yakovlev 2001: take their K_m and multiply by geometric factor (4*pi/3)^{1/3})
-extern const double ComptonWL; //Reduced electron Compton wavelength hbar*c/(m_e*c^2) in fm (this is the Compton wavelength appearing in Chamel and Stoyanov 2020)
+extern const double Cstruc; //lattice structure extern constant for bcc lattice
+extern const double ComptonWL; //Reduced electron Compton wavelength hbar*c/(m_e*c^2) in fm
 extern const double amu; //1 amu in MeV
 extern const double microU; //1 micro-u (10^{-6} atomic mass units) in MeV
 extern const double gammaEM; //Euler-Mascheroni extern constant
@@ -35,12 +35,12 @@ extern const double sigma_SB; //Stefan-Boltzmann extern constant in erg/cm^2/s/K
 extern const double GaussConverter; //Conversion factor between 1 statCoulomb*Gauss to __ MeV/fm/hbarc = ___ fm^-2
 extern const double GaussConverter2; //Conversion factor between 1 statCoulomb*Gauss to __ MeV/fm*hbarc = ___ MeV^2
 extern const double GaussConverter3; //Conversion factor: 1 sqrt(MeV/fm^3) = 4.002719868e16 G
-extern const double GaussConverter4; //Conversion factor: 1 MeV^2 = 4.002719868e16/(197.3269804)^(3/2) G = 1.444027592e13 G (hbarc=c=1 all energy units)
+extern const double GaussConverter4; //Conversion factor: 1 MeV^2 = 1.444027592e13 G
 
 extern const double B_0; //characteristic magnetic field (G)
 extern const double n_e0; //characteristic electron density (fm^{-3})
 extern const double L_0; //characteristic length scale (cm)
-extern const double t_0; //characteristic timescale (s). Taken as the Hall time-scale with length scale 10 m and field 10^{15} G
+extern const double t_0; //characteristic timescale (s)
 extern const double T_0; //characteristic temperature (K)
 extern const double s_0; //characteristic entropy density (erg/K/cm^3)
 extern const double E_0; //characteristic electric field (statV/cm)
@@ -69,14 +69,13 @@ struct SimParams {
 
     std::string CrustEOS; //File name for crust EOS data table
     int RK_order = 0; //order of Runge-Kutta timestep method (2 or 3)
-    bool varying_mesh = false; //true for varying cell-center spacing in "radial"- (x-)direction or false otherwise. Defaults to false if unspecified.
+    bool varying_mesh = false; //true for varying cell-center spacing in "radial"- (x-)direction or false otherwise
     size_t Nx = 0, Ny = 0; //resolution in x-and y-directions
     double x_min = -1., x_max = -1., y_min = 1., y_max = -1.; //limits of simulation domain in reduced units
     double t_max = 0.; //maximum time in reduced units
     double k_C = 0.; //Courant number
-    double rho_cutoff = 0.; //cutoff (energy) density in g/cm^3 (lowest density to include in simulation domain)
-    double temperature = 0.; //temperature of crust in K (used to compute electrical conductivity)
-    std::string B_perp_lower, B_parallel_lower, B_pol_upper, B_tor_upper; //boundary conditions for the magnetic field
+    double rho_cutoff = 0.; //cutoff (energy) density in g/cm^3
+    double temperature = 0.; //temperature of crust in K
     size_t saves_number = 0; //maximum number of snapshots to save to H5 file
     size_t ECons_cadence = 0; //cadence to print energy conservation information to terminal
     std::string OutputFile; //File name for output H5 file (excluding file extension)
@@ -86,18 +85,39 @@ struct SimParams {
 
 struct BandBCParams {
 
-    double B_pol_init = 1., theta_B = pi/2.; //initial uniform poloidal field in reduced units and angle of this field with respect to the y-axis in radians.
-    bool B_tor_init = true; //whether to include an initial toroidal magnetic field in the simulation. Defaults to true if unspecified.
-    double B_tor_max = 1e12/B_0; //maximum value of toroidal magnetic field if turned on, in reduced units. Defaults to 1e12 G if unspecified.
-    double B_tor_x_center, B_tor_x_width, B_tor_y_center, B_tor_y_width; //center position and width of initial toroidal magnetic field in reduced units
-    std::string B_perp_lower, B_parallel_lower, B_pol_upper, B_tor_upper; //boundary conditions for the magnetic field
-    std::string E_perp_lower, E_parallel_lower, E_perp_upper, E_parallel_upper; //lower boundary conditions for electric field
-    std::string B_parallel_shear_type = "uniform"; //which shearing magnetic field to use at lower boundary if B_parallel_lower = "shearing". Defaults to "uniform" if unspecified.
-    double B_parallel_lower_shear_By = 0., B_parallel_lower_shear_Bz = 0.; //magnitude of shearing field at lower boundary in reduced units. Defaults to zero if unspecified.
-    std::string tor_vel_shear = "none"; //which toroidal lattice velocity shear to include in the simulation. Defaults to "none"
-    bool pol_vel = false; //whether to include a poloidal velocity field in the simulation. Defaults to false if unspecified.
+    // ---- B field initial conditions ----
+    double B_pol_init = 1., theta_B = 1.5707963; //initial uniform poloidal field in reduced units and angle with respect to y-axis in radians (pi/2 = x-direction)
+    bool B_tor_init = true; //whether to include an initial toroidal magnetic field
+    double B_tor_max = 0.1; //maximum value of toroidal magnetic field in reduced units (default 1e12 G / B_0 = 0.1)
+    double B_tor_x_center = 0., B_tor_x_width = 0., B_tor_y_center = 0., B_tor_y_width = 0.; //center and width of initial toroidal magnetic field in reduced units
+
+    // ---- B field boundary conditions ----
+    std::string B_perp_lower, B_parallel_lower, B_pol_upper, B_tor_upper;
+    std::string B_parallel_shear_type = "uniform"; //shearing BC type at lower boundary
+    double B_parallel_lower_shear_By = 0., B_parallel_lower_shear_Bz = 0.; //magnitude of shearing field at lower boundary in reduced units
+
+    // ---- D field initial conditions ----
+    double D_pol_init = 0., theta_D = 1.5707963; //FIX: was theta_B (duplicate). Initial uniform poloidal displacement field in reduced units and angle with respect to y-axis in radians
+    bool D_tor_init = false; //whether to include an initial toroidal displacement field
+    double D_tor_max = 0.; //FIX: was 0/B_0 (division by zero). Maximum value of toroidal displacement field in reduced units
+    double D_tor_x_center = 0., D_tor_x_width = 0., D_tor_y_center = 0., D_tor_y_width = 0.; //center and width of initial toroidal displacement field in reduced units
+
+    // ---- D field boundary conditions ----
+    std::string D_perp_lower, D_parallel_lower, D_pol_upper, D_tor_upper;
+    std::string D_parallel_shear_type = "uniform"; //FIX: added missing shearing BC type for D
+    double D_parallel_lower_shear_Dy = 0., D_parallel_lower_shear_Dz = 0.; //FIX: added missing shearing magnitudes for D
+
+    // ---- E field boundary conditions ----
+    std::string E_perp_lower, E_parallel_lower, E_perp_upper, E_parallel_upper;
+
+    // ---- H field boundary conditions ----
+    std::string H_perp_lower, H_parallel_lower, H_perp_upper, H_parallel_upper;
+
+    // ---- Toroidal velocity shear ----
+    std::string tor_vel_shear = "none"; //which toroidal lattice velocity shear to include. Defaults to "none"
+    bool pol_vel = false; //whether to include a poloidal velocity field. Defaults to false
     double t_w = 0., t_m = 0., tor_n = 0.; //time width, centered time, steepness of toroidal velocity shear
-    double vc_mag = 0., xwidth_tor = 0., ywidth_tor = 0., x0_tor = 5e4/L_0, y0_tor = 0.; //properties of toroidal velocity shear
+    double vc_mag = 0., xwidth_tor = 0., ywidth_tor = 0., x0_tor = 0.5, y0_tor = 0.; //properties of toroidal velocity shear
 
 };
 
@@ -111,49 +131,20 @@ struct BandBCParams {
 class TransCoeffs {
     public:
         size_t Nx, Ny;
-        //bool cond_aniso_In; //input variable for conductivity_anisotropy boolean
-        //bool conductivity_anisotropy; //permanent variable for conductivity_anisotropy boolean
 
-    ScalarField eta_H; //
-    ScalarField deta_Hdx; //
-    ScalarField eta_O; //
+    ScalarField eta_H;
+    ScalarField deta_Hdx;
+    ScalarField eta_O;
     RadialScalarField shear_mod;
     RadialScalarField rho;
-//    ScalarField eta_O_delta; //
-//    ScalarField eta_O_perp; //
-//    ScalarField kappa; //
-//    ScalarField kappa_delta; //
-//    ScalarField kappa_perp; //
-//    ScalarField kappa_H; //
 
     TransCoeffs(size_t Nx, size_t Ny) :
-        eta_H(boost::extents[Nx][Ny]), //
-        deta_Hdx(boost::extents[Nx][Ny]), //
-        eta_O(boost::extents[Nx][Ny]), //
-        shear_mod(boost::extents[Nx]), //
+        eta_H(boost::extents[Nx][Ny]),
+        deta_Hdx(boost::extents[Nx][Ny]),
+        eta_O(boost::extents[Nx][Ny]),
+        shear_mod(boost::extents[Nx]),
         rho(boost::extents[Nx])
-        //eta_O_delta(boost::extents[Nr][Nth]), //
-        //eta_O_perp(boost::extents[Nr][Nth]), //
-        //kappa(boost::extents[Nr][Nth]), //
-        //kappa_delta(boost::extents[Nr][Nth]),//
-        //kappa_perp(boost::extents[Nr][Nth]),//
-        //kappa_H(boost::extents[Nr][Nth]) //
-    {
-//        conductivity_anisotropy = cond_aniso_In;
-//        if(conductivity_anisotropy == true){
-//            //resize isotropic conductivities to zero if unused
-//            eta_O.resize(boost::extents[0][0]);
-//            kappa.resize(boost::extents[0][0]);
-//        }
-//        else{
-//            //resize anisotropic conductivities to zero if unused
-//            eta_O_delta.resize(boost::extents[0][0]);
-//            eta_O_perp.resize(boost::extents[0][0]);
-//            kappa_delta.resize(boost::extents[0][0]);
-//            kappa_perp.resize(boost::extents[0][0]);
-//            kappa_H.resize(boost::extents[0][0]);
-//        }
-    }
+    {}
 };
 
 template <typename T>
