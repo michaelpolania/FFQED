@@ -355,25 +355,47 @@ int main(int argc, char **argv)
     Phys_B = B_view; //copy view of B which removes ghost cells into smaller array which can be written into h5 file
     B_set->write( Phys_B.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
 
-    //Write v_c to output H5 file and prepare to write data from additional time steps
-    hsize_t vc_dims[4] = {1,3,Nx,MyE-MyS};
-    hsize_t vc_maxdims[4] = {H5S_UNLIMITED,H5S_UNLIMITED,H5S_UNLIMITED,H5S_UNLIMITED};
-    hsize_t vc_size[4] = {1,3,Nx,MyE-MyS}; //Total size of extended array. Increases with every time step. Initially should equal dimsf.
-    hsize_t vc_offset[4] = {0,0,0,0}; //offset to print new values of u at each timestep. Progressively gets larger in direction that output is extended.
-    hsize_t vc_dimsext[4] = {1,3,Nx,MyE-MyS}; //size of extended output each time it is extended. Should be the same as the original output i.e. equal to dimsf
-    H5::DataSpace *dataspace_vc = new DataSpace( RANK, vc_dims, vc_maxdims );
+    //Write H to output H5 file and prepare to write data from additional time steps
+    H5::DataSpace *dataspace_H = new DataSpace( RANK, B_dims, B_maxdims );
 
-    H5::DSetCreatPropList vc_prop;
-    hsize_t vc_chunk_dims[4] = {1,3,Nx,MyE-MyS};
-    vc_prop.setChunk(RANK, vc_chunk_dims);
+    H5::DSetCreatPropList H_prop;
+    hsize_t E_chunk_dims[4] = {1,3,Nx,MyE-MyS};
+    H_prop.setChunk(RANK, H_chunk_dims);
 
-    H5::DataSet *vc_set = new DataSet(file.createDataSet("vc", H5::PredType::NATIVE_DOUBLE, *dataspace_vc, vc_prop));
+    H5::DataSet *H_set = new DataSet(file.createDataSet("H", H5::PredType::NATIVE_DOUBLE, *dataspace_H, H_prop));
 
-    VectorField::array_view<3>::type vc_view = vc[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+    VectorField::array_view<3>::type H_view = H[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+    VectorField Phys_H(boost::extents[3][Nx][MyE-MyS]); //Cell-face average values of H across partial domain. Excludes ghost cells
+    Phys_H = H_view; //copy view of H which removes ghost cells into smaller array which can be written into h5 file
+    H_set->write( Phys_H.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
 
-    VectorField Phys_vc(boost::extents[3][Nx][MyE-MyS]); //Cell-face average values of vc across partial domain. Excludes ghost cells
-    Phys_vc = vc_view; //copy view of vc which removes ghost cells into smaller array which can be written into h5 file
-    vc_set->write( Phys_vc.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
+    //Write D to output H5 file and prepare to write data from additional time steps
+    H5::DataSpace *dataspace_D = new DataSpace( RANK, B_dims, B_maxdims );
+
+    H5::DSetCreatPropList D_prop;
+    hsize_t D_chunk_dims[4] = {1,3,Nx,MyE-MyS};
+    D_prop.setChunk(RANK, D_chunk_dims);
+
+    H5::DataSet *D_set = new DataSet(file.createDataSet("D", H5::PredType::NATIVE_DOUBLE, *dataspace_D, D_prop));
+
+    VectorField::array_view<3>::type D_view = D[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+    VectorField Phys_D(boost::extents[3][Nx][MyE-MyS]); //Cell-face average values of D across partial domain. Excludes ghost cells
+    Phys_D = D_view; //copy view of D which removes ghost cells into smaller array which can be written into h5 file
+    D_set->write( Phys_D.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
+
+    //Write E to output H5 file and prepare to write data from additional time steps
+    H5::DataSpace *dataspace_E = new DataSpace( RANK, B_dims, B_maxdims );
+
+    H5::DSetCreatPropList E_prop;
+    hsize_t E_chunk_dims[4] = {1,3,Nx,MyE-MyS};
+    E_prop.setChunk(RANK, E_chunk_dims);
+
+    H5::DataSet *E_set = new DataSet(file.createDataSet("E", H5::PredType::NATIVE_DOUBLE, *dataspace_E, E_prop));
+
+    VectorField::array_view<3>::type E_view = E[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+    VectorField Phys_E(boost::extents[3][Nx][MyE-MyS]); //Cell-face average values of E across partial domain. Excludes ghost cells
+    Phys_E = E_view; //copy view of E which removes ghost cells into smaller array which can be written into h5 file
+    E_set->write( Phys_E.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
 
     // Spatial coordinates (cell centers) for output H5 file
     hsize_t x_dims[2] = {1,Nx};
@@ -597,54 +619,81 @@ int main(int argc, char **argv)
             B_view = B[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
             Phys_B = B_view; //copy view of B which removes ghost cells into smaller array which can be written into h5 file
             B_set->write( Phys_B.data(), PredType::NATIVE_DOUBLE, *B_memspace, *B_filespace );
-            std::cerr << "[HDF5] Wrote B block to file (iter=" << iter << ")" << std::endl;
-
-            // Add updated v_c values to H5 file
-            vc_size[0] += vc_dimsext[0];
-            vc_size[1] = vc_dims[1];
-            vc_size[2] = vc_dims[2];
-            vc_size[3] = vc_dims[3];
-            vc_set->extend(vc_size);
-
-            H5::DataSpace *vc_filespace = new H5::DataSpace(vc_set->getSpace());
-            vc_offset[0] += 1;
-            vc_filespace->selectHyperslab(H5S_SELECT_SET, vc_dimsext, vc_offset);
-            H5::DataSpace *vc_memspace = new H5::DataSpace( RANK, vc_dimsext, NULL );
-
-            vc_view = vc[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
-            Phys_vc = vc_view; //copy view of B which removes ghost cells into smaller array which can be written into h5 file
-            vc_set->write( Phys_vc.data(), PredType::NATIVE_DOUBLE, *vc_memspace, *vc_filespace );
-                std::cerr << "[HDF5] Wrote vc block to file (iter=" << iter << ")" << std::endl;
-                std::cerr << "[HDF5] Debug: completed vc write, about to prepare energy dataset hyperslabs" << std::endl;
-                std::cerr.flush();
-                // Debug: print current dataset dims before extend/select to diagnose mismatch
-                try {
-                    H5::DataSpace U_B_cur_space = U_B_set->getSpace();
-                    hsize_t U_B_cur_dims[2] = {0,0};
-                    U_B_cur_space.getSimpleExtentDims(U_B_cur_dims, NULL);
-                    std::cerr << "[HDF5] U_B current dims = (" << U_B_cur_dims[0] << "," << U_B_cur_dims[1] << ")" << std::endl;
-
-                    H5::DataSpace JH_cur_space = JH_set->getSpace();
-                    hsize_t JH_cur_dims[2] = {0,0};
-                    JH_cur_space.getSimpleExtentDims(JH_cur_dims, NULL);
-                    std::cerr << "[HDF5] JH current dims = (" << JH_cur_dims[0] << "," << JH_cur_dims[1] << ")" << std::endl;
-
-                    H5::DataSpace PF_cur_space = PF_set->getSpace();
-                    hsize_t PF_cur_dims[2] = {0,0};
-                    PF_cur_space.getSimpleExtentDims(PF_cur_dims, NULL);
-                    std::cerr << "[HDF5] PF current dims = (" << PF_cur_dims[0] << "," << PF_cur_dims[1] << ")" << std::endl;
-
-                    H5::DataSpace DE_cur_space = DeltaEInt_set->getSpace();
-                    hsize_t DE_cur_dims[2] = {0,0};
-                    DE_cur_space.getSimpleExtentDims(DE_cur_dims, NULL);
-                    std::cerr << "[HDF5] DeltaEInt current dims = (" << DE_cur_dims[0] << "," << DE_cur_dims[1] << ")" << std::endl;
-                } catch (const H5::Exception &e) {
-                    std::cerr << "[HDF5] Exception querying current dataset spaces: " << e.getCDetailMsg() << std::endl;
-                }
             delete B_filespace;
             delete B_memspace;
-            delete vc_filespace;
-            delete vc_memspace;
+            //std::cerr << "[HDF5] Wrote B block to file (iter=" << iter << ")" << std::endl;
+
+            // Add updated H values to H5 file
+            H_set->extend(B_size);
+
+            H5::DataSpace *H_filespace = new H5::DataSpace(H_set->getSpace());
+            H_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
+            H5::DataSpace *H_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
+
+            H_view = H[ boost::indices[range()][range(N_GC,Nr+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+            Phys_H = H_view; //copy view of H which removes ghost cells into smaller array which can be written into h5 file
+            H_set->write( Phys_H.data(), PredType::NATIVE_DOUBLE, *H_memspace, *H_filespace );
+            delete H_filespace;
+            delete H_memspace;
+
+            // Add updated D values to H5 file
+            D_set->extend(B_size);
+
+            H5::DataSpace *D_filespace = new H5::DataSpace(E_set->getSpace());
+            D_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
+            H5::DataSpace *D_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
+
+            D_view = D[ boost::indices[range()][range(N_GC,Nr+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+            Phys_D = D_view; //copy view of D which removes ghost cells into smaller array which can be written into h5 file
+            D_set->write( Phys_D.data(), PredType::NATIVE_DOUBLE, *D_memspace, *D_filespace );
+            delete D_filespace;
+            delete D_memspace;
+
+            // Add updated E values to H5 file
+            E_set->extend(B_size);
+
+            H5::DataSpace *E_filespace = new H5::DataSpace(E_set->getSpace());
+            E_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
+            H5::DataSpace *E_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
+
+            E_view = E[ boost::indices[range()][range(N_GC,Nr+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+            Phys_E = E_view; //copy view of E which removes ghost cells into smaller array which can be written into h5 file
+            E_set->write( Phys_E.data(), PredType::NATIVE_DOUBLE, *E_memspace, *E_filespace );
+            delete E_filespace;
+            delete E_memspace;
+
+                // Was this for debugging? This was not in original EMHD Cartesian code
+                // std::cerr << "[HDF5] Wrote vc block to file (iter=" << iter << ")" << std::endl;
+                // std::cerr << "[HDF5] Debug: completed vc write, about to prepare energy dataset hyperslabs" << std::endl;
+                // std::cerr.flush();
+                // // Debug: print current dataset dims before extend/select to diagnose mismatch
+                // try {
+                //     H5::DataSpace U_B_cur_space = U_B_set->getSpace();
+                //     hsize_t U_B_cur_dims[2] = {0,0};
+                //     U_B_cur_space.getSimpleExtentDims(U_B_cur_dims, NULL);
+                //     std::cerr << "[HDF5] U_B current dims = (" << U_B_cur_dims[0] << "," << U_B_cur_dims[1] << ")" << std::endl;
+                //
+                //     H5::DataSpace JH_cur_space = JH_set->getSpace();
+                //     hsize_t JH_cur_dims[2] = {0,0};
+                //     JH_cur_space.getSimpleExtentDims(JH_cur_dims, NULL);
+                //     std::cerr << "[HDF5] JH current dims = (" << JH_cur_dims[0] << "," << JH_cur_dims[1] << ")" << std::endl;
+                //
+                //     H5::DataSpace PF_cur_space = PF_set->getSpace();
+                //     hsize_t PF_cur_dims[2] = {0,0};
+                //     PF_cur_space.getSimpleExtentDims(PF_cur_dims, NULL);
+                //     std::cerr << "[HDF5] PF current dims = (" << PF_cur_dims[0] << "," << PF_cur_dims[1] << ")" << std::endl;
+                //
+                //     H5::DataSpace DE_cur_space = DeltaEInt_set->getSpace();
+                //     hsize_t DE_cur_dims[2] = {0,0};
+                //     DE_cur_space.getSimpleExtentDims(DE_cur_dims, NULL);
+                //     std::cerr << "[HDF5] DeltaEInt current dims = (" << DE_cur_dims[0] << "," << DE_cur_dims[1] << ")" << std::endl;
+                // } catch (const H5::Exception &e) {
+                //     std::cerr << "[HDF5] Exception querying current dataset spaces: " << e.getCDetailMsg() << std::endl;
+                // }
+            // delete B_filespace;
+            // delete B_memspace;
+            // delete vc_filespace;
+            // delete vc_memspace;
 
             // Add updated t value to H5 file
             t_size[0] += t_dimsext[0];
@@ -736,17 +785,23 @@ int main(int argc, char **argv)
     }
 
     B_prop.close();
-    vc_prop.close();
+    H_prop.close();
+    D_prop.close();
+    E_prop.close();
     x_prop.close();
     y_prop.close();
     t_prop.close();
     delete dataspace_B;
-    delete dataspace_vc;
+    delete dataspace_H;
+    delete dataspace_D;
+    delete dataspace_E;
     delete dataspace_t;
     delete dataspace_x;
     delete dataspace_y;
     delete B_set;
-    delete vc_set;
+    delete H_set;
+    delete D_set;
+    delete E_set;
     delete x_set;
     delete y_set;
     delete t_set;
