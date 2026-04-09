@@ -10,5 +10,10 @@ double InitialBx(double y, void * params);
 double InitialBy(double x, void * params);
 double InitialBz1(double x, void * params);
 double InitialBz2(double y, void * params);
+void InitializeV(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &V);
+void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E);
+void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, const VectorField &B, VectorField &H)
+
+
 
 #endif // INITIAL_CONDITIONS_H_INCLUDED

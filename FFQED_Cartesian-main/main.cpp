@@ -277,7 +277,9 @@ int main(int argc, char **argv)
 
     //Initializes the charge density Rho
     ScalarField Rho(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
-    
+
+    //Initializes the velocity field V
+    VectorField V(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); 
 
     B_BoundaryConditions(B, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
     Compute_J(B, J, N_GC, domain);

@@ -1,6 +1,18 @@
 #ifndef BOUNDARY_CONDITIONS_H_INCLUDED
 #define BOUNDARY_CONDITIONS_H_INCLUDED
 
+// Velocity field
+struct vConfig_params {
+    double v_max;
+    double y_center;
+    double y_width;
+    double f;
+};
+
+double Initialvz(double y, double t, void *driver);
+
+
+
 // B field
 void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t Ny, size_t N_GC, double t, MPI_Comm comm1D, int world_rank, std::vector<int> & Ny_locs, std::vector<int> & starts, int nbrleft, int nbrright, const Domain & dm);
 void Bshear(double By_init, double Bz_init, double y, double t, const Domain & dm, const BandBCParams & bparams, double & Byshear, double & Bzshear);

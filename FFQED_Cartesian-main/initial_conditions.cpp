@@ -17,14 +17,14 @@
 void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCParams& bparams, const Domain & domain, size_t N_GC, std::vector<double> & Deltax, double Deltay, VectorField & B)
 {
 
-    double Lx = domain.Lx;
-    double Ly = domain.Ly;
+    double Lx = domain.Lx; //Defines total length of the simulation in x
+    double Ly = domain.Ly; 
 
     double B_pol_max = bparams.B_pol_init;
     double theta_B = bparams.theta_B;
     double B_tor_max = bparams.B_tor_max;
-    double x_center = bparams.B_tor_x_center;
-    double x_width = bparams.B_tor_x_width;
+    double x_center = bparams.B_tor_x_center; // Center of Gaussian flux tube in the x-direction
+    double x_width = bparams.B_tor_x_width; // Standard deviation of the Gaussian, aka width of flux tube in x
     double y_center = bparams.B_tor_y_center;
     double y_width = bparams.B_tor_y_width;
 
@@ -34,6 +34,7 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
 
     double result1, result2, error;
 
+    //Wraps function and parameters into gsl function F_x
     gsl_function Fx;
     Fx.function = &InitialBx;
     Fx.params = &params;
@@ -42,6 +43,7 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
     Fy.function = &InitialBy;
     Fy.params = &params;
 
+    //x-dependent part of the Bz component (Gaussian)
     gsl_function Fz1;
     Fz1.function = &InitialBz1;
     Fz1.params = &params;
@@ -51,10 +53,17 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
     Fz2.params = &params;
 
     //Compute cell face-averaged value of Bx, By, Bz for every cell except for the top, given the functions InitialBx, InitialBy, InitialBz1-2, which computes the analytic initial profile for Bx, By, Bz
+   
+    //iterates over every physical cell, not ghost cells
     for(size_t i=0; i<x.size(); i++){
         for(size_t j=0; j<y.size(); j++){
+
+            //Computes integration for Bx, integrates over y
             gsl_integration_qag(&Fx, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result1, &error);
             B[0][i+N_GC][j+N_GC] = result1/Deltay;
+            
+            //Ask Peter?
+            //For every cell except the last one, compute integration normally (as done for x)
             if(i < x.size()-1){
                 gsl_integration_qag(&Fy, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
                 B[1][i+N_GC][j+N_GC] = result1/Deltax[i];
@@ -62,6 +71,8 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
                 gsl_integration_qag(&Fz2, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result2, &error);
                 B[2][i+N_GC][j+N_GC] = result1*result2/(Deltax[i]*Deltay);
             }
+            
+            //If at the last one, define By and Bz to be the values computed at the previous cell until BCs are defined
             else{
                 B[1][i+N_GC][j+N_GC] = B[1][i+N_GC-1][j+N_GC]; //initialize By continuous across the outer boundary. This gets changed by B_BoundaryConditions, but is needed to get the By BC correct initially.
                 B[2][i+N_GC][j+N_GC] = B[2][i+N_GC-1][j+N_GC]; //initialize Bz continuous across the outer boundary. This gets changed by B_BoundaryConditions.
@@ -142,4 +153,95 @@ double InitialBz2(double y, void * params)
     double y_width = p -> y_width;
 
     return exp(-pow(y-y_center,2.)/(2.*y_width*y_width));
+
 }
+
+/*
+Initializes velocity field (V)
+
+Arguments: x, y coordinates
+
+Output: three velocity components across domain
+*/
+
+void InitializeV(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &V)
+{
+    for (size_t i = 0; i < x.size(); i++) {
+        for (size_t j = 0; j < y.size(); j++) {
+
+            V[0][i+N_GC][j+N_GC] = 0.0; // vx
+            V[1][i+N_GC][j+N_GC] = 0.0; // vy
+            V[2][i+N_GC][j+N_GC] = 0.0; // vz
+
+        }
+    }
+}
+
+/*
+Initializes displacement field (D)
+
+Arguments: x, y coordinates
+
+Output: three displacement field components across domain
+*/
+void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D)
+{
+    for (size_t i = 0; i < x.size(); i++) {
+        for (size_t j = 0; j < y.size(); j++) {
+
+            D[0][i+N_GC][j+N_GC] = 0.0; // Dx
+            D[1][i+N_GC][j+N_GC] = 0.0; // Dy
+            D[2][i+N_GC][j+N_GC] = 0.0; // Dz
+
+        }
+    }
+}
+
+/*
+Initializes electric field (E)
+
+Arguments: x, y coordinates
+
+Output: three electric field components across domain
+*/
+
+void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E)
+{
+    for (size_t i = 0; i < x.size(); i++) {
+        for (size_t j = 0; j < y.size(); j++) {
+
+            E[0][i+N_GC][j+N_GC] = 0.0; // Ex
+            E[1][i+N_GC][j+N_GC] = 0.0; // Ey
+            E[2][i+N_GC][j+N_GC] = 0.0; // Ez
+
+        }
+    }
+}
+
+/*
+Initializes auxillary field (H)
+
+Arguments: x, y coordinates
+
+Output: three auxillary field components across domain
+*/
+
+void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, const VectorField &B, VectorField &H)
+{
+    for (size_t i = 0; i < x.size(); i++) {
+        for (size_t j = 0; j < y.size(); j++) {
+
+            H[0][i+N_GC][j+N_GC] = B[0][i+N_GC][j+N_GC]; // Hx
+            H[1][i+N_GC][j+N_GC] = B[1][i+N_GC][j+N_GC]; // Hy
+            H[2][i+N_GC][j+N_GC] = B[2][i+N_GC][j+N_GC]; // Hz
+
+        }
+    }
+}
+
+
+
+
+
+
+

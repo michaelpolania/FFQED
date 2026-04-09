@@ -7,6 +7,79 @@
 #include "boundary_conditions.h"
 
 /*
+MP edits below
+*/
+
+/*
+Initial velocity profile (only along z-direction).
+v_z(y) = - v_0 * exp((-(y-y_0))/(2 * sigma_y ** 2)) * sin((2 * pi * f)/(T)) 
+*/
+
+double Initialvz(double y, double t, void *driver)
+{
+    vConfig_params *p = (vConfig_params *) driver;
+
+    double v_max    = p->v_max;
+    double y_center = p->y_center;
+    double y_width  = p->y_width;
+    double f        = p->f;
+
+    return -v_max * exp(-pow(y - y_center, 2.0) / (2.0 * y_width * y_width)) * sin(2.0 * M_PI * f * t);   
+}
+
+
+
+/*
+        Sets boundary condition on Displacement field
+        Inputs: D: magnetic field as a vector field
+               bparams: BandBCParams object containing information about boundary conditions
+               Ny: extent of combined domain in partitioned direction
+               N_GC: number of ghost cells
+               t: time in reduced units
+               comm1D: MPI communicator for decomposed domain
+               world_rank: rank of current process
+               Ny_locs and starts: vectors containing the extent and starting indices of the domain in the decomposed direction
+               nbrleft and nbrright: the ranks of the processes to the left and right of the current process
+               dm: Domain object containing information about the simulation domain
+        Output: D with updated boundary values
+*/
+
+void D_BoundaryConditions(VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params &driver, double y_min, double dy)
+{
+    // Exchange ghost cells
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+
+    // Apply D = -V x B at lower boundary (x=0) ghost cells
+    for(size_t i=0; i<N_GC; i++){
+        for(size_t j=N_GC; j<D.shape()[2]-N_GC; j++){
+
+            double Vx = V[0][N_GC][j];
+            double Vy = V[1][N_GC][j];
+
+            // Replace Vz with driven Gaussian
+            double y = y_min + (j-N_GC+0.5)*dy;  // compute y at cell center
+            double Vz = Initialvz(y, t, &driver);
+
+            double Bx = B[0][N_GC][j];
+            double By = B[1][N_GC][j];
+            double Bz = B[2][N_GC][j];
+
+            D[0][N_GC-1-i][j] = -(Vy*Bz - Vz*By);
+            D[1][N_GC-1-i][j] = -(Vz*Bx - Vx*Bz);
+            D[2][N_GC-1-i][j] = -(Vx*By - Vy*Bx);
+        }
+    }
+
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+}
+
+
+
+
+
+
+
+/*
         Sets boundary condition on magnetic field
         Inputs: B: magnetic field as a vector field
                bparams: BandBCParams object containing information about boundary conditions
@@ -31,7 +104,7 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
     std::vector<double> By_BC(B.shape()[2]-2*N_GC);
 
     double By_const = 0.;
-    double Byshear, Bzshear;
+    
 
     for(size_t j=0; j<B.shape()[2]-2*N_GC; j++){
         Bx_BC[j] = B[0][B.shape()[1]-N_GC-1][N_GC+j];
@@ -47,45 +120,12 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
             /*
                 Lower boundary x=0
             */
-            if(bparams.B_perp_lower == "perfect_conducting"){
-                B[0][N_GC-1-i][j] = -B[0][N_GC+i+1][j]; //Bx = 0
-            }
-            else if(bparams.B_perp_lower == "continuous"){
-                // FIX: Bparams -> bparams
-                B[0][N_GC-1-i][j] = 2.*( bparams.B_pol_init*sin(bparams.theta_B) ) - B[0][N_GC+i+1][j];
-            }
-
-            if(bparams.B_parallel_lower == "perfect_conducting"){
-                B[1][N_GC-1-i][j] = B[1][N_GC+i][j];
-                B[2][N_GC-1-i][j] = B[2][N_GC+i][j];
-            }
-            else if(bparams.B_parallel_lower == "zero"){
-                B[1][N_GC-1-i][j] = -B[1][N_GC+i][j]; //By = 0
-                B[2][N_GC-1-i][j] = -B[2][N_GC+i][j]; //Bz = 0
-            }
-            else if(bparams.B_parallel_lower == "shearing"){
-                Bshear(B[1][N_GC+i][j],B[2][N_GC+i][j],y[j-N_GC],t,dm,bparams,Byshear,Bzshear);
-                B[1][N_GC-1-i][j] = 2.*Byshear - B[1][N_GC+i][j];
-                B[2][N_GC-1-i][j] = 2.*Bzshear - B[2][N_GC+i][j];
-            }
+            B[1][N_GC-1-i][j] = B[1][N_GC][j]; 
 
             /*
                 Upper boundary x=Lx
             */
-            if(bparams.B_pol_upper == "vacuum"){
-                B[0][B.shape()[1]-N_GC+i][j] = B[0][B.shape()[1]-N_GC-2-i][j];
-                B[1][B.shape()[1]-N_GC-1+i][j] = 2.*By_BC[j-N_GC] - B[1][B.shape()[1]-N_GC-2-i][j];
-            }
-            else if(bparams.B_pol_upper == "continuous"){
-                B[0][B.shape()[1]-N_GC+i][j] = B[0][B.shape()[1]-N_GC-2-i][j];
-                B[1][B.shape()[1]-N_GC-1+i][j] = B[1][B.shape()[1]-N_GC-2-i][j];
-            }
-
-            if(bparams.B_tor_upper == "vacuum"){
-                B[2][B.shape()[1]-N_GC-1+i][j] = -B[2][B.shape()[1]-N_GC-2-i][j]; //Bz = 0
-            }
-            else if(bparams.B_tor_upper == "continuous"){
-                B[2][B.shape()[1]-N_GC-1+i][j] = B[2][B.shape()[1]-N_GC-2-i][j];
+            
             }
         }
     }
@@ -95,45 +135,6 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
     return;
 }
 
-/*
-        Computes shearing By/Bz field at lower boundary
-*/
-void Bshear(double By_init, double Bz_init, double y, double t, const Domain & dm, const BandBCParams & bparams, double & Byshear, double & Bzshear)
-{
-    double f_t;
-
-    static double t_b = 0.;
-    static double t_w = 100.*yr/t_0;
-    static double y0 = 0.;
-    static double y_w = dm.Ly;
-    static double Byshear_max = bparams.B_parallel_lower_shear_By;
-    static double Bzshear_max = bparams.B_parallel_lower_shear_Bz;
-
-    if(bparams.B_parallel_shear_type == "uniform"){
-        if( t >= t_b ){
-            f_t = 1.;
-            Byshear = Byshear_max*f_t;
-            Bzshear = Bzshear_max*f_t;
-        }
-        else{
-            Byshear = -By_init;
-            Bzshear = -Bz_init;
-        }
-    }
-    else if(bparams.B_parallel_shear_type == "current_sheet"){
-        if( t >= t_b ){
-            f_t = 1.;
-            Byshear = 0.;
-            Bzshear = f_t*Bzshear_max*sin(2.*pi*y/dm.Ly)*exp( -(y-y0)*(y-y0)/(2.*y_w*y_w) );
-        }
-        else{
-            Byshear = -By_init;
-            Bzshear = -Bz_init;
-        }
-    }
-
-    return;
-}
 
 /*
         Computes By given Bx at upper boundary using FFT for potential field condition.
@@ -471,3 +472,38 @@ void Dy_BC_Calc(std::vector<double> & Dx_BC, std::vector<double> & Dy_BC, double
 
     return;
 }
+
+// only need one block for all three components
+// make print statements
+// vanishing on the sides, lower boundary have perturbation, outer boundary look at paper
+// all functions here must match in header file
+
+// MP edits begin below
+
+/*
+Defines initial velocity profile at the bottom boundary
+(star sturface). v = -v_0 * exp(-(y-y_0)/2 sigma_y^2) * sin(2pi*f/T) z_hat.
+
+*/
+
+struct VelocityParams{
+
+    double v_0; // initial velocity amplitude
+    double y0; // center of Gaussian
+    double sigma_y; // standard deviation of the Gaussian (width)
+    double freq; // f/T parameter
+};
+
+double BoundaryVz(double y_boundary, double t, const VelocityParams& vparams){
+
+    return vparams.v_0 * exp((-(y_boundary - vparams.y0))/(2 * vparams.sigma_y * vparams.sigma_y)) * sin(2 * pi * vparams.freq * t)
+
+}
+
+void D_BoundaryConditions(std::vector<double>& x, std::vector<double>& y, 
+
+
+
+
+)
+
