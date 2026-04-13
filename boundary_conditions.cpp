@@ -23,7 +23,7 @@ double Initialvz(double y, double t, void *driver)
     double y_center = p->y_center;
     double y_width  = p->y_width;
     double f        = p->f;
-
+    
     return -v_max * exp(-pow(y - y_center, 2.0) / (2.0 * y_width * y_width)) * sin(2.0 * M_PI * f * t);   
 }
 
@@ -44,35 +44,46 @@ double Initialvz(double y, double t, void *driver)
         Output: D with updated boundary values
 */
 
-void D_BoundaryConditions(VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params &driver, double y_min, double dy)
+void LowerBoundary_D(VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, double y_min, double dy)
 {
-    // Exchange ghost cells
-    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+    //Exchange ghost cells
+    //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
 
-    // Apply D = -V x B at lower boundary (x=0) ghost cells
-    for(size_t i=0; i<N_GC; i++){
-        for(size_t j=N_GC; j<D.shape()[2]-N_GC; j++){
+    //Loops all the way up to last physical cell in the y-direction
+    for(size_t j = N_GC; j < D.shape()[2] - N_GC; j++){
 
-            double Vx = V[0][N_GC][j];
-            double Vy = V[1][N_GC][j];
+        //Compute y coordinate of this cell
+        double y_j = y_min + (j - N_GC) * dy;
 
-            // Replace Vz with driven Gaussian
-            double y = y_min + (j-N_GC+0.5)*dy;  // compute y at cell center
-            double Vz = Initialvz(y, t, &driver);
+        //Computes boundary velocity for coordinate y_j
+        double Vz = Initialvz(y_j, t, &driver);
 
-            double Bx = B[0][N_GC][j];
-            double By = B[1][N_GC][j];
-            double Bz = B[2][N_GC][j];
+        // B components at lower boundary... call B_Boundary condition function?
 
-            D[0][N_GC-1-i][j] = -(Vy*Bz - Vz*By);
-            D[1][N_GC-1-i][j] = -(Vz*Bx - Vx*Bz);
-            D[2][N_GC-1-i][j] = -(Vx*By - Vy*Bx);
+        // D_BC = -V x B (where v_z is the nonzero component)
+        double DBC_x =  Vz * By;   
+        double DBC_y = -Vz * B[0][N_GC][j];   
+        double DBC_z =  0.0;        
+
+        //D_x already lives on the boundary
+        D[0][N_GC][j] = DBC_x;
+        for(size_t i = 0; i < N_GC; i++){
+            D[0][N_GC-1-i][j] = 2.*DBC_x - D[0][N_GC+1+i][j];
+        }
+
+        // Dy is cell-centered in x, do a linear interpolation
+        for(size_t i = 0; i < N_GC; i++){
+            D[1][N_GC-1-i][j] = 2.*DBC_y - D[1][N_GC+i][j];
+        }
+
+        // Dz is cell-centered in x, enforces that D_z = 0 on the boundary
+        for(size_t i = 0; i < N_GC; i++){
+            D[2][N_GC-1-i][j] = 2.*DBC_z -D[2][N_GC+i][j];
         }
     }
 
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
 }
-
 
 
 
@@ -98,29 +109,13 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
     //Exchange ghost cells in a periodic manner in the y-direction
     exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
 
-    std::vector<double> y = dm.y; //cell centers in the y-direction. Note: no ghost cells.
-
-    std::vector<double> Bx_BC(B.shape()[2]-2*N_GC);
-    std::vector<double> By_BC(B.shape()[2]-2*N_GC);
-
-    double By_const = 0.;
-    
-
-    for(size_t j=0; j<B.shape()[2]-2*N_GC; j++){
-        Bx_BC[j] = B[0][B.shape()[1]-N_GC-1][N_GC+j];
-        By_const = By_const + 0.5*( B[1][B.shape()[1]-N_GC-2][N_GC+j] + B[1][B.shape()[1]-N_GC-1][N_GC+j] );
-    }
-    By_const = By_const/double(B.shape()[2]-2*N_GC);
-
-    By_BC_Calc(Bx_BC, By_BC, By_const, Ny, Ny_locs, starts, world_rank, comm1D);
-
     for(size_t i=0; i<N_GC; i++){
         for(size_t j=N_GC; j<B.shape()[2]-N_GC; j++){
 
             /*
                 Lower boundary x=0
             */
-            B[1][N_GC-1-i][j] = B[1][N_GC][j]; 
+            B[1][N_GC-1-i][j] = B[1][N_GC+i][j]; 
 
             /*
                 Upper boundary x=Lx
@@ -128,65 +123,9 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
             
             }
         }
-    }
+    
 
     exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
-
-    return;
-}
-
-
-/*
-        Computes By given Bx at upper boundary using FFT for potential field condition.
-*/
-void By_BC_Calc(std::vector<double> & Bx_BC, std::vector<double> & By_BC, double By_const, size_t Ny, std::vector<int> & Ny_locs, std::vector<int> & starts, int world_rank, MPI_Comm comm1D)
-{
-    std::vector<double> Bx;
-    std::vector<double> By;
-    std::vector<double> ByTemp;
-    if(world_rank == 0){
-        Bx.resize(Ny);
-        By.resize(Ny);
-        ByTemp.resize(Ny);
-    }
-
-    MPI_Gatherv(&Bx_BC.front(), Ny_locs[world_rank], MPI_DOUBLE, &Bx.front(), Ny_locs.data(), starts.data(), MPI_DOUBLE, 0, comm1D);
-
-    static int num_procs = std::size(Ny_locs);
-    std::vector<double> By_constVec(num_procs);
-    MPI_Allgather(&By_const, 1, MPI_DOUBLE, By_constVec.data(), 1, MPI_DOUBLE, comm1D);
-
-    if(world_rank == 0){
-        int n = Bx.size();
-
-        gsl_fft_real_wavetable * real;
-        gsl_fft_halfcomplex_wavetable * hc;
-        gsl_fft_real_workspace * work;
-
-        work = gsl_fft_real_workspace_alloc(n);
-        real = gsl_fft_real_wavetable_alloc(n);
-
-        gsl_fft_real_transform(Bx.data(), 1, n, real, work);
-        gsl_fft_real_wavetable_free(real);
-
-        ByTemp[0] = std::reduce(By_constVec.begin(), By_constVec.end())*double(n)/double(num_procs);
-        for(int j = 1; j<n/2; j++){
-            ByTemp[2*j-1] = Bx[2*j];
-            ByTemp[2*j] = -Bx[2*j-1];
-        }
-
-        hc = gsl_fft_halfcomplex_wavetable_alloc(n);
-        gsl_fft_halfcomplex_inverse(ByTemp.data(), 1, n, hc, work);
-        gsl_fft_halfcomplex_wavetable_free(hc);
-        gsl_fft_real_workspace_free(work);
-
-        for(int j = 0; j<n; j++){
-            if( j == 0 ) By[j] = 0.5*(ByTemp[n-1] + ByTemp[0]);
-            else By[j] = 0.5*(ByTemp[j-1] + ByTemp[j]);
-        }
-    }
-
-    MPI_Scatterv(&By.front(), Ny_locs.data(), starts.data(), MPI_DOUBLE, &By_BC.front(), Ny_locs.data()[world_rank], MPI_DOUBLE, 0, comm1D);
 
     return;
 }
