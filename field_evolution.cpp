@@ -512,26 +512,6 @@ void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & 
     return;
 }
 
-
-double rn_uniform() {
-    // Making rng static ensures that it stays the same
-    // Between different invocations of the function
-    static std::default_random_engine rng;
-
-    std::uniform_real_distribution<double> dist(0.0, 1.0);
-    return dist(rng);
-}
-
-double rn_weibull() {
-    // Making rng static ensures that it stays the same
-    // Between different invocations of the function
-    static std::default_random_engine rng;
-
-    std::weibull_distribution<double> dist(0.5,0.5);
-
-    return dist(rng);
-}
-
 /*
     Computes c*electric field components along cell edges in reduced units i.e., c*t_0/(L_0*B_0)*E
 

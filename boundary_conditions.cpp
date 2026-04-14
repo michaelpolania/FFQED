@@ -115,11 +115,17 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
             /*
                 Lower boundary x=0
             */
+
+            B[0][N_GC][j];
             B[1][N_GC-1-i][j] = B[1][N_GC+i][j]; 
+            B[2][N_GC-1-i][j] = B[2][N_GC+i][j];
 
             /*
                 Upper boundary x=Lx
             */
+
+            B[1][B.shape()[1]-N_GC+i][j] = B[1][B.shape()[1]-N_GC-2-i][j];
+            B[2][B.shape()[1]-N_GC+i][j] = B[2][B.shape()[1]-N_GC-2-i][j];
             
             }
         }
