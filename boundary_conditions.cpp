@@ -30,7 +30,7 @@ double Initialvz(double y, double t, void *driver)
 
 
 /*
-        Sets boundary condition on Displacement field
+        Sets lower boundary condition on Displacement field
         Inputs: D: magnetic field as a vector field
                bparams: BandBCParams object containing information about boundary conditions
                Ny: extent of combined domain in partitioned direction
@@ -85,6 +85,47 @@ void LowerBoundary_D(VectorField& D, const VectorField& V, const VectorField& B,
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
 }
 
+/*
+        Sets upper boundary condition on Displacement field
+        Inputs: D: magnetic field as a vector field
+               bparams: BandBCParams object containing information about boundary conditions
+               Ny: extent of combined domain in partitioned direction
+               N_GC: number of ghost cells
+               t: time in reduced units
+               comm1D: MPI communicator for decomposed domain
+               world_rank: rank of current process
+               Ny_locs and starts: vectors containing the extent and starting indices of the domain in the decomposed direction
+               nbrleft and nbrright: the ranks of the processes to the left and right of the current process
+               dm: Domain object containing information about the simulation domain
+        Output: D with updated boundary values
+*/
+
+void UpperBoundary_D(VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, double y_min, double dy)
+{
+    //Exchange ghost cells
+    //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+
+    //Loops all the way up to last physical cell in the y-direction
+    for(size_t j = N_GC; j < D.shape()[2] - N_GC; j++){
+
+
+        // B components at lower boundary... call B_Boundary condition function?
+
+        // D_BC = -V x B = 0 since V = 0 at the upper boundary
+        double DBC_x =  0.0;   
+        double DBC_y = 0.0;   
+        double DBC_z =  0.0;        
+
+        for(size_t i = 0; i < N_GC; i++){
+            D[0][D.shape()[1] - N_GC + 1 + i][j] = 2.*DBC_x - D[0][D.shape()[1]-N_GC-1-i][j];
+            D[1][D.shape()[1]-N_GC+i][j] = 2.*DBC_y - D[1][D.shape()[1]-N_GC-1-i][j];
+            D[2][D.shape()[1]-N_GC+i][j] = 2.*DBC_z -D[2][D.shape()[1]-N_GC-1-i][j];
+        }
+
+    }
+
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+}
 
 
 
@@ -115,7 +156,7 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
             /*
                 Lower boundary x=0
             */
-
+            //What are we setting B[0][N_GC][j] to?
             B[0][N_GC][j];
             B[1][N_GC-1-i][j] = B[1][N_GC+i][j]; 
             B[2][N_GC-1-i][j] = B[2][N_GC+i][j];
@@ -123,9 +164,11 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
             /*
                 Upper boundary x=Lx
             */
+            // What are we setting B[0][B.shape()[1]-N_GC][j]?
+            B[0][B.shape()[1] - N_GC][j];
+            B[1][B.shape()[1]-N_GC+i][j] = B[1][B.shape()[1]-N_GC-1-i][j];
+            B[2][B.shape()[1]-N_GC+i][j] = B[2][B.shape()[1]-N_GC-1-i][j];
 
-            B[1][B.shape()[1]-N_GC+i][j] = B[1][B.shape()[1]-N_GC-2-i][j];
-            B[2][B.shape()[1]-N_GC+i][j] = B[2][B.shape()[1]-N_GC-2-i][j];
             
             }
         }
