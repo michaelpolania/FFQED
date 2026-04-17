@@ -111,15 +111,12 @@ void UpperBoundary_D(VectorField& D, const VectorField& V, const VectorField& B,
 
         // B components at lower boundary... call B_Boundary condition function?
 
-        // D_BC = -V x B = 0 since V = 0 at the upper boundary
-        double DBC_x =  0.0;   
-        double DBC_y = 0.0;   
-        double DBC_z =  0.0;        
+                
 
         for(size_t i = 0; i < N_GC; i++){
-            D[0][D.shape()[1] - N_GC + 1 + i][j] = 2.*DBC_x - D[0][D.shape()[1]-N_GC-1-i][j];
-            D[1][D.shape()[1]-N_GC+i][j] = 2.*DBC_y - D[1][D.shape()[1]-N_GC-1-i][j];
-            D[2][D.shape()[1]-N_GC+i][j] = 2.*DBC_z -D[2][D.shape()[1]-N_GC-1-i][j];
+            D[0][D.shape()[1] - 2*N_GC + N_GC + i][j] = D[0][D.shape()[1]- 2* N_GC + N_GC - 2 - i][j];
+            D[1][D.shape()[1] - 2*N_GC + N_GC + i][j] = D[1][D.shape()[1] - 2*N_GC + N_GC - 1 - i][j];
+            D[2][D.shape()[1] - 2*N_GC + N_GC + i][j] = D[2][D.shape()[1] - 2*N_GC + N_GC - 1 - i][j];
         }
 
     }
@@ -148,7 +145,7 @@ void UpperBoundary_D(VectorField& D, const VectorField& V, const VectorField& B,
 void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t Ny, size_t N_GC, double t, MPI_Comm comm1D, int world_rank, std::vector<int> & Ny_locs, std::vector<int> & starts, int nbrleft, int nbrright, const Domain & dm)
 {
     //Exchange ghost cells in a periodic manner in the y-direction
-    exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
+    //exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
 
     for(size_t i=0; i<N_GC; i++){
         for(size_t j=N_GC; j<B.shape()[2]-N_GC; j++){
@@ -156,18 +153,18 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
             /*
                 Lower boundary x=0
             */
-            //What are we setting B[0][N_GC][j] to?
-            B[0][N_GC][j];
+            
+            //B[0][N_GC][j];
             B[1][N_GC-1-i][j] = B[1][N_GC+i][j]; 
             B[2][N_GC-1-i][j] = B[2][N_GC+i][j];
 
             /*
                 Upper boundary x=Lx
             */
-            // What are we setting B[0][B.shape()[1]-N_GC][j]?
-            B[0][B.shape()[1] - N_GC][j];
-            B[1][B.shape()[1]-N_GC+i][j] = B[1][B.shape()[1]-N_GC-1-i][j];
-            B[2][B.shape()[1]-N_GC+i][j] = B[2][B.shape()[1]-N_GC-1-i][j];
+            
+            B[0][B.shape()[1] - 2*N_GC + N_GC + i][j] = B[0][B.shape()[1]- 2* N_GC + N_GC - 2 - i][j];
+            B[1][B.shape()[1] - 2*N_GC + N_GC + i][j] = B[1][B.shape()[1] - 2*N_GC + N_GC - 1 - i][j];
+            B[2][B.shape()[1] - 2*N_GC + N_GC + i][j] = B[2][B.shape()[1] - 2*N_GC + N_GC - 1 - i][j];
 
             
             }
