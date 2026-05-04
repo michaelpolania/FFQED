@@ -86,7 +86,7 @@ void LowerBoundary_D(VectorField& D, const VectorField& V, const VectorField& B,
 }
 
 /*
-        Sets upper boundary condition on Displacement field
+        Sets upper boundary condition on Displacement field (enforces value is zero at boundary)
         Inputs: D: magnetic field as a vector field
                bparams: BandBCParams object containing information about boundary conditions
                Ny: extent of combined domain in partitioned direction
@@ -109,15 +109,12 @@ void UpperBoundary_D(VectorField& D, const VectorField& V, const VectorField& B,
     for(size_t j = N_GC; j < D.shape()[2] - N_GC; j++){
 
 
-        // B components at lower boundary... call B_Boundary condition function?
-
-                
-
-        for(size_t i = 0; i < N_GC; i++){
-            D[0][D.shape()[1] - 2*N_GC + N_GC + i][j] = D[0][D.shape()[1]- 2* N_GC + N_GC - 2 - i][j];
-            D[1][D.shape()[1] - 2*N_GC + N_GC + i][j] = D[1][D.shape()[1] - 2*N_GC + N_GC - 1 - i][j];
-            D[2][D.shape()[1] - 2*N_GC + N_GC + i][j] = D[2][D.shape()[1] - 2*N_GC + N_GC - 1 - i][j];
-        }
+        for (size_t i = 0; i < N_GC; i++) {
+    
+            D[0][D.shape()[1] - 2*N_GC + N_GC + i][j] = -D[0][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+            D[1][D.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = -D[1][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+            D[2][D.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = -D[2][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+}
 
     }
 
@@ -125,11 +122,8 @@ void UpperBoundary_D(VectorField& D, const VectorField& V, const VectorField& B,
 }
 
 
-
-
-
 /*
-        Sets boundary condition on magnetic field
+        Sets boundary condition on magnetic field (continous boundary condition)
         Inputs: B: magnetic field as a vector field
                bparams: BandBCParams object containing information about boundary conditions
                Ny: extent of combined domain in partitioned direction
@@ -162,9 +156,9 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
                 Upper boundary x=Lx
             */
             
-            B[0][B.shape()[1] - 2*N_GC + N_GC + i][j] = B[0][B.shape()[1]- 2* N_GC + N_GC - 2 - i][j];
-            B[1][B.shape()[1] - 2*N_GC + N_GC + i][j] = B[1][B.shape()[1] - 2*N_GC + N_GC - 1 - i][j];
-            B[2][B.shape()[1] - 2*N_GC + N_GC + i][j] = B[2][B.shape()[1] - 2*N_GC + N_GC - 1 - i][j];
+            B[0][B.shape()[1] - 2*N_GC + N_GC + i][j] = B[0][B.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+            B[1][B.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = B[1][B.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+            B[2][B.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = B[2][B.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
 
             
             }
