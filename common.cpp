@@ -121,6 +121,16 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
         if(labels[j] == "OutputFile")
             params.OutputFile = values[j];
 
+        // ---- Velocity driver parameters ----
+        if(labels[j] == "v_max")
+            params.v_max = stod(values[j]);
+        if(labels[j] == "v_y_center")
+            params.v_y_center = stod(values[j])/L_0;
+        if(labels[j] == "v_y_width")
+            params.v_y_width = stod(values[j])/L_0;
+        if(labels[j] == "v_f")
+            params.v_f = stod(values[j])*t_0;
+
         // ---- B field initial conditions ----
         if(labels[j] == "B_pol_init")
             Bparams.B_pol_init = stod(values[j])/B_0;

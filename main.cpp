@@ -269,7 +269,7 @@ int main(int argc, char **argv)
     
     VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of E times c in reduced units (E*c/(B_0*L_0/t_0))
     VectorField J(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of J in reduced units (J*L_0/B_0)
-    VectorField vc(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of velocity field in reduced units (vc*t_0/L_0)
+    VectorField V(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of velocity field in reduced units (vc*t_0/L_0)
 
     //Initializes the D and H fields
     VectorField D(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of D across partial domain
@@ -277,8 +277,32 @@ int main(int argc, char **argv)
 
     //Initializes the charge density Rho
     ScalarField Rho(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
+    std::fill(Rho.data(), Rho.data() + Rho.num_elements(), 0.0);
+
+    vConfig_params driver;
+    driver.v_max    = simparams.v_max;
+    driver.y_center = simparams.v_y_center;
+    driver.y_width  = simparams.v_y_width;
+    driver.f        = simparams.v_f;
+    
+    //InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
+    InitializeH(x, y, N_GC, B, H);
+    InitializeD(x, y, N_GC, D);      // E = 0 initially
+    InitializeE(x, y, N_GC, D, E); 
+    InitializeV(x, y, N_GC, V);
+
+    B_BoundaryConditions(B, bparams, Ny, N_GC, 0.0, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
+    LowerBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, y_min, Deltay);
+    UpperBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, y_min, Deltay);
+
+    Compute_J(B, E, H, D, Rho, J, N_GC, domain);
+    exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
+
+    
     
 
+    
+    /*
     B_BoundaryConditions(B, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
     Compute_J(B, J, N_GC, domain);
     exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //Exchange J cells in a periodic manner in the y-direction into ghost cells
@@ -286,7 +310,7 @@ int main(int argc, char **argv)
     exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright); //Exchange vc cells in a periodic manner in the y-direction into ghost cells
     Compute_E(B, B, E, J, vc, tC, N_GC, t, domain, bparams);
     E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-
+    */
     
     //Create directory for H5 files holding simulation data.
     //Also copy SimSetup.in to this directory, so can see what simulation parameters (e.g., initial conditions) were used for any particular run
@@ -539,21 +563,22 @@ int main(int argc, char **argv)
 //        Dataout.close();
 //    }
 
-    while(t <= t_max){
+      //t <= t_max
+    while(false){
 
         iter++;
 
-        RK_Step(B, E, J, vc, B_np1, tC, domain, process, bparams, t);
+        //RK_Step(B, E, J, vc, B_np1, tC, domain, process, bparams, t);
 
         //Update time and magnetic field
         t = t + Deltat;
         B = B_np1;
 
         // Check energy conservation. First recompute current density
-        Compute_J(B, J, N_GC, domain);
+        //Compute_J(B, J, N_GC, domain);
         exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
-        Compute_vc(B, vc, J, tC, N_GC, t, domain, bparams, world_rank);
-        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_vc(B, vc, J, tC, N_GC, t, domain, bparams, world_rank);
+        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
         EnergyConservation(B, E, J, tC.eta_O, N_GC, t, domain, bparams, U_BSum, JouleSum, PoyntingSum);
 
 //        std::fstream Dataout;
@@ -893,10 +918,10 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
 //        }
 //        Dataout.close();
 
-        Compute_J(B_1, J, N_GC, dm);
-        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
-        Compute_vc(B_1, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_J(B_1, J, N_GC, dm);
+        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_vc(B_1, vc, J, tC, N_GC, t, dm, bparams, world_rank);
+        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
         B_torEvolve(Qz, B_1, J, vc, tC, N_GC, t, dm, bparams);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
         for(size_t i=0; i<B.shape()[1]; i++){
@@ -959,11 +984,11 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
         }
         B_BoundaryConditions(B_1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
 
-        Compute_J(B_1, J, N_GC, dm);
-        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
-        Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        B_torEvolve(Qz, B_1, J, vc, tC, N_GC, t, dm, bparams);
+        //Compute_J(B_1, J, N_GC, dm);
+        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
+        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
+        //B_torEvolve(Qz, B_1, J, vc, tC, N_GC, t, dm, bparams);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
@@ -981,10 +1006,10 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
         }
 
         B_BoundaryConditions(B_2, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-        Compute_J(B_2, J, N_GC, dm);
+        //Compute_J(B_2, J, N_GC, dm);
         exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
-        Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
+        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
         B_torEvolve(Qz, B_2, J, vc, tC, N_GC, t, dm, bparams);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
         for(size_t i=0; i<B.shape()[1]; i++){

@@ -80,6 +80,10 @@ struct SimParams {
     size_t ECons_cadence = 0; //cadence to print energy conservation information to terminal
     std::string OutputFile; //File name for output H5 file (excluding file extension)
     bool divBCheck = false; //Explicitly show div(B) check every ECons_cadence. Defaults to false if unspecified.
+    double v_max = 0.;
+    double v_y_center = 0.;
+    double v_y_width = 0.;
+    double v_f = 0.;
 
 };
 

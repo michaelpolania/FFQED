@@ -159,3 +159,8 @@ xwidth_tor: 1e3
 y0_tor: 0
 ywidth_tor: 1e5
 
+# Velocity driver parameters
+v_max: 1e-4
+v_y_center: 0
+v_y_width: 1e4
+v_f: 1.0

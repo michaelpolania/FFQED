@@ -205,14 +205,14 @@ Arguments: x, y coordinates
 Output: three electric field components across domain
 */
 
-void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E)
+void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E, VectorField &D)
 {
     for (size_t i = 0; i < x.size(); i++) {
         for (size_t j = 0; j < y.size(); j++) {
 
-            E[0][i+N_GC][j+N_GC] = 0.0; // Ex
-            E[1][i+N_GC][j+N_GC] = 0.0; // Ey
-            E[2][i+N_GC][j+N_GC] = 0.0; // Ez
+            E[0][i+N_GC][j+N_GC] = D[0][i+N_GC][j+N_GC]; // Ex
+            E[1][i+N_GC][j+N_GC] = D[1][i+N_GC][j+N_GC]; // Ey
+            E[2][i+N_GC][j+N_GC] = D[2][i+N_GC][j+N_GC]; // Ez
 
         }
     }
