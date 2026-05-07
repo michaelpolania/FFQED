@@ -11,6 +11,20 @@
 #include "initial_conditions.h"
 #include "field_evolution.h"
 
+void Compute_Rho(VectorField & D, ScalarField & Rho, const Domain & dm)
+{
+    size_t N_GC = dm.N_GC;
+
+    for(size_t i=N_GC; i<D.shape()[1]-N_GC; i++){
+        for(size_t j=N_GC; j<D.shape()[2]-N_GC; j++){
+
+            Rho[i][j] = (D[0][i+1][j] - D[0][i][j])/(4.*pi*dm.Deltax[i]) + (D[1][i][j+1] - D[1][i][j])/(4.*pi*dm.Deltay);
+        }
+    }
+
+    return;
+}
+
 struct Fields
 {
     VectorField & E;

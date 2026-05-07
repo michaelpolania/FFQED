@@ -277,7 +277,6 @@ int main(int argc, char **argv)
 
     //Initializes the charge density Rho
     ScalarField Rho(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
-    std::fill(Rho.data(), Rho.data() + Rho.num_elements(), 0.0);
 
     vConfig_params driver;
     driver.v_max    = simparams.v_max;
@@ -295,6 +294,7 @@ int main(int argc, char **argv)
     LowerBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, y_min, Deltay);
     UpperBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, y_min, Deltay);
 
+    Compute_Rho(D, Rho, domain);
     Compute_J(B, E, H, D, Rho, J, N_GC, domain);
     exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
 
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
     H5::DataSpace *dataspace_H = new DataSpace( RANK, B_dims, B_maxdims );
 
     H5::DSetCreatPropList H_prop;
-    hsize_t E_chunk_dims[4] = {1,3,Nx,MyE-MyS};
+    hsize_t H_chunk_dims[4] = {1,3,Nx,MyE-MyS};
     H_prop.setChunk(RANK, H_chunk_dims);
 
     H5::DataSet *H_set = new DataSet(file.createDataSet("H", H5::PredType::NATIVE_DOUBLE, *dataspace_H, H_prop));
@@ -458,19 +458,21 @@ int main(int argc, char **argv)
 
     H5::DataSet *t_set = new DataSet(file.createDataSet("t", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
     t_set->write( &t, PredType::NATIVE_DOUBLE );
+}
 
     //Energy conservation data for output H5 file. Only include this in root process H5 file
     //Uses same dataspace and sizes as the time data, so don't need to define separate hsize_t and DataSpace for this
-    H5::DataSet *U_B_set = new DataSet(file.createDataSet("U_B", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
-    H5::DataSet *JH_set = new DataSet(file.createDataSet("JH", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
-    H5::DataSet *PF_set = new DataSet(file.createDataSet("PF", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
-    H5::DataSet *DeltaEInt_set = new DataSet(file.createDataSet("DeltaEInt", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
+    //H5::DataSet *U_B_set = new DataSet(file.createDataSet("U_B", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
+    //H5::DataSet *JH_set = new DataSet(file.createDataSet("JH", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
+    //H5::DataSet *PF_set = new DataSet(file.createDataSet("PF", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
+    //H5::DataSet *DeltaEInt_set = new DataSet(file.createDataSet("DeltaEInt", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
 
     // Add attributes to h5 file
-    H5::DataSpace att_space(H5S_SCALAR);
-    H5::Attribute att1 = file.createAttribute( "B_0", H5::PredType::NATIVE_DOUBLE, att_space );
-    att1.write( H5::PredType::NATIVE_DOUBLE, &B_0 );
-    H5::Attribute att2 = file.createAttribute( "t_0", H5::PredType::NATIVE_DOUBLE, att_space );
+    //H5::DataSpace att_space(H5S_SCALAR);
+    //H5::Attribute att1 = file.createAttribute( "B_0", H5::PredType::NATIVE_DOUBLE, att_space );
+    //att1.write( H5::PredType::NATIVE_DOUBLE, &B_0 );
+    //H5::Attribute att2 = file.createAttribute( "t_0", H5::PredType::NATIVE_DOUBLE, att_space );
+    /*
     att2.write( H5::PredType::NATIVE_DOUBLE, &t_0 );
     H5::Attribute att3 = file.createAttribute( "L_0", H5::PredType::NATIVE_DOUBLE, att_space );
     att3.write( H5::PredType::NATIVE_DOUBLE, &L_0 );
@@ -479,9 +481,9 @@ int main(int argc, char **argv)
     H5::Attribute att5 = file.createAttribute( "Ly", H5::PredType::NATIVE_DOUBLE, att_space );
     att5.write( H5::PredType::NATIVE_DOUBLE, &Ly );
 
-    /*
-       Run simulation until t >= t_max
-    */
+    
+    //   Run simulation until t >= t_max
+    
 
     size_t iter = 0; //iteration counter
     const size_t save_cadence = save_cadenceCalc(Deltat,t_max,simparams.saves_number); //cadence for writing current state to H5 file
@@ -655,7 +657,7 @@ int main(int argc, char **argv)
             H_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
             H5::DataSpace *H_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
 
-            H_view = H[ boost::indices[range()][range(N_GC,Nr+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+            H_view = H[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
             Phys_H = H_view; //copy view of H which removes ghost cells into smaller array which can be written into h5 file
             H_set->write( Phys_H.data(), PredType::NATIVE_DOUBLE, *H_memspace, *H_filespace );
             delete H_filespace;
@@ -668,7 +670,7 @@ int main(int argc, char **argv)
             D_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
             H5::DataSpace *D_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
 
-            D_view = D[ boost::indices[range()][range(N_GC,Nr+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+            D_view = D[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
             Phys_D = D_view; //copy view of D which removes ghost cells into smaller array which can be written into h5 file
             D_set->write( Phys_D.data(), PredType::NATIVE_DOUBLE, *D_memspace, *D_filespace );
             delete D_filespace;
@@ -681,7 +683,7 @@ int main(int argc, char **argv)
             E_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
             H5::DataSpace *E_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
 
-            E_view = E[ boost::indices[range()][range(N_GC,Nr+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+            E_view = E[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
             Phys_E = E_view; //copy view of E which removes ghost cells into smaller array which can be written into h5 file
             E_set->write( Phys_E.data(), PredType::NATIVE_DOUBLE, *E_memspace, *E_filespace );
             delete E_filespace;
@@ -836,7 +838,7 @@ int main(int argc, char **argv)
     delete DeltaEInt_set;
     file.close();
 
-    /* Tear down the communication infrastructure */
+     //Tear down the communication infrastructure 
     MPI_Finalize();
 
     if(world_rank == 0){
@@ -848,15 +850,15 @@ int main(int argc, char **argv)
     return 0;
 }
 
-/*
-        Runge-Kutta timestep. Uses a two-step advance as described in Vigano et al Com. Phys. Commun. 183 (2012), 2042.
-        Input: B, E, J, vc: magnetic field, electric field, current density and velocity field in reduced units
-               tC: transCoeffs object containing Hall and Ohmic diffusivities and x-derivative of Hall diffusivity in reduced units
-               dm, process: Domain and Process objects containing information about the simulation domain and the current process
-               bparams: BandBCParams object containing information about the initial magnetic field and boundary conditions
-               t: time in reduced units
-        Output: B_np1: updated magnetic field
-*/
+
+//        Runge-Kutta timestep. Uses a two-step advance as described in Vigano et al Com. Phys. Commun. 183 (2012), 2042.
+  //      Input: B, E, J, vc: magnetic field, electric field, current density and velocity field in reduced units
+    //           tC: transCoeffs object containing Hall and Ohmic diffusivities and x-derivative of Hall diffusivity in reduced units
+      //         dm, process: Domain and Process objects containing information about the simulation domain and the current process
+        //       bparams: BandBCParams object containing information about the initial magnetic field and boundary conditions
+          //     t: time in reduced units
+        //Output: B_np1: updated magnetic field
+
 void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc, VectorField & B_np1, TransCoeffs & tC, const Domain & dm, const Process & process, const BandBCParams & bparams, double t)
 {
     size_t Ny = dm.Ny;
@@ -1124,3 +1126,5 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
 //        Dataout << " " << std::endl;
 //    }
 //    Dataout.close();
+
+*/

@@ -61,7 +61,7 @@ void LowerBoundary_D(VectorField& D, const VectorField& V, const VectorField& B,
         // B components at lower boundary... call B_Boundary condition function?
 
         // D_BC = -V x B (where v_z is the nonzero component)
-        double DBC_x =  Vz * By;   
+        double DBC_x =  Vz * B[1][N_GC][j];   
         double DBC_y = -Vz * B[0][N_GC][j];   
         double DBC_z =  0.0;        
 
