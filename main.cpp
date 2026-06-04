@@ -284,19 +284,27 @@ int main(int argc, char **argv)
     driver.y_width  = simparams.v_y_width;
     driver.f        = simparams.v_f;
     
-    //InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
-    InitializeH(x, y, N_GC, B, H);
-    InitializeD(x, y, N_GC, D);      // E = 0 initially
-    InitializeE(x, y, N_GC, D, E); 
+     
+    InitializeD(x, y, N_GC, D, x_min, y_min, Deltax, Deltay); 
     InitializeV(x, y, N_GC, V);
+    
+    //InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+    exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
 
     B_BoundaryConditions(B, bparams, Ny, N_GC, 0.0, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
     LowerBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, y_min, Deltay);
     UpperBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, y_min, Deltay);
 
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+    exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
+    
+    InitializeH(x, y, N_GC, B, H);
+    InitializeE(x, y, N_GC, D, E); 
+
     Compute_Rho(D, Rho, domain);
     Compute_J(B, E, H, D, Rho, J, N_GC, domain);
-    exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
+
 
     
     
@@ -315,6 +323,18 @@ int main(int argc, char **argv)
     //Create directory for H5 files holding simulation data.
     //Also copy SimSetup.in to this directory, so can see what simulation parameters (e.g., initial conditions) were used for any particular run
     if( world_rank == 0 ){
+
+        std::ofstream out("J_t0.dat");
+
+        for (size_t i = N_GC; i < J.shape()[1] - N_GC; i++) {
+            for (size_t j = N_GC; j < J.shape()[2] - N_GC; j++) {
+                out << i << " " << j << " "
+                << J[0][i][j] << " "
+                << J[1][i][j] << " "
+                << J[2][i][j] << "\n";
+        }
+        out << "\n";
+    }
         std::ostringstream ndir;
         ndir << FILE_NAME + "/" + FILE_NAME + "/";
         std::filesystem::create_directories(ndir.str().c_str());
@@ -458,21 +478,21 @@ int main(int argc, char **argv)
 
     H5::DataSet *t_set = new DataSet(file.createDataSet("t", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
     t_set->write( &t, PredType::NATIVE_DOUBLE );
-}
+
 
     //Energy conservation data for output H5 file. Only include this in root process H5 file
     //Uses same dataspace and sizes as the time data, so don't need to define separate hsize_t and DataSpace for this
-    //H5::DataSet *U_B_set = new DataSet(file.createDataSet("U_B", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
-    //H5::DataSet *JH_set = new DataSet(file.createDataSet("JH", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
-    //H5::DataSet *PF_set = new DataSet(file.createDataSet("PF", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
-    //H5::DataSet *DeltaEInt_set = new DataSet(file.createDataSet("DeltaEInt", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
+    H5::DataSet *U_B_set = new DataSet(file.createDataSet("U_B", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
+    H5::DataSet *JH_set = new DataSet(file.createDataSet("JH", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
+    H5::DataSet *PF_set = new DataSet(file.createDataSet("PF", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
+    H5::DataSet *DeltaEInt_set = new DataSet(file.createDataSet("DeltaEInt", H5::PredType::NATIVE_DOUBLE, *dataspace_t, t_prop));
 
     // Add attributes to h5 file
-    //H5::DataSpace att_space(H5S_SCALAR);
-    //H5::Attribute att1 = file.createAttribute( "B_0", H5::PredType::NATIVE_DOUBLE, att_space );
-    //att1.write( H5::PredType::NATIVE_DOUBLE, &B_0 );
-    //H5::Attribute att2 = file.createAttribute( "t_0", H5::PredType::NATIVE_DOUBLE, att_space );
-    /*
+    H5::DataSpace att_space(H5S_SCALAR);
+    H5::Attribute att1 = file.createAttribute( "B_0", H5::PredType::NATIVE_DOUBLE, att_space );
+    att1.write( H5::PredType::NATIVE_DOUBLE, &B_0 );
+    H5::Attribute att2 = file.createAttribute( "t_0", H5::PredType::NATIVE_DOUBLE, att_space );
+    
     att2.write( H5::PredType::NATIVE_DOUBLE, &t_0 );
     H5::Attribute att3 = file.createAttribute( "L_0", H5::PredType::NATIVE_DOUBLE, att_space );
     att3.write( H5::PredType::NATIVE_DOUBLE, &L_0 );
@@ -886,7 +906,7 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
 
 //        Compute_J(B, J, N_GC, dm); //this is already computed outside RKStep
 //        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //this is already computed outside RKStep
-        B_torEvolve(Qz, B, J, vc, tC, N_GC, t, dm, bparams);
+        //B_torEvolve(Qz, B, J, vc, tC, N_GC, t, dm, bparams);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
@@ -895,9 +915,9 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
         }
 //        Compute_vc(B_1, vc, J, tC, N_GC, t, dm, bparams, world_rank);
 //        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        Compute_E(B, B_1, E, J, vc, tC, N_GC, t, dm, bparams);
-        E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
+        //Compute_E(B, B_1, E, J, vc, tC, N_GC, t, dm, bparams);
+        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
@@ -924,7 +944,7 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
         //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
         //Compute_vc(B_1, vc, J, tC, N_GC, t, dm, bparams, world_rank);
         //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        B_torEvolve(Qz, B_1, J, vc, tC, N_GC, t, dm, bparams);
+        //B_torEvolve(Qz, B_1, J, vc, tC, N_GC, t, dm, bparams);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
@@ -933,9 +953,9 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
         }
 //        Compute_vc(B_1, vc, J, tC, N_GC, t, dm, bparams, world_rank);
 //        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        Compute_E(B_1, B_np1, E, J, vc, tC, N_GC, t, dm, bparams);
-        E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
+        //Compute_E(B_1, B_np1, E, J, vc, tC, N_GC, t, dm, bparams);
+        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_np1[0][i][j] = 0.5*( B[0][i][j] + B_1[0][i][j] + Deltat*Qx[i][j] );
@@ -966,18 +986,18 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
 
 //        Compute_J(B, J, N_GC, dm); //this is already computed outside RKStep
 //        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //this is already computed outside RKStep
-        Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
+        //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
         exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        B_torEvolve(Qz, B, J, vc, tC, N_GC, t, dm, bparams);
+        //B_torEvolve(Qz, B, J, vc, tC, N_GC, t, dm, bparams);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
             }
         }
-        Compute_E(B, B_1, E, J, vc, tC, N_GC, t, dm, bparams);
-        E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
+        //Compute_E(B, B_1, E, J, vc, tC, N_GC, t, dm, bparams);
+        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
@@ -997,9 +1017,9 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
                 B_2[2][i][j] = 0.25*( 3.*B[2][i][j] + B_1[2][i][j] + Deltat*Qz[i][j] );
             }
         }
-        Compute_E(B_1, B_2, E, J, vc, tC, N_GC, t, dm, bparams);
-        E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
+        //Compute_E(B_1, B_2, E, J, vc, tC, N_GC, t, dm, bparams);
+        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_2[0][i][j] = 0.25*( 3.*B[0][i][j] + B_1[0][i][j] + Deltat*Qx[i][j] );
@@ -1012,16 +1032,16 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
         exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
         //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
         //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        B_torEvolve(Qz, B_2, J, vc, tC, N_GC, t, dm, bparams);
+        //B_torEvolve(Qz, B_2, J, vc, tC, N_GC, t, dm, bparams);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_np1[2][i][j] = 1./3.*( B[2][i][j] + 2.*B_2[2][i][j] + 2.*Deltat*Qz[i][j] );
             }
         }
-        Compute_E(B_2, B_np1, E, J, vc, tC, N_GC, t, dm, bparams);
-        E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
+        //Compute_E(B_2, B_np1, E, J, vc, tC, N_GC, t, dm, bparams);
+        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
+        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_np1[0][i][j] = 1./3.*( B[0][i][j] + 2.*B_2[0][i][j] + 2.*Deltat*Qx[i][j] );
@@ -1127,4 +1147,4 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
 //    }
 //    Dataout.close();
 
-*/
+

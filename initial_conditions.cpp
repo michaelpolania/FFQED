@@ -2,6 +2,7 @@
 #include "boost/multi_array.hpp"
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_integration.h>
+#include <iostream>
 
 #include "common.h"
 #include "initial_conditions.h"
@@ -149,10 +150,11 @@ double InitialBz1(double x, void * params)
 double InitialBz2(double y, void * params)
 {
     struct BConfig_params *p = (struct BConfig_params *) params;
+    double B_tor_max = p -> B_tor_max;
     double y_center = p -> y_center;
     double y_width = p -> y_width;
 
-    return exp(-pow(y-y_center,2.)/(2.*y_width*y_width));
+    return B_tor_max * exp(-pow(y-y_center,2.)/(2.*y_width*y_width));
 
 }
 
@@ -184,14 +186,20 @@ Arguments: x, y coordinates
 
 Output: three displacement field components across domain
 */
-void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D)
+void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, double x_min, double y_min, std::vector<double> &dx, double dy)
 {
-    for (size_t i = 0; i < x.size(); i++) {
-        for (size_t j = 0; j < y.size(); j++) {
+    double E1 = 1.0;
+    double E2 = 1.0;
 
+    for (size_t i = 0; i < x.size(); i++) {
+        
+        for (size_t j = 0; j < y.size(); j++) {
+            double y_j = y_min + (j - N_GC) * dy;
+            double x_i = x_min + (i - N_GC) * dx[i];
+            
             D[0][i+N_GC][j+N_GC] = 0.0; // Dx
-            D[1][i+N_GC][j+N_GC] = 0.0; // Dy
-            D[2][i+N_GC][j+N_GC] = 0.0; // Dz
+            D[1][i+N_GC][j+N_GC] = E1 * y_j; // Dy
+            D[2][i+N_GC][j+N_GC] = E2 * x_i; // Dz            
 
         }
     }

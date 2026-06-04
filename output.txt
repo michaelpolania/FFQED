@@ -1,0 +1,9 @@
+rho = 0
+B = (10, 6.12323e-16, 0)
+E = (0, 0, 0)
+A1 = (0, 0, 0)
+A2 = (0, 0, 0)
+A3 = (0, 0, 0)
+J = (0, 0, 0)
+Solver done. Total run time is 0.002271 s
+Wrote simulation data to EMHD_Sim_Data_LLB.h5

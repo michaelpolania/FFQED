@@ -13,7 +13,7 @@
 
 void Compute_Rho(VectorField & D, ScalarField & Rho, const Domain & dm)
 {
-    size_t N_GC = dm.N_GC;
+    size_t N_GC = dm.N_GC; // in domain 
 
     for(size_t i=N_GC; i<D.shape()[1]-N_GC; i++){
         for(size_t j=N_GC; j<D.shape()[2]-N_GC; j++){
@@ -520,6 +520,41 @@ void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & 
             J[0][i][j] = compute_A1_x(i, j, f) + compute_A2_x(i, j, f) + compute_A3_x(i, j, f);
             J[1][i][j] = compute_A1_y(i, j, f) + compute_A2_y(i, j, f) + compute_A3_y(i, j, f);
             J[2][i][j] = compute_A1_z(i, j, f) + compute_A2_z(i, j, f) + compute_A3_z(i, j, f);
+
+            if(i == N_GC + 5 && j == N_GC + 5)
+            {
+                std::cout << "rho = " << Rho[i][j] << "\n";
+
+                std::cout << "B = ("
+                          << B[0][i][j] << ", "
+                          << B[1][i][j] << ", "
+                          << B[2][i][j] << ")\n";
+
+                std::cout << "E = ("
+                          << D[0][i][j] << ", "
+                          << D[1][i][j] << ", "
+                          << D[2][i][j] << ")\n";
+
+                std::cout << "A1 = ("
+                          << compute_A1_x(i, j, f) << ", "
+                          << compute_A1_y(i, j, f) << ", "
+                          << compute_A1_z(i, j, f) << ")\n";
+
+                std::cout << "A2 = ("
+                          << compute_A2_x(i, j, f) << ", "
+                          << compute_A2_y(i, j, f) << ", "
+                          << compute_A2_z(i, j, f) << ")\n";
+
+                std::cout << "A3 = ("
+                          << compute_A3_x(i, j, f) << ", "
+                          << compute_A3_y(i, j, f) << ", "
+                          << compute_A3_z(i, j, f) << ")\n";
+
+                std::cout << "J = ("
+                          << J[0][i][j] << ", "
+                          << J[1][i][j] << ", "
+                          << J[2][i][j] << ")\n";
+            }
         }
     }
 
@@ -539,6 +574,8 @@ void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & 
             bparams: BandBCParams object containing information about the initial magnetic field and boundary conditions
     Output: E: electric field on cell face edges in reduced units
 */
+
+/*
 void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField & J, VectorField & vc, TransCoeffs & tC, size_t N_GC, double t, const Domain & dm, const BandBCParams & bparams)
 {
 
@@ -625,7 +662,7 @@ void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField &
 
     return;
 }
-
+*/
 /*
     Computes electromagnetic force along closed path around cell face. Used to compute time derivative of magnetic field.
     Inputs: E: electric field in reduced units along cell faces
@@ -633,6 +670,7 @@ void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField &
             Deltax, Deltay: cell sizes in x and y directions in reduced units
     Output: Qx, Qy: line integral of E divided by cell face area on bottom cell faces (to update Bx) and left cell faces (to update By) respectively
 */
+/*
 void Compute_EMF(ScalarField & Qx, ScalarField & Qy, VectorField & E, size_t N_GC, std::vector<double> & Deltax, double Deltay)
 {
 
@@ -649,3 +687,4 @@ void Compute_EMF(ScalarField & Qx, ScalarField & Qy, VectorField & E, size_t N_G
 
     return;
 }
+*/

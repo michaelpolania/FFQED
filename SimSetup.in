@@ -60,7 +60,7 @@ theta_D: 90
 #Initial Bz field B_tor_init on (true) or off (false), specified by its maximum value B_tor_max (in G), x-position center and width (B_tor_x_center,B_tor_x_width) (in cm)
 # and y-position center and width (B_tor_y_center,B_tor_y_width) (in cm) #8.4e4
 B_tor_init: false
-B_tor_max: -1e13
+B_tor_max: 0
 B_tor_x_center: 0
 B_tor_x_width: 1e3
 B_tor_y_center: 0
