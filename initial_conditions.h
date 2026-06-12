@@ -11,7 +11,7 @@ double InitialBy(double x, void * params);
 double InitialBz1(double x, void * params);
 double InitialBz2(double y, void * params);
 void InitializeV(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &V);
-void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, double x_min, double y_min, std::vector<double> &dx, double dy);
+void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, double x_min, double y_min);
 void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E, VectorField &D);
 void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, const VectorField &B, VectorField &H);
 

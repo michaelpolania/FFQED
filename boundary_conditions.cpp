@@ -1,5 +1,5 @@
 #include <vector>
-
+#include <iostream>
 #include <gsl/gsl_fft_real.h>
 #include <gsl/gsl_fft_halfcomplex.h>
 
@@ -44,7 +44,7 @@ double Initialvz(double y, double t, void *driver)
         Output: D with updated boundary values
 */
 
-void LowerBoundary_D(VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, double y_min, double dy)
+void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, double y_min, double dy)
 {
     //Exchange ghost cells
     //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
@@ -54,10 +54,11 @@ void LowerBoundary_D(VectorField& D, const VectorField& V, const VectorField& B,
 
         //Compute y coordinate of this cell
         double y_j = y_min + (j - N_GC) * dy;
+        //std::cout << "y_j = " << y_j << std::endl;
 
         //Computes boundary velocity for coordinate y_j
         double Vz = Initialvz(y_j, t, &driver);
-
+        //std::cout << "Vz = " << Vz<< std::endl;
         // B components at lower boundary... call B_Boundary condition function?
 
         // D_BC = -V x B (where v_z is the nonzero component)

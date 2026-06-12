@@ -73,6 +73,9 @@ int main(int argc, char **argv)
     double x_min = simparams.x_min, x_max = simparams.x_max;
     double y_min = simparams.y_min, y_max = simparams.y_max;
 
+    
+    std::cout << "Ny = " << Ny << ", N_GC = " << N_GC << std::endl;
+
     if( (Nx%2 !=0 || Ny%2 !=0) && world_rank == 0 ){
         printf("WARNING: Please choose number of finite volume cells in each direction to be even numbers\n");
     }
@@ -285,26 +288,108 @@ int main(int argc, char **argv)
     driver.f        = simparams.v_f;
     
      
-    InitializeD(x, y, N_GC, D, x_min, y_min, Deltax, Deltay); 
+    InitializeD(x, y, N_GC, D, domain, x_min, y_min); 
+    //std::cout << "D[0][N_GC][N_GC] = " << D[0][N_GC][N_GC] << std::endl; // Ex, should be 0
+    //std::cout << "D[1][N_GC][N_GC] = " << D[1][N_GC][N_GC] << std::endl; // Ey, should be y[0]
+    //std::cout << "D[2][N_GC][N_GC] = " << D[2][N_GC][N_GC] << std::endl; // Ez, should be x[0]
+    
     InitializeV(x, y, N_GC, V);
     
-    //InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
+    InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
+    //std::cout << "B[0][N_GC][N_GC] = " << B[0][N_GC][N_GC] << std::endl;
+    //std::cout << "B[1][N_GC][N_GC] = " << B[1][N_GC][N_GC] << std::endl;
+    //std::cout << "B[2][N_GC][N_GC] = " << B[2][N_GC][N_GC] << std::endl;
+    
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+    //std::cout << "D[1][N_GC][N_GC-1]  = " << D[1][N_GC][N_GC-1] << std::endl;   // y bottom ghost
+    //std::cout << "D[1][N_GC][N_GC+y.size()] = " << D[1][N_GC][N_GC+y.size()] << std::endl; // y top ghost
+    
     exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
-
+    
+    
     B_BoundaryConditions(B, bparams, Ny, N_GC, 0.0, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
-    LowerBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, y_min, Deltay);
-    UpperBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, y_min, Deltay);
-
+    LowerBoundary_D(y, D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.15, driver, y_min, Deltay);
+    //std::cout << "D[1][N_GC][N_GC] = " << D[1][N_GC][N_GC] << std::endl;     // Ey at bottom physical cell
+    //std::cout << "D[2][N_GC][N_GC] = " << D[2][N_GC][N_GC] << std::endl;     // Ez at bottom physical cell
+    
+    UpperBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.15, driver, y_min, Deltay);
+    //std::cout << "D[1][N_GC][N_GC+y.size()-1] = " << D[1][N_GC][N_GC+y.size()-1] << std::endl; // should be y[last]
+    //std::cout << "D[2][N_GC][N_GC+y.size()-1] = " << D[2][N_GC][N_GC+y.size()-1] << std::endl; // should be x[0]
+    
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
     exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
     
     InitializeH(x, y, N_GC, B, H);
-    InitializeE(x, y, N_GC, D, E); 
+    //std::cout << "H[0][N_GC][N_GC] = " << H[0][N_GC][N_GC] << std::endl; // should be B0/mu_0 or similar
+    //std::cout << "H[1][N_GC][N_GC] = " << H[1][N_GC][N_GC] << std::endl; // should be 0
+    //std::cout << "H[2][N_GC][N_GC] = " << H[2][N_GC][N_GC] << std::endl; // should be 0
 
+    
+    InitializeE(x, y, N_GC, E, D); 
+    //std::cout << "E[0][N_GC][N_GC] = " << E[0][N_GC][N_GC] << std::endl; // should be 0
+    //std::cout << "E[1][N_GC][N_GC] = " << E[1][N_GC][N_GC] << std::endl; // should match D[1] = -0.4975
+    //std::cout << "E[2][N_GC][N_GC] = " << E[2][N_GC][N_GC] << std::endl; // should match D[2] = 0.00228643
+
+    
     Compute_Rho(D, Rho, domain);
+    //std::cout << "Rho[N_GC][N_GC] = " << Rho[N_GC][N_GC] << std::endl;
+    //std::cout << "D[1][2][1] = " << D[1][2][1] << std::endl;  // j=1 ghost cell, should be ~E1*y[ghost]
+    //std::cout << "D[1][2][2] = " << D[1][2][2] << std::endl;  // j=2 first physical cell
+    //std::cout << "E[2][3][2] = " << E[2][3][2] << std::endl;  // Ez at i+1/2, j-1/2 used in Dy_Ez_D
+    //std::cout << "E[2][2][2] = " << E[2][2][2] << std::endl;  // Ez at i-1/2, j-1/2
+    //std::cout << "E[2][3][1] = " << E[2][3][1] << std::endl;
+    //std::cout << "E[2][2][1] = " << E[2][2][1] << std::endl;
+    // Fill i-direction (x) ghost cells
+
+    std::cout << "Rho[2][2] = " << Rho[2][2] << std::endl;
+    std::cout << "Rho[1][2] = " << Rho[1][2] << std::endl;
+    std::cout << "Rho[3][2] = " << Rho[3][2] << std::endl;
+    //std::cout << "Deltay = " << dm.Deltay << std::endl;
+    
+   for(size_t c = 0; c < 3; c++){
+    for(size_t i = 0; i < D.shape()[1]; i++){
+        // Bottom ghost cells
+        D[c][i][N_GC-1] = 2.0*D[c][i][N_GC] - D[c][i][N_GC+1];
+        E[c][i][N_GC-1] = 2.0*E[c][i][N_GC] - E[c][i][N_GC+1];
+        // Top ghost cells
+        D[c][i][D.shape()[2]-N_GC] = 2.0*D[c][i][D.shape()[2]-N_GC-1] - D[c][i][D.shape()[2]-N_GC-2];
+        E[c][i][E.shape()[2]-N_GC] = 2.0*E[c][i][E.shape()[2]-N_GC-1] - E[c][i][E.shape()[2]-N_GC-2];
+    }
+}
+    std::cout << "D[2][1][2] = " << D[2][1][2] << std::endl;
+    std::cout << "E[2][1][2] = " << E[2][1][2] << std::endl;
     Compute_J(B, E, H, D, Rho, J, N_GC, domain);
 
+    size_t i = 201;
+    size_t j = N_GC;
+    //std::cout << "B[0][i][j]   = " << B[0][i][j] << std::endl;
+    //std::cout << "B[0][i-1][j] = " << B[0][i-1][j] << std::endl;
+    //std::cout << "B[1][i][j]   = " << B[1][i][j] << std::endl;
+    //std::cout << "B[1][i-1][j] = " << B[1][i-1][j] << std::endl;
+    //std::cout << "Rho[i][j]    = " << Rho[i][j] << std::endl;
+    //std::cout << "Rho[i-1][j]  = " << Rho[i-1][j] << std::endl;
+    //std::cout << "E[2][i][j]   = " << E[2][i][j] << std::endl;
+    //std::cout << "E[2][i-1][j] = " << E[2][i-1][j] << std::endl;
+    //std::cout << D.shape()[1];
+    
+    //std::cout << "A1_x = " << compute_A1_x(i, j, f) << std::endl;
+    //std::cout << "A2_x = " << compute_A2_x(i, j, f) << std::endl;
+    //std::cout << "A3_x = " << compute_A3_x(i, j, f) << std::endl;
+    //std::cout << "J[0][N_GC][N_GC] = " << J[0][N_GC][N_GC] << std::endl;
+    //std::cout << "J[1][N_GC][N_GC] = " << J[1][N_GC][N_GC] << std::endl;
+    //std::cout << "J[2][N_GC][N_GC] = " << J[2][N_GC][N_GC] << std::endl;
+    
+    /*
+    size_t i = N_GC + 50;
+    size_t j = N_GC + 50;
+    std::cout << "x[50] = " << x[50] << std::endl;
+    std::cout << "J[0][i][j] = " << J[0][i][j] << std::endl;
+    std::cout << "J[1][i][j] = " << J[1][i][j] << std::endl;
+    std::cout << "J[2][i][j] = " << J[2][i][j] << std::endl;
+    std::cout << "B[0][i][j] = " << B[0][i][j] << std::endl;
+    std::cout << "H[0][i][j] = " << H[0][i][j] << std::endl;
+    std::cout << "H[2][i][j] = " << H[2][i][j] << std::endl; // Hz should be 0
+    /*
 
     
     

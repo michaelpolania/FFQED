@@ -186,7 +186,7 @@ Arguments: x, y coordinates
 
 Output: three displacement field components across domain
 */
-void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, double x_min, double y_min, std::vector<double> &dx, double dy)
+void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, double x_min, double y_min)
 {
     double E1 = 1.0;
     double E2 = 1.0;
@@ -194,19 +194,49 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
     for (size_t i = 0; i < x.size(); i++) {
         
         for (size_t j = 0; j < y.size(); j++) {
-            double y_j = y_min + (j - N_GC) * dy;
-            double x_i = x_min + (i - N_GC) * dx[i];
+
+            //int ii = static_cast<int>(i);
+            //int jj = static_cast<int>(j);
+            //int ng = static_cast<int>(N_GC);
+
+            //double x_i = x_min + (ii - ng) * dm.Deltax[i];
+            //double y_j = y_min + (jj - ng) * dm.Deltay;
+            
+            double x_i = x[i];
+            double y_j = y[j];
+            
+            
+            //double y_j = y_min + (j - N_GC) * dm.Deltay;
+            //double x_i = x_min + (i - N_GC) * dm.Deltax[0];
             
             D[0][i+N_GC][j+N_GC] = 0.0; // Dx
             D[1][i+N_GC][j+N_GC] = E1 * y_j; // Dy
-            D[2][i+N_GC][j+N_GC] = E2 * x_i; // Dz            
+            D[2][i+N_GC][j+N_GC] = E2 * x_i; // Dz  
+
+            std::cout << "y[0]= " << x[0]<< std::endl;
+            
+            
+            //std::cout << "x_i = " << x_i
+          //<< " y_j = " << y_j << std::endl;
+            //std::cout << "D = "
+            //<< D[0][i+N_GC][j+N_GC] << " "
+            //<< D[1][i+N_GC][j+N_GC] << " "
+            //<< D[2][i+N_GC][j+N_GC] << std::endl;   
+           // if (i == 2 && j == 0) {
+             //   std::cout << "D = "
+               // << D[0][i+N_GC][j+N_GC] << " "
+               // << D[1][i+N_GC][j+N_GC] << " "
+                //<< D[2][i+N_GC][j+N_GC] << std::endl;
+
+            //}
+            // Print
 
         }
     }
 }
 
 /*
-Initializes electric field (E)
+Initializes electric field (E) including ghost cells.
 
 Arguments: x, y coordinates
 
@@ -215,12 +245,17 @@ Output: three electric field components across domain
 
 void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E, VectorField &D)
 {
-    for (size_t i = 0; i < x.size(); i++) {
-        for (size_t j = 0; j < y.size(); j++) {
+    for (size_t i = 0; i < D.shape()[1]; i++) {
+        for (size_t j = 0; j < D.shape()[2]; j++) {
 
-            E[0][i+N_GC][j+N_GC] = D[0][i+N_GC][j+N_GC]; // Ex
-            E[1][i+N_GC][j+N_GC] = D[1][i+N_GC][j+N_GC]; // Ey
-            E[2][i+N_GC][j+N_GC] = D[2][i+N_GC][j+N_GC]; // Ez
+            E[0][i][j] = D[0][i][j]; // Ex
+            E[1][i][j] = D[1][i][j]; // Ey
+            E[2][i][j] = D[2][i][j]; // Ez
+
+            //std::cout << "D = "
+            //<< E[0][i+N_GC][j+N_GC] << " "
+            //<< E[1][i+N_GC][j+N_GC] << " "
+            //<< E[2][i+N_GC][j+N_GC] << std::endl;  
 
         }
     }
@@ -236,12 +271,12 @@ Output: three auxillary field components across domain
 
 void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, const VectorField &B, VectorField &H)
 {
-    for (size_t i = 0; i < x.size(); i++) {
-        for (size_t j = 0; j < y.size(); j++) {
+    for (size_t i = 0; i < B.shape()[1]; i++) {
+        for (size_t j = 0; j < B.shape()[2]; j++) {
 
-            H[0][i+N_GC][j+N_GC] = B[0][i+N_GC][j+N_GC]; // Hx
-            H[1][i+N_GC][j+N_GC] = B[1][i+N_GC][j+N_GC]; // Hy
-            H[2][i+N_GC][j+N_GC] = B[2][i+N_GC][j+N_GC]; // Hz
+            H[0][i][j] = B[0][i][j]; // Hx
+            H[1][i][j] = B[1][i][j]; // Hy
+            H[2][i][j] = B[2][i][j]; // Hz
 
         }
     }
