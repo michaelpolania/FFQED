@@ -52,15 +52,26 @@ double compute_A1_x(int i, int j, const Fields & f){
     double Bz = f.B[2][i][j];
     double Bz_j_minus_1 = f.B[2][i][j-1];
 
-    //double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    //double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1)/4.0 +(By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_j_minus_1 * Bz_j_minus_1);
+    
     double B_ij = (Bx_i * Bx_i)  + (By_j * By_j)  + (Bz * Bz); 
-    double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1) +(By_j_minus_1 * By_j_minus_1) + (Bz_j_minus_1 * Bz_j_minus_1);      
+    double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1) +(By_j_minus_1 * By_j_minus_1) + (Bz_j_minus_1 * Bz_j_minus_1);
+    double B_squared = 0.5 * (B_ij + B_ij_minus_1);      
     double Bz_A_1_x = 0.5 * (Bz + Bz_j_minus_1);
 
     double ExB_x = Ey * Bz_A_1_x  - Ez * f.B[1][i][j];
+    if (i == 5 && j == 5){
+    //std::cout << "=== A1_z debug i=2, j=2 ===" << std::endl;
+    //std::cout << "rho_avg = " << rho_avg << std::endl;
+    //std::cout << "Ex_By_A = " << Ex_By_A << std::endl;
+    //std::cout << "Ey_Bx_A = " << Ey_Bx_A << std::endl;
+    //std::cout << "B_squared = " << B_squared << std::endl;
+    //std::cout << "B_ij = " << B_ij << std::endl;
+    //std::cout << "B_i_minus_1_j = " << B_i_minus_1_j << std::endl;
+    //std::cout << "B_ij_minus_1 = " << B_ij_minus_1 << std::endl;
+    //std::cout << "B_i_j_minus_1 = " << B_i_j_minus_1 << std::endl;
+    }
 
-    return (2.0 * rho_avg * ExB_x)/(B_ij_minus_1 + B_ij);
+    return (2 * rho_avg * ExB_x)/(B_squared);
 }
 
 double compute_A1_y(int i, int j, const Fields & f){
@@ -79,31 +90,16 @@ double compute_A1_y(int i, int j, const Fields & f){
     double Bz = f.B[2][i][j];                          
     double Bz_i_minus_1_j = f.B[2][i-1][j];
 
-    double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
+    double B_ij = (Bx_i * Bx_i)  + (By_j * By_j)  + (Bz * Bz); 
+    double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j) +(By_i_minus_1_j * By_i_minus_1_j) + (Bz_i_minus_1_j * Bz_i_minus_1_j);
+    double B_squared = 0.5 * (B_ij + B_i_minus_1_j);
             
     double Bz_A_1_y = 0.5 * (Bz + Bz_i_minus_1_j);    
+                                       
 
-    double Ez_A_1_y = 0.5 * (f.E[2][i][j] + f.E[2][i-1][j]);  
-    double Ex_A_1_y = Ex;                                       
+    double ExB_y = Ez * f.B[0][i][j]  - Ex * Bz_A_1_y;
 
-    double ExB_y = Ez_A_1_y * f.B[0][i][j]  - Ex_A_1_y * Bz_A_1_y;
-
-    if (i == 2 && j == 2){
-    std::cout << "=== A1_y ===" << std::endl;
-    std::cout << "rho_avg = " << rho_avg << std::endl;
-    std::cout << "Ex = " << Ex << std::endl;
-    std::cout << "Ez = " << Ez << std::endl;
-    std::cout << "Bx = " << f.B[0][i][j] << std::endl;
-    std::cout << "ExB_y = " << ExB_y << std::endl;
-    std::cout << "B_ij = " << B_ij << std::endl;
-    std::cout << "Ez_A_1_y = " << Ez_A_1_y << std::endl;
-std::cout << "Ex_A_1_y = " << Ex_A_1_y << std::endl;
-std::cout << "Bz_A_1_y = " << Bz_A_1_y << std::endl;
-std::cout << "f.B[0][i][j] = " << f.B[0][i][j] << std::endl;
-}
-
-    return (2.0 * rho_avg * ExB_y)/(B_i_minus_1_j + B_ij);
+    return (rho_avg * ExB_y)/(B_squared);
 }
 
 double compute_A1_z(int i, int j, const Fields & f){
@@ -129,15 +125,15 @@ double compute_A1_z(int i, int j, const Fields & f){
     double Bz_ij_minus_1 = f.B[2][i-1][j-1];
     double Bz_i_j_minus_1 = f.B[2][i][j-1];
 
-    double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
-    double B_ij_minus_1 = (Bx_ij_minus_1 * Bx_ij_minus_1)/4.0 + (By_ij_minus_1 * By_ij_minus_1)/4.0 + (Bz_ij_minus_1 * Bz_ij_minus_1);
-    double B_i_j_minus_1 = (Bx_i_j_minus_1 * Bx_i_j_minus_1)/4.0 + (By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_i_j_minus_1 * Bz_i_j_minus_1); 
+    double B_ij = 0.5*(f.B[0][i][j]*f.B[0][i][j] + f.B[0][i+1][j]*f.B[0][i+1][j]) + 0.5*(f.B[1][i][j]*f.B[1][i][j] + f.B[1][i][j+1]*f.B[1][i][j+1]) + f.B[2][i][j]*f.B[2][i][j];
+    double B_i_minus_1_j = 0.5*(f.B[0][i-1][j]*f.B[0][i-1][j] + f.B[0][i][j]*f.B[0][i][j]) + 0.5*(f.B[1][i-1][j]*f.B[1][i-1][j] + f.B[1][i-1][j+1]*f.B[1][i-1][j+1]) + f.B[2][i-1][j]*f.B[2][i-1][j];
+    double B_i_j_minus_1 = 0.5*(f.B[0][i][j-1]*f.B[0][i][j-1] + f.B[0][i+1][j-1]*f.B[0][i+1][j-1]) + 0.5*(f.B[1][i][j-1]*f.B[1][i][j-1] + f.B[1][i][j]*f.B[1][i][j]) + f.B[2][i][j-1]*f.B[2][i][j-1];
+    double B_ij_minus_1 = 0.5*(f.B[0][i-1][j-1]*f.B[0][i-1][j-1] + f.B[0][i][j-1]*f.B[0][i][j-1]) + 0.5*(f.B[1][i-1][j-1]*f.B[1][i-1][j-1] + f.B[1][i-1][j]*f.B[1][i-1][j]) + f.B[2][i-1][j-1]*f.B[2][i-1][j-1];
 
-    //double B_squared = 2 * (1)/((B_ij + B_i_minus_1_j + B_ij_minus_1 + B_i_j_minus_1));
-    double B_squared = ((B_ij + B_i_minus_1_j + B_ij_minus_1 + B_i_j_minus_1)) * 2;
+    double B_squared = (B_ij + B_i_minus_1_j + B_i_j_minus_1 + B_ij_minus_1) / 4.0;
 
-    return (4 * rho_avg * (Ex_By_A - Ey_Bx_A))/(B_squared);
+    
+    return (rho_avg * (Ex_By_A - Ey_Bx_A))/(B_squared);
 }
 
 double compute_A2_x(int i, int j, const Fields & f){
@@ -183,8 +179,8 @@ double compute_A2_x(int i, int j, const Fields & f){
     double Bz = f.B[2][i][j];
     double Bz_j_minus_1 = f.B[2][i][j-1];
 
-    double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1)/4.0 +(By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_j_minus_1 * Bz_j_minus_1);
+    double B_ij = (Bx_i * Bx_i)  + (By_j * By_j)  + (Bz * Bz); 
+    double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1) +(By_j_minus_1 * By_j_minus_1) + (Bz_j_minus_1 * Bz_j_minus_1);
     
     return 0.5 * ((B_dot_curl_H_AB * Bx_i)/(B_ij) + (B_dot_curl_H_CD * Bx_i_minus_1)/(B_ij_minus_1));
 }
@@ -232,8 +228,8 @@ double compute_A2_y(int i, int j, const Fields & f){
     double Bz = f.B[2][i][j];
     double Bz_i_minus_1_j = f.B[2][i-1][j];
 
-    double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
+    double B_ij = (Bx_i * Bx_i)  + (By_j * By_j)  + (Bz * Bz); 
+    double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j) +(By_i_minus_1_j * By_i_minus_1_j) + (Bz_i_minus_1_j * Bz_i_minus_1_j);
         
     return 0.5 * ((B_dot_curl_H_AB * By_j)/(B_ij) + (B_dot_curl_H_CD * By_i_minus_1_j)/(B_i_minus_1_j));
 }
@@ -321,13 +317,14 @@ double compute_A2_z(int i, int j, const Fields & f){
     double Bz_ij_minus_1 = f.B[2][i-1][j-1];
     double Bz_i_j_minus_1 = f.B[2][i][j-1];
 
-    double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
-    double B_ij_minus_1 = (Bx_ij_minus_1 * Bx_ij_minus_1)/4.0 + (By_ij_minus_1 * By_ij_minus_1)/4.0 + (Bz_ij_minus_1 * Bz_ij_minus_1);
-    double B_i_j_minus_1 = (Bx_i_j_minus_1 * Bx_i_j_minus_1)/4.0 + (By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_i_j_minus_1 * Bz_i_j_minus_1); 
+    double B_ij = (Bx_i * Bx_i)  + (By_j * By_j)  + (Bz * Bz); 
+    double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j) +(By_i_minus_1_j * By_i_minus_1_j) + (Bz_i_minus_1_j * Bz_i_minus_1_j);
+    double B_ij_minus_1 = (Bx_ij_minus_1 * Bx_ij_minus_1) + (By_ij_minus_1 * By_ij_minus_1) + (Bz_ij_minus_1 * Bz_ij_minus_1);
+    double B_i_j_minus_1 = (Bx_i_j_minus_1 * Bx_i_j_minus_1) + (By_j_minus_1 * By_j_minus_1) + (Bz_i_j_minus_1 * Bz_i_j_minus_1); 
     
     return 0.25 * ((B_dot_curl_H_AB * Bz)/(B_ij) + (B_dot_curl_H_CD * Bz_i_minus_1_j)/(B_i_minus_1_j) + (B_dot_curl_H_EF * Bz_i_j_minus_1)/(B_i_j_minus_1) + (B_dot_curl_H_GH * Bz_ij_minus_1)/(B_ij_minus_1));
 }
+
 
 double compute_A3_x(int i, int j, const Fields & f){
 
@@ -371,31 +368,10 @@ double compute_A3_x(int i, int j, const Fields & f){
     double By_j_minus_1 = 0.5 * (f.B[1][i][j-1] + f.B[1][i][j]); 
     double Bz = f.B[2][i][j];
     double Bz_j_minus_1 = f.B[2][i][j-1];
-    //double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
+    
     double B_ij = (Bx_i * Bx_i)  + (By_j * By_j)  + (Bz * Bz); 
-    double Bx_val = 0.5 * (f.B[0][2+1][2] + f.B[0][2][2]);
-    double By_val = 0.5 * (f.B[1][2][2+1] + f.B[1][2][2]);
-    double Bz_val = f.B[2][2][2];
-    //std::cout << "B^2 = " << B_squared << std::endl;
-    //double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1)/4.0 +(By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_j_minus_1 * Bz_j_minus_1);
     double B_ij_minus_1 = (Bx_i_minus_1 * Bx_i_minus_1) +(By_j_minus_1 * By_j_minus_1) + (Bz_j_minus_1 * Bz_j_minus_1);
-
-    if (i == 2 && j == 4){
-    std::cout << "D[1][i][j]   = " << f.D[1][i][j]   << std::endl;
-    std::cout << "D[1][i][j-1] = " << f.D[1][i][j-1] << std::endl;
-    std::cout << "Dy_Ez_A = " << Dy_Ez_A << std::endl;
-    std::cout << "Dy_Ez_B = " << Dy_Ez_B << std::endl;
-    std::cout << "Dy_Ez_C = " << Dy_Ez_C << std::endl;
-    std::cout << "Dy_Ez_D = " << Dy_Ez_D << std::endl;
-    std::cout << "Dy_Ez_AB = " << Dy_Ez_AB << std::endl;
-    std::cout << "Dy_Ez_CD = " << Dy_Ez_CD << std::endl;
-    std::cout << "D_dot_curl_E_AB = " << D_dot_curl_E_AB << std::endl;
-    std::cout << "D_dot_curl_E_CD = " << D_dot_curl_E_CD << std::endl;
-    std::cout << "Bx_i = " << Bx_i << std::endl;
-    std::cout << "Bx_i_minus_1 = " << Bx_i_minus_1 << std::endl;
-    std::cout << "B_ij = " << B_ij << std::endl;
-    std::cout << "B_ij_minus_1 = " << B_ij_minus_1 << std::endl;
-}
+    
     return 0.5 * ((D_dot_curl_E_AB * Bx_i)/(B_ij) + (D_dot_curl_E_CD * Bx_i_minus_1)/(B_ij_minus_1));
 }
 
@@ -441,9 +417,6 @@ double compute_A3_y(int i, int j, const Fields & f){
     double By_i_minus_1_j = 0.5 * (f.B[1][i-1][j+1] + f.B[1][i-1][j]);
     double Bz = f.B[2][i][j];
     double Bz_i_minus_1_j = f.B[2][i-1][j];
-
-    //double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    //double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
     
     double B_ij = (Bx_i * Bx_i)  + (By_j * By_j)  + (Bz * Bz); 
     double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j) +(By_i_minus_1_j * By_i_minus_1_j) + (Bz_i_minus_1_j * Bz_i_minus_1_j);
@@ -533,11 +506,6 @@ double compute_A3_z(int i, int j, const Fields & f){
     double Bz_ij_minus_1 = f.B[2][i-1][j-1];
     double Bz_i_j_minus_1 = f.B[2][i][j-1];
 
-    //double B_ij = (Bx_i * Bx_i)/4.0  + (By_j * By_j)/4.0  + (Bz * Bz); 
-    //double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j)/4.0 +(By_i_minus_1_j * By_i_minus_1_j)/4.0 + (Bz_i_minus_1_j * Bz_i_minus_1_j);
-    //double B_ij_minus_1 = (Bx_ij_minus_1 * Bx_ij_minus_1)/4.0 + (By_ij_minus_1 * By_ij_minus_1)/4.0 + (Bz_ij_minus_1 * Bz_ij_minus_1);
-    //double B_i_j_minus_1 = (Bx_i_j_minus_1 * Bx_i_j_minus_1)/4.0 + (By_j_minus_1 * By_j_minus_1)/4.0 + (Bz_i_j_minus_1 * Bz_i_j_minus_1); 
-
     double B_ij = (Bx_i * Bx_i)  + (By_j * By_j)  + (Bz * Bz); 
     double B_i_minus_1_j = (Bx_i_minus_1_j * Bx_i_minus_1_j) +(By_i_minus_1_j * By_i_minus_1_j) + (Bz_i_minus_1_j * Bz_i_minus_1_j);
     double B_ij_minus_1 = (Bx_ij_minus_1 * Bx_ij_minus_1) + (By_ij_minus_1 * By_ij_minus_1) + (Bz_ij_minus_1 * Bz_ij_minus_1);
@@ -565,20 +533,15 @@ void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & 
             J[0][i][j] = compute_A1_x(i, j, f) + compute_A2_x(i, j, f) + compute_A3_x(i, j, f);
             J[1][i][j] = compute_A1_y(i, j, f) + compute_A2_y(i, j, f) + compute_A3_y(i, j, f);
             J[2][i][j] = compute_A1_z(i, j, f) + compute_A2_z(i, j, f) + compute_A3_z(i, j, f);
-            //std::cout << "A3_x = " << compute_A3_x(i, j, f) << std::endl;
-            //std::cout << "A3_y = " << compute_A3_y(i, j, f) << std::endl;
-            //std::cout << "A3_z = " << compute_A3_z(i, j, f) << std::endl;
-            //if (std::abs(compute_A1_z(i, j, f)) < 1e-10 && std::abs(compute_A1_z(i-1, j, f)) > 1e-10) {
-              //  std::cout << "A1_y drops to 0 at i=" << i << " j=" << j << std::endl;}
 
-            if (i == 2 && j == 2){
-                std::cout << "A1_x = " << compute_A1_x(i,j,f) << std::endl;
+            if (i == 5 && j == 5){
+               std::cout << "A1_x = " << compute_A1_x(i,j,f) << std::endl;
                 std::cout << "A1_y = " << compute_A1_y(i,j,f) << std::endl;
                 std::cout << "A1_z = " << compute_A1_z(i,j,f) << std::endl;
-
+            }}}
 return;
                 
-}
+        }
                 
                 //std::cout << "A1_z = " << compute_A1_z(i,j,f) << std::endl; 
             
@@ -586,7 +549,7 @@ return;
     
 
     //return;
-            }}}  
+              
             //if (std::abs(compute_A1_z(i, j, f)) > 0.1) {
               //  std::cout << "spike at i=" << i << " j=" << j 
               //<< " A1_z=" << compute_A1_z(i, j, f) << std::endl;

@@ -58,6 +58,8 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
     //iterates over every physical cell, not ghost cells
     for(size_t i=0; i<x.size(); i++){
         for(size_t j=0; j<y.size(); j++){
+    
+
 
             //Computes integration for Bx, integrates over y
             gsl_integration_qag(&Fx, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result1, &error);
@@ -158,6 +160,18 @@ double InitialBz2(double y, void * params)
 
 }
 
+void InitializeB_test(size_t N_GC, VectorField &B)
+{
+    for(size_t i = N_GC; i < B.shape()[1]-N_GC; i++){
+        for(size_t j = N_GC; j < B.shape()[2]-N_GC; j++){
+            B[0][i][j] = 10.0;  // Bx = 10
+            B[1][i][j] = 0.0;   // By = 0
+            B[2][i][j] = 0.0;   // Bz = 0
+        }
+    }
+    return;
+}
+
 /*
 Initializes velocity field (V)
 
@@ -179,6 +193,94 @@ void InitializeV(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
     }
 }
 
+struct EConfig_params {
+    double E1;
+    double E2;
+};
+
+double InitialDy(double y, void * params)
+{
+    struct EConfig_params *p = (struct EConfig_params *) params;
+    return p->E1 * y;
+}
+
+// Struct to pass the fixed y-coordinate into the x-integration routine
+struct DyIntegrationParams {
+    double fixed_y;
+    EConfig_params *config;
+};
+
+// Integrand for Dy: GSL will vary 'x', but we evaluate using the fixed 'y'
+double Dy_over_x_integrand(double x, void *params) {
+    DyIntegrationParams *p = (DyIntegrationParams *)params;
+    double y = p->fixed_y;
+    double E1 = p->config->E1;
+    
+    return E1 * y; 
+}
+
+// Integrand for Dz: GSL varies 'x'
+double InitialDz(double x, void *params) {
+    EConfig_params *p = (EConfig_params *)params;
+    return p->E2 * x;
+}
+
+void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, std::vector<double> &Deltax, double Deltay)
+{
+    double E1 = 1.0;
+    double E2 = 1.0;
+    EConfig_params config = {E1, E2};
+
+    // Define Dz GSL function (direct 1D integration over x)
+    gsl_function Fz;
+    Fz.function = &InitialDz;
+    Fz.params = &config;
+
+    gsl_integration_workspace * w = gsl_integration_workspace_alloc(1000);
+    double result1, result2, error;
+
+    for(size_t i = 0; i < x.size(); i++){
+        for(size_t j = 0; j < y.size(); j++){
+            D[0][i+N_GC][j+N_GC] = 0.0;
+
+            if(i < x.size()-1){
+                double x_min = x[i] - Deltax[i]/2.0;
+                double x_max = x[i] + Deltax[i]/2.0;
+
+                // 1. Compute Dy: Setup the struct with the current cell's y-coordinate
+                DyIntegrationParams dy_params = { y[j], &config };
+                gsl_function Fy;
+                Fy.function = &Dy_over_x_integrand;
+                Fy.params = &dy_params;
+
+                // Integrate over x
+                gsl_integration_qag(&Fy, x_min, x_max, 0, 1e-7, 1000, 3, w, &result1, &error);
+                D[1][i+N_GC][j+N_GC] = result1 / Deltax[i];
+
+                // 2. Compute Dz: Integrate over x
+                gsl_integration_qag(&Fz, x_min, x_max, 0, 1e-7, 1000, 3, w, &result2, &error);
+                D[2][i+N_GC][j+N_GC] = result2 / Deltax[i];
+            }
+            else{
+                D[1][i+N_GC][j+N_GC] = D[1][i+N_GC-1][j+N_GC]; 
+                D[2][i+N_GC][j+N_GC] = D[2][i+N_GC-1][j+N_GC]; 
+            }
+        }
+    }
+
+    gsl_integration_workspace_free(w);
+
+    // Print statements matching your verification logic
+    std::cout << "D[0][5][5] = " << D[0][100][100] << std::endl;  
+    std::cout << "D[1][5][5] = " << D[1][100][100] << std::endl;  
+    std::cout << "D[2][5][5] = " << D[2][100][100] << std::endl;  
+    std::cout << "x[3] " << x[3] << std::endl;
+    std::cout << "y[2] " << y[2] << std::endl;
+    std::cout << "y[3] " << y[3] << std::endl;
+    std::cout << "E1 " << E1 << std::endl;
+}
+
+
 /*
 Initializes displacement field (D)
 
@@ -186,14 +288,32 @@ Arguments: x, y coordinates
 
 Output: three displacement field components across domain
 */
+/*
 void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, double x_min, double y_min)
 {
     double E1 = 1.0;
     double E2 = 1.0;
 
-    for (size_t i = 0; i < x.size(); i++) {
+    //iterates over every physical cell, not ghost cells
+    for(size_t i=0; i<x.size(); i++){
+        for(size_t j=0; j<y.size(); j++){
+    
+
+
+            //Computes integration for Bx, integrates over y
+            gsl_integration_qag(&Fx, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result1, &error);
+            B[0][i+N_GC][j+N_GC] = result1/Deltay;
+
+
+
+    
+    
+    
+}   }}
+   
+    for (size_t i = N_GC; i < D.shape()[1]-N_GC; i++) {
         
-        for (size_t j = 0; j < y.size(); j++) {
+        for (size_t j = N_GC; j < D.shape()[2]-N_GC; j++) {
 
             //int ii = static_cast<int>(i);
             //int jj = static_cast<int>(j);
@@ -202,19 +322,19 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
             //double x_i = x_min + (ii - ng) * dm.Deltax[i];
             //double y_j = y_min + (jj - ng) * dm.Deltay;
             
-            double x_i = x[i];
-            double y_j = y[j];
+            double x_i = x[i-N_GC];
+            double y_j = y[j-N_GC];
             
             
             //double y_j = y_min + (j - N_GC) * dm.Deltay;
             //double x_i = x_min + (i - N_GC) * dm.Deltax[0];
             
-            D[0][i+N_GC][j+N_GC] = 0.0; // Dx
-            D[1][i+N_GC][j+N_GC] = E1 * y_j; // Dy
-            D[2][i+N_GC][j+N_GC] = E2 * x_i; // Dz  
-
-            std::cout << "y[0]= " << x[0]<< std::endl;
-            
+            D[0][i][j] = 0.0; // Dx
+            D[1][i][j] = E1 * y_j; // Dy
+            D[2][i][j] = E2 * x_i; // Dz  
+            //D[2][i][j] = 0.0;
+            //std::cout << "y[98]= " << x[98]<< std::endl;
+            std::cout << "y[97]= " << x.size() << std::endl;
             
             //std::cout << "x_i = " << x_i
           //<< " y_j = " << y_j << std::endl;
@@ -235,6 +355,7 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
     }
 }
 
+*/
 /*
 Initializes electric field (E) including ghost cells.
 
@@ -245,8 +366,8 @@ Output: three electric field components across domain
 
 void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E, VectorField &D)
 {
-    for (size_t i = 0; i < D.shape()[1]; i++) {
-        for (size_t j = 0; j < D.shape()[2]; j++) {
+    for (size_t i = N_GC; i < D.shape()[1]-N_GC; i++) {
+        for (size_t j = N_GC; j < D.shape()[2]-N_GC; j++) {
 
             E[0][i][j] = D[0][i][j]; // Ex
             E[1][i][j] = D[1][i][j]; // Ey
@@ -271,8 +392,8 @@ Output: three auxillary field components across domain
 
 void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, const VectorField &B, VectorField &H)
 {
-    for (size_t i = 0; i < B.shape()[1]; i++) {
-        for (size_t j = 0; j < B.shape()[2]; j++) {
+    for (size_t i = N_GC; i < B.shape()[1]-N_GC; i++) {
+        for (size_t j = N_GC; j < B.shape()[2]-N_GC; j++) {
 
             H[0][i][j] = B[0][i][j]; // Hx
             H[1][i][j] = B[1][i][j]; // Hy

@@ -11,9 +11,16 @@ double InitialBy(double x, void * params);
 double InitialBz1(double x, void * params);
 double InitialBz2(double y, void * params);
 void InitializeV(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &V);
-void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, double x_min, double y_min);
+//void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, double x_min, double y_min);
+void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, std::vector<double> &Deltax, double Deltay);
 void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E, VectorField &D);
 void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, const VectorField &B, VectorField &H);
+void InitializeB_test(size_t N_GC, VectorField &B);
+struct EConfig_params;
+struct DyIntegrationParams;
+double Dy_over_x_integrand(double x, void *params);
+double InitialDy(double y, void * params);
+double InitialDz(double x, void * params);
 
 
 
