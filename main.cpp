@@ -53,6 +53,22 @@ int main(int argc, char **argv)
     /* Find out how many total processes are active */
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
+    //MPI_Init(&argc, &argv);
+
+    //int rank;
+    //MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    //MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+
+    //#ifdef MPI_DEBUG
+      //  if (MyID == 0) {
+        //volatile int attached = 0;
+        //std::cerr << "Rank " << MyID << " PID " << getpid()
+          //        << " waiting for debugger..." << std::endl;
+        //while (!attached) { }
+    //}
+//#endif
+    MPI_Barrier(MPI_COMM_WORLD); // Syncs other ranks
+
     /*
         Load information from "SimSetup.in"
     */
@@ -74,7 +90,7 @@ int main(int argc, char **argv)
     double y_min = simparams.y_min, y_max = simparams.y_max;
 
     
-    std::cout << "Ny = " << Ny << ", N_GC = " << N_GC << std::endl;
+    //std::cout << "Ny = " << Ny << ", N_GC = " << N_GC << std::endl;
 
     if( (Nx%2 !=0 || Ny%2 !=0) && world_rank == 0 ){
         printf("WARNING: Please choose number of finite volume cells in each direction to be even numbers\n");
@@ -86,7 +102,6 @@ int main(int argc, char **argv)
     double Lx = x_max-x_min; //extent of simulation domain in x-direction
     double Ly = y_max-y_min; //extent of simulation domain in y-direction
     double Deltay = Ly/double(Ny); //size of each cell in y-direction in reduced units
-
     double t = 0.; //current simulation time. Initialize to 0.
     const double t_max = simparams.t_max; //maximum simulation time
 
@@ -129,8 +144,14 @@ int main(int argc, char **argv)
         Cartesian decomposition of the domain using MPI
     */
     int n_dims = 1; //number of spatial dimensions in the decomposition of the problem (not necessarily the spatial dimension of the problem)
-    int dims[1] = {num_procs};
-    int isperiodic[1] = {true};
+    //int dims[1] = {num_procs};
+    //int isperiodic[1] = {true};
+
+    int dims[1];
+    dims[0] = num_procs;
+
+    int isperiodic[1];
+    isperiodic[0] = 1; // 1 stands for true in MPI
     int reorder = true; //whether to allow MPI to reorder the partial domains
     MPI_Comm comm1D;
     MPI_Cart_create( MPI_COMM_WORLD, n_dims, dims, isperiodic, reorder, &comm1D ); //creates communicator comm1D
@@ -293,21 +314,60 @@ int main(int argc, char **argv)
     InitializeV(x, y, N_GC, V);
     
     InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
-    //std::cout << "B_pol_max = " << bparams.B_pol_init << std::endl;
-    //std::cout << "B[0][5][5] = " << B[0][2][2] << std::endl;
-   // InitializeB_test(N_GC, B);
+
+    //std::cout << "D[1][1][2] = " << D[1][1][2] << std::endl;
+     //std::cout << "D[1][2][2] = " << D[1][2][2] << std::endl;
+    std::cout << std::setprecision(7);
+    // Print a small sample block (e.g., first 3 elements of each dimension)
+for (int i = 0; i < 3; ++i) {
+    for (int j = 0; j < 5; ++j) {
+        for (int k = 0; k < 5; ++k) {
+            std::cout << "D[" << i << "][" << j << "][" << k << "] = " 
+                      << D[i][j][k] << "\n";
+        }
+    }
+}
+
     
     //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
     //exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
     
     
-    //B_BoundaryConditions(B, bparams, Ny, N_GC, 0.0, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
-    //LowerBoundary_D(y, D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.15, driver, y_min, Deltay);
+    B_BoundaryConditions(B, bparams, Ny, N_GC, 0.0, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
+ //std::cout << "B[2][1][2] = " << B[2][1][2] << std::endl;
+   //  std::cout << "B[2][2][2] = " << B[2][2][2] << std::endl;
+     //std::cout << "3*x[2] = " << 3 * x[0] << std::endl;
+
+    
+    // Print a small sample block (e.g., first 3 elements of each dimension)
+    //std::cout << "new B" << std::endl;
+//for (int i = 0; i < 3; ++i) {
+  //  for (int j = 0; j < 5; ++j) {
+    //    for (int k = 0; k < 5; ++k) {
+      //      std::cout << "B_new[" << i << "][" << j << "][" << k << "] = " 
+        //              << B[i][j][k] << "\n";
+        //}
+    //}
+//}
+
+    std::cout << "D[1][2][0] = " << D[1][2][0] << std::endl;
+    //std::cout << "D[1][3][2] = " << D[1][3][2] << std::endl;
+    LowerBoundary_D(y, D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.15, driver, y_min, Deltay);
+   // std::cout << "D[1][1][2] = " << D[1][1][2] << std::endl;
+     //std::cout << "D[1][2][2] = " << D[1][2][2] << std::endl;
+     //std::cout << "y[97] =" << y[97] << std::endl;
+     //std::cout << "y[0] =" << y[2] << std::endl;
+std::cout << "D[1][2][0] = " << D[1][2][0] << std::endl;
+    //std::cout << "D[1][3][2] = " << D[1][3][2] << std::endl;
+    //std::cout << "D[1][2][0] = " << D[1][2][3] << std::endl;
+    //std::cout << "D[1][2][0] = " << D[1][2][4] << std::endl;
+     //std::cout << "x[98] =" << x[98] << std::endl;
+     //std::cout << "x[99] =" << x[99] << std::endl;
     //UpperBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.15, driver, y_min, Deltay);
     
     
-    //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
-    //exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+    exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
     
     InitializeH(x, y, N_GC, B, H);
     InitializeE(x, y, N_GC, E, D); 

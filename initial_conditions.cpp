@@ -70,9 +70,10 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
             if(i < x.size()-1){
                 gsl_integration_qag(&Fy, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
                 B[1][i+N_GC][j+N_GC] = result1/Deltax[i];
-                gsl_integration_qag(&Fz1, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
-                gsl_integration_qag(&Fz2, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result2, &error);
-                B[2][i+N_GC][j+N_GC] = result1*result2/(Deltax[i]*Deltay);
+                //gsl_integration_qag(&Fz1, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
+                //gsl_integration_qag(&Fz2, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result2, &error);
+                //B[2][i+N_GC][j+N_GC] = result1*result2/(Deltax[i]*Deltay);
+                B[2][i+N_GC][j+N_GC] = 5.;
             }
             
             //If at the last one, define By and Bz to be the values computed at the previous cell until BCs are defined
@@ -86,13 +87,13 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
     gsl_integration_workspace_free (w);
 
     //If initial toroidal field is turned off, then set this component equal to zero everywhere
-    if(bparams.B_tor_init == false){
-        for(size_t i=0; i<x.size(); i++){
-            for(size_t j=0; j<y.size(); j++){
-                B[2][i+N_GC][j+N_GC] = 0.;
-            }
-        }
-    }
+    //if(bparams.B_tor_init == false){
+      //  for(size_t i=0; i<x.size(); i++){
+        //    for(size_t j=0; j<y.size(); j++){
+          //      B[2][i+N_GC][j+N_GC] = 0.;
+            //}
+        //}
+    //}
 
     return;
 }
@@ -105,11 +106,12 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
 */
 double InitialBx(double y, void * params)
 {
-    struct BConfig_params *p = (struct BConfig_params *) params;
-    double B_pol_max = p -> B_pol_max;
-    double theta_B = p -> theta_B;
+    //struct BConfig_params *p = (struct BConfig_params *) params;
+    //double B_pol_max = p -> B_pol_max;
+    //double theta_B = p -> theta_B;
 
-    return B_pol_max*sin(theta_B);
+    //return B_pol_max*sin(theta_B);
+    return 0.;
 }
 
 /*
@@ -120,11 +122,12 @@ double InitialBx(double y, void * params)
 */
 double InitialBy(double x, void * params)
 {
-    struct BConfig_params *p = (struct BConfig_params *) params;
-    double B_pol_max = p -> B_pol_max;
-    double theta_B = p -> theta_B;
+    //struct BConfig_params *p = (struct BConfig_params *) params;
+    //double B_pol_max = p -> B_pol_max;
+    //double theta_B = p -> theta_B;
 
-    return B_pol_max*cos(theta_B);
+    //return B_pol_max*cos(theta_B);
+    return 3.*x;
 }
 
 /*
@@ -135,12 +138,13 @@ double InitialBy(double x, void * params)
 */
 double InitialBz1(double x, void * params)
 {
-    struct BConfig_params *p = (struct BConfig_params *) params;
-    double B_tor_max = p -> B_tor_max;
-    double x_center = p -> x_center;
-    double x_width = p -> x_width;
+    //struct BConfig_params *p = (struct BConfig_params *) params;
+    //double B_tor_max = p -> B_tor_max;
+    //double x_center = p -> x_center;
+    //double x_width = p -> x_width;
 
-    return B_tor_max*exp(-pow(x-x_center,2.)/(2.*x_width*x_width));
+    //return B_tor_max*exp(-pow(x-x_center,2.)/(2.*x_width*x_width));
+    return 5;
 }
 
 /*
@@ -151,12 +155,13 @@ double InitialBz1(double x, void * params)
 */
 double InitialBz2(double y, void * params)
 {
-    struct BConfig_params *p = (struct BConfig_params *) params;
-    double B_tor_max = p -> B_tor_max;
-    double y_center = p -> y_center;
-    double y_width = p -> y_width;
+    //struct BConfig_params *p = (struct BConfig_params *) params;
+    //double B_tor_max = p -> B_tor_max;
+    //double y_center = p -> y_center;
+    //double y_width = p -> y_width;
 
-    return B_tor_max * exp(-pow(y-y_center,2.)/(2.*y_width*y_width));
+    //return B_tor_max * exp(-pow(y-y_center,2.)/(2.*y_width*y_width));
+    return 0;
 
 }
 
@@ -248,7 +253,7 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
                 double x_max = x[i] + Deltax[i]/2.0;
 
                 // 1. Compute Dy: Setup the struct with the current cell's y-coordinate
-                DyIntegrationParams dy_params = { y[j], &config };
+                DyIntegrationParams dy_params = { y[j]- Deltay*0.5, &config };
                 gsl_function Fy;
                 Fy.function = &Dy_over_x_integrand;
                 Fy.params = &dy_params;
@@ -265,19 +270,35 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
                 D[1][i+N_GC][j+N_GC] = D[1][i+N_GC-1][j+N_GC]; 
                 D[2][i+N_GC][j+N_GC] = D[2][i+N_GC-1][j+N_GC]; 
             }
+
+             if (i == 98 && j == 98){
+       
+       // std::cout << "A3x_avg = " << (y[j] + y[j-1])/(20) << std::endl;
+        //std::cout << "x[97]= " << x[i-1] << std::endl;
+        //std::cout << "x[98]= " << x[i] << std::endl;
+        //std::cout << "y[97]= " << y[j-1] << std::endl;
+       // std::cout << "y[98]= " << y[j] << std::endl;
+        //std::cout << Deltax[i] << std::endl;
+        //std::cout << Deltay << std::endl;
+
+        //std::cout << "A1z_avg = " << -(1/(40*M_PI)) * 0.5 *(y[j] + y[j-1]) << std::endl;
+
+    }
         }
     }
 
     gsl_integration_workspace_free(w);
 
     // Print statements matching your verification logic
-    std::cout << "D[0][5][5] = " << D[0][100][100] << std::endl;  
-    std::cout << "D[1][5][5] = " << D[1][100][100] << std::endl;  
-    std::cout << "D[2][5][5] = " << D[2][100][100] << std::endl;  
-    std::cout << "x[3] " << x[3] << std::endl;
-    std::cout << "y[2] " << y[2] << std::endl;
-    std::cout << "y[3] " << y[3] << std::endl;
-    std::cout << "E1 " << E1 << std::endl;
+    //std::cout << "D[0][5][5] = " << D[0][100][100] << std::endl;  
+    //std::cout << "D[1][5][5] = " << D[1][100][100] << std::endl;  
+    //std::cout << "D[2][5][5] = " << D[2][100][100] << std::endl;  
+    //std::cout << "x[3] " << x[3] << std::endl;
+    //std::cout << "y[2] " << y[2] << std::endl;
+    //std::cout << "y[3] " << y[3] << std::endl;
+    //std::cout << "E1 " << E1 << std::endl;
+
+   
 }
 
 
@@ -357,7 +378,7 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
 
 */
 /*
-Initializes electric field (E) including ghost cells.
+Initializes electric field (E) excluding ghost cells.
 
 Arguments: x, y coordinates
 
@@ -369,9 +390,23 @@ void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
     for (size_t i = N_GC; i < D.shape()[1]-N_GC; i++) {
         for (size_t j = N_GC; j < D.shape()[2]-N_GC; j++) {
 
-            E[0][i][j] = D[0][i][j]; // Ex
-            E[1][i][j] = D[1][i][j]; // Ey
-            E[2][i][j] = D[2][i][j]; // Ez
+            //E[0][i][j] = D[0][i][j]; // Ex
+            //E[1][i][j] = D[1][i][j]; // Ey
+            //E[2][i][j] = D[2][i][j]; // Ez
+
+            //Update from 06/29/26
+            //Recall, E=D, however, E and D do not live at the same locations, so must interpolate E to cell edges
+            E[0][i][j] =  0.25*(D[0][i][j] + D[0][i+1][j] + D[0][i][j-1] + D[0][i+1][j-1]);
+            E[1][i][j] = 0.25*(D[1][i][j] + D[1][i-1][j] + D[1][i-1][j+1] + D[1][i][j+1]);
+            E[2][i][j] = 0.25*(D[2][i][j] + D[2][i-1][j] + D[2][i][j-1] + D[2][i-1][j-1]);
+
+            
+            if (i == 100 && j==100){
+                //std::cout << "E[i][j] = " << E[1][i+1][j] << std::endl;
+                //std::cout << "A= " << 0.25*(D[1][i][j] + D[1][i-1][j] + D[1][i-1][j+1] + D[1][i][j+1]) << std::endl;
+            }
+
+
 
             //std::cout << "D = "
             //<< E[0][i+N_GC][j+N_GC] << " "
@@ -395,9 +430,14 @@ void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, co
     for (size_t i = N_GC; i < B.shape()[1]-N_GC; i++) {
         for (size_t j = N_GC; j < B.shape()[2]-N_GC; j++) {
 
-            H[0][i][j] = B[0][i][j]; // Hx
-            H[1][i][j] = B[1][i][j]; // Hy
-            H[2][i][j] = B[2][i][j]; // Hz
+            //H[0][i][j] = B[0][i][j]; // Hx
+            //H[1][i][j] = B[1][i][j]; // Hy
+            //H[2][i][j] = B[2][i][j]; // Hz
+
+            //Recall, H=B, however, H and B do not live at the same locations, so must interpolate H to cell edges
+            H[0][i][j] =  0.25*(B[0][i][j] + B[0][i+1][j] + B[0][i][j-1] + B[0][i+1][j-1]);
+            H[1][i][j] = 0.25*(B[1][i][j] + B[1][i-1][j] + B[1][i-1][j+1] + B[1][i][j+1]);
+            H[2][i][j] = 0.25*(B[2][i][j] + B[2][i-1][j] + B[2][i][j-1] + B[2][i-1][j-1]);
 
         }
     }

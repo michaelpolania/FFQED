@@ -1,7 +1,34 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": []
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug main (single rank)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/main",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "MIMode": "lldb",
+      "preLaunchTask": "make",
+      "stopAtEntry": false,
+      "externalConsole": false
+    },
+    {
+      "name": "Attach to rank 0",
+      "type": "cppdbg",
+      "request": "attach",
+      "program": "${workspaceFolder}/main",
+      "MIMode": "lldb",
+      "processId": "${command:pickProcess}"
+    },
+    {
+      "name": "Attach to rank 0 (CodeLLDB)",
+      "type": "lldb",
+      "request": "attach",
+      "program": "${workspaceFolder}/main",
+      "pid": "${command:pickMyProcess}"
+    }
+  ]
 }
+
+

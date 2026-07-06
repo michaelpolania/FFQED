@@ -46,28 +46,41 @@ double Initialvz(double y, double t, void *driver)
 
 void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, double y_min, double dy)
 {
-    //Exchange ghost cells
-    //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
 
     //Loops all the way up to last physical cell in the y-direction
     for(size_t j = N_GC; j < D.shape()[2] - N_GC; j++){
+        for(size_t i = 0; i < N_GC; i++){
 
-        //Compute y coordinate of this cell
-        double y_j = y_min + (j - N_GC) * dy;
-        //std::cout << "y_j = " << y_j << std::endl;
+            double y_j = y[j];
+            double DBC_x = 0.5 * Initialvz(y_j, t, &driver) * (0.5 * (B[1][N_GC][j] + B[1][N_GC][j+1]) + 0.5 * (B[1][N_GC - 1][j]) + B[1][N_GC - 1][j+1]);
+            double DBC_y = 0.5 * Initialvz(y_j, t, &driver) * (0.5 * (B[0][N_GC][j] + B[0][N_GC + 1][j]) + 0.5 * (B[0][N_GC][j]) + B[0][N_GC - 1][j]);
+            double DBC_z = 0.0;
 
-        //Computes boundary velocity for coordinate y_j
-        double Vz = Initialvz(y_j, t, &driver);
-        //std::cout << "Vz = " << Vz<< std::endl;
-        // B components at lower boundary... call B_Boundary condition function?
+            //D_x already lives on the boundary
+            D[0][N_GC][j] = DBC_x;
+
+            //std::cout << "DBC_y = " << DBC_y << std::endl; 
+            D[0][N_GC-1-i][j] = 2.*DBC_x - D[0][N_GC+1+i][j];
+            D[1][N_GC-1-i][j] = 2.*DBC_y - D[1][N_GC+i][j];
+            D[2][N_GC-1-i][j] = 2.*DBC_z - D[2][N_GC+i][j];
+
+            
+
+            exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+        }}
+            return;
+        }   
+            //Computes boundary velocity for coordinate y_j
+        //double Vz = Initialvz(y_j, t, &driver);
 
         // D_BC = -V x B (where v_z is the nonzero component)
-        double DBC_x =  Vz * B[1][N_GC][j];   
-        double DBC_y = -Vz * B[0][N_GC][j];   
-        double DBC_z =  0.0;        
+        //double DBC_x =  Vz * B[1][N_GC][j];   
+        //double DBC_y = -Vz * B[0][N_GC][j];   
+        //double DBC_z =  0.0;        
 
-        //D_x already lives on the boundary
-        D[0][N_GC][j] = DBC_x;
+
+
+    /*
         for(size_t i = 0; i < N_GC; i++){
             D[0][N_GC-1-i][j] = 2.*DBC_x - D[0][N_GC+1+i][j];
         }
@@ -82,9 +95,9 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
             D[2][N_GC-1-i][j] = 2.*DBC_z -D[2][N_GC+i][j];
         }
     }
+*/
 
-    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
-}
+
 
 /*
         Sets upper boundary condition on Displacement field (enforces value is zero at boundary)
@@ -148,10 +161,11 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
             /*
                 Lower boundary x=0
             */
-            
-            //B[0][N_GC][j];
-            B[1][N_GC-1-i][j] = B[1][N_GC+i][j]; 
-            B[2][N_GC-1-i][j] = B[2][N_GC+i][j];
+
+            B[0][N_GC - 1 - i][j] = B[0][N_GC + i + 1][j]; 
+            B[1][N_GC - 1 - i][j] = B[1][N_GC + i][j]; 
+            B[2][N_GC - 1 - i][j] = B[2][N_GC + i][j];
+        
 
             /*
                 Upper boundary x=Lx
