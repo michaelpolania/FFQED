@@ -645,10 +645,10 @@ void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField &
     Inputs: E: electric field in reduced units along cell faces
             N_GC: number of ghost cells
             Deltax, Deltay: cell sizes in x and y directions in reduced units
-    Output: Qx, Qy: line integral of E divided by cell face area on bottom cell faces (to update Bx) and left cell faces (to update By) respectively
+    Output: Qx, Qy, Qz: line integral of E divided by cell face area on bottom cell faces (to update Bx) and left cell faces (to update By) respectively
 */
-/*
-void Compute_EMF(ScalarField & Qx, ScalarField & Qy, VectorField & E, size_t N_GC, std::vector<double> & Deltax, double Deltay)
+
+void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, VectorField & E, VectorField & H, VectorField & J, size_t N_GC, std::vector<double> & Deltax, double Deltay)
 {
 
     for(size_t i=N_GC; i<E.shape()[1]-N_GC; i++){
@@ -658,10 +658,24 @@ void Compute_EMF(ScalarField & Qx, ScalarField & Qy, VectorField & E, size_t N_G
 
             if( i < E.shape()[1]-N_GC-1 ){
                 Qy[i][j] = -( E[2][i][j] - E[2][i+1][j] )/Deltax[i];
+                Qz[i][j] = ( E[0][i][j+1] - E[0][i][j] )/Deltay -( E[1][i+1][j] - E[1][i][j] )/Deltax[i];
+
+            }
+        }
+    }
+
+      for(size_t i=N_GC; i<H.shape()[1]-N_GC; i++){
+        for(size_t j=N_GC; j<H.shape()[2]-N_GC; j++){
+
+            Fx[i][j] =  ( H[2][i][j+1] - H[2][i][j] )/Deltay - J[0][i][j]; //4pi/c?
+
+            if (i < H.shape()[1] - N_GC - 1) {
+                Fy[i][j] = ( H[2][i][j] - H[2][i+1][j] )/Deltax[i] - J[1][i][j];
+                Fz[i][j] = -( H[0][i][j+1] - H[0][i][j] )/Deltay + ( H[1][i+1][j] - H[1][i][j] )/Deltax[i] - J[2][i][j];
+
             }
         }
     }
 
     return;
 }
-*/

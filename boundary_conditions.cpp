@@ -44,7 +44,7 @@ double Initialvz(double y, double t, void *driver)
         Output: D with updated boundary values
 */
 
-void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, double y_min, double dy)
+void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver)
 {
 
     //Loops all the way up to last physical cell in the y-direction
@@ -52,8 +52,10 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
         for(size_t i = 0; i < N_GC; i++){
 
             double y_j = y[j];
-            double DBC_x = 0.5 * Initialvz(y_j, t, &driver) * (0.5 * (B[1][N_GC][j] + B[1][N_GC][j+1]) + 0.5 * (B[1][N_GC - 1][j]) + B[1][N_GC - 1][j+1]);
-            double DBC_y = 0.5 * Initialvz(y_j, t, &driver) * (0.5 * (B[0][N_GC][j] + B[0][N_GC + 1][j]) + 0.5 * (B[0][N_GC][j]) + B[0][N_GC - 1][j]);
+            double y_j_avg = 0.5 * (y[j] + y[j-1]);
+            double y_j_minus_1 = y[j-1];
+            double DBC_x = 0.5 * Initialvz(y_j, t, &driver) * (0.5*(B[1][N_GC][j] + B[1][N_GC][j+1]) + 0.5*(B[1][N_GC-1][j] + B[1][N_GC-1][j+1]));
+            double DBC_y = -0.5 * (0.5 * Initialvz(y_j, t, &driver) * (B[0][N_GC][j] + B[0][N_GC + 1][j]) + 0.5 * Initialvz(y_j_minus_1, t, &driver) * (B[0][N_GC][j-1] + B[0][N_GC + 1][j-1]));
             double DBC_z = 0.0;
 
             //D_x already lives on the boundary
@@ -63,39 +65,13 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
             D[0][N_GC-1-i][j] = 2.*DBC_x - D[0][N_GC+1+i][j];
             D[1][N_GC-1-i][j] = 2.*DBC_y - D[1][N_GC+i][j];
             D[2][N_GC-1-i][j] = 2.*DBC_z - D[2][N_GC+i][j];
-
             
-
-            exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
-        }}
-            return;
-        }   
-            //Computes boundary velocity for coordinate y_j
-        //double Vz = Initialvz(y_j, t, &driver);
-
-        // D_BC = -V x B (where v_z is the nonzero component)
-        //double DBC_x =  Vz * B[1][N_GC][j];   
-        //double DBC_y = -Vz * B[0][N_GC][j];   
-        //double DBC_z =  0.0;        
-
-
-
-    /*
-        for(size_t i = 0; i < N_GC; i++){
-            D[0][N_GC-1-i][j] = 2.*DBC_x - D[0][N_GC+1+i][j];
-        }
-
-        // Dy is cell-centered in x, do a linear interpolation
-        for(size_t i = 0; i < N_GC; i++){
-            D[1][N_GC-1-i][j] = 2.*DBC_y - D[1][N_GC+i][j];
-        }
-
-        // Dz is cell-centered in x, enforces that D_z = 0 on the boundary
-        for(size_t i = 0; i < N_GC; i++){
-            D[2][N_GC-1-i][j] = 2.*DBC_z -D[2][N_GC+i][j];
         }
     }
-*/
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);    
+    return;
+        }   
+
 
 
 
@@ -114,7 +90,7 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
         Output: D with updated boundary values
 */
 
-void UpperBoundary_D(VectorField& D, const VectorField& V, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, double y_min, double dy)
+void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver)
 {
     //Exchange ghost cells
     //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);

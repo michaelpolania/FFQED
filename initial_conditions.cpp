@@ -425,7 +425,7 @@ Arguments: x, y coordinates
 Output: three auxillary field components across domain
 */
 
-void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, const VectorField &B, VectorField &H)
+void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &B, VectorField &H)
 {
     for (size_t i = N_GC; i < B.shape()[1]-N_GC; i++) {
         for (size_t j = N_GC; j < B.shape()[2]-N_GC; j++) {

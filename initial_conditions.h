@@ -14,7 +14,7 @@ void InitializeV(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
 //void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, double x_min, double y_min);
 void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, std::vector<double> &Deltax, double Deltay);
 void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &E, VectorField &D);
-void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, const VectorField &B, VectorField &H);
+void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &B, VectorField &H);
 void InitializeB_test(size_t N_GC, VectorField &B);
 struct EConfig_params;
 struct DyIntegrationParams;

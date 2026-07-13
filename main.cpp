@@ -293,7 +293,7 @@ int main(int argc, char **argv)
     
     VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of E times c in reduced units (E*c/(B_0*L_0/t_0))
     VectorField J(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of J in reduced units (J*L_0/B_0)
-    VectorField V(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of velocity field in reduced units (vc*t_0/L_0)
+    //VectorField V(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of velocity field in reduced units (vc*t_0/L_0)
 
     //Initializes the D and H fields
     VectorField D(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of D across partial domain
@@ -309,71 +309,24 @@ int main(int argc, char **argv)
     driver.f        = simparams.v_f;
     
      
-    //InitializeD(x, y, N_GC, D, domain, x_min, y_min); 
-    InitializeD(x, y, N_GC, D, domain, Deltax, Deltay);
-    InitializeV(x, y, N_GC, V);
     
+    
+    //InitializeV(x, y, N_GC, V);
+    
+    InitializeD(x, y, N_GC, D, domain, Deltax, Deltay);
     InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
 
-    //std::cout << "D[1][1][2] = " << D[1][1][2] << std::endl;
-     //std::cout << "D[1][2][2] = " << D[1][2][2] << std::endl;
-    std::cout << std::setprecision(7);
-    // Print a small sample block (e.g., first 3 elements of each dimension)
-for (int i = 0; i < 3; ++i) {
-    for (int j = 0; j < 5; ++j) {
-        for (int k = 0; k < 5; ++k) {
-            std::cout << "D[" << i << "][" << j << "][" << k << "] = " 
-                      << D[i][j][k] << "\n";
-        }
-    }
-}
-
-    
-    //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
-    //exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
-    
-    
     B_BoundaryConditions(B, bparams, Ny, N_GC, 0.0, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
- //std::cout << "B[2][1][2] = " << B[2][1][2] << std::endl;
-   //  std::cout << "B[2][2][2] = " << B[2][2][2] << std::endl;
-     //std::cout << "3*x[2] = " << 3 * x[0] << std::endl;
+    exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright); 
 
-    
-    // Print a small sample block (e.g., first 3 elements of each dimension)
-    //std::cout << "new B" << std::endl;
-//for (int i = 0; i < 3; ++i) {
-  //  for (int j = 0; j < 5; ++j) {
-    //    for (int k = 0; k < 5; ++k) {
-      //      std::cout << "B_new[" << i << "][" << j << "][" << k << "] = " 
-        //              << B[i][j][k] << "\n";
-        //}
-    //}
-//}
-
-    std::cout << "D[1][2][0] = " << D[1][2][0] << std::endl;
-    //std::cout << "D[1][3][2] = " << D[1][3][2] << std::endl;
-    LowerBoundary_D(y, D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.15, driver, y_min, Deltay);
-   // std::cout << "D[1][1][2] = " << D[1][1][2] << std::endl;
-     //std::cout << "D[1][2][2] = " << D[1][2][2] << std::endl;
-     //std::cout << "y[97] =" << y[97] << std::endl;
-     //std::cout << "y[0] =" << y[2] << std::endl;
-std::cout << "D[1][2][0] = " << D[1][2][0] << std::endl;
-    //std::cout << "D[1][3][2] = " << D[1][3][2] << std::endl;
-    //std::cout << "D[1][2][0] = " << D[1][2][3] << std::endl;
-    //std::cout << "D[1][2][0] = " << D[1][2][4] << std::endl;
-     //std::cout << "x[98] =" << x[98] << std::endl;
-     //std::cout << "x[99] =" << x[99] << std::endl;
-    //UpperBoundary_D(D, V, B, N_GC, comm1D, nbrleft, nbrright, 0.15, driver, y_min, Deltay);
-    
-    
-    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
-    exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
+    LowerBoundary_D(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
+    UpperBoundary_D(D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright); 
     
     InitializeH(x, y, N_GC, B, H);
     InitializeE(x, y, N_GC, E, D); 
 
     Compute_Rho(D, Rho, domain);
-
     Compute_J(B, E, H, D, Rho, J, N_GC, domain);
     
     //Create directory for H5 files holding simulation data.
@@ -935,10 +888,12 @@ std::cout << "D[1][2][0] = " << D[1][2][0] << std::endl;
           //     t: time in reduced units
         //Output: B_np1: updated magnetic field
 
-void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc, VectorField & B_np1, TransCoeffs & tC, const Domain & dm, const Process & process, const BandBCParams & bparams, double t)
+void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J, VectorField & D, VectorField & vc, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t)
 {
     size_t Ny = dm.Ny;
     size_t N_GC = dm.N_GC;
+    std::vector<double> x = dm.x;
+    std::vector<double> y = dm.y;
     std::vector<double> Deltax = dm.Deltax;
     double Deltay = dm.Deltay;
     double Deltat = dm.Deltat;
@@ -950,37 +905,79 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
     int nbrleft = process.nbrleft;
     int nbrright = process.nbrright;
     MPI_Comm comm1D = process.comm1D;
+    vConfig_params driver;
+    driver.v_max    = simparams.v_max;
+    driver.y_center = simparams.v_y_center;
+    driver.y_width  = simparams.v_y_width;
+    driver.f        = simparams.v_f;
 
     size_t i_f = round(bparams.x0_tor*dm.Nx);
 
     if(order == 2){
 
-        static ScalarField Qx(boost::extents[B.shape()[1]][B.shape()[2]]); //RHS of Faraday's Law (EMF), x-component
-        static ScalarField Qy(boost::extents[B.shape()[1]][B.shape()[2]]); //RHS of Faraday's Law (EMF), y-component
+        static ScalarField Qx(boost::extents[B.shape()[1]][B.shape()[2]]); //RHS of Faraday's Law, x-component
+        static ScalarField Qy(boost::extents[B.shape()[1]][B.shape()[2]]); //RHS of Faraday's Law, y-component
         static ScalarField Qz(boost::extents[B.shape()[1]][B.shape()[2]]); //RHS of Faraday's Law, z-component (toroidal field)
-        static VectorField B_1(boost::extents[3][B.shape()[1]][B.shape()[2]]); //Updated B after first step
+        static ScalarField Fx(boost::extents[D.shape()[1]][D.shape()[2]]); //RHS of Ampere-Maxwell Law, x-component
+        static ScalarField Fy(boost::extents[D.shape()[1]][D.shape()[2]]); //RHS of Ampere-Maxwell Law, y-component
+        static ScalarField Fz(boost::extents[D.shape()[1]][D.shape()[2]]); //RHS of Ampere-Maxwell Law, z-component (toroidal field)
+        static VectorField B_1(boost::extents[3][B.shape()[1]][B.shape()[2]]); //Updated B after first step aka intermediate value
+        static VectorField D_1(boost::extents[3][D.shape()[1]][D.shape()[2]]); //Updated D after first step aka intermediate value
 
-//        Compute_J(B, J, N_GC, dm); //this is already computed outside RKStep
-//        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //this is already computed outside RKStep
-        //B_torEvolve(Qz, B, J, vc, tC, N_GC, t, dm, bparams);
+        //Compute_Rho(D, Rho, dm);
+        //Compute_J(B, E, H, D, Rho, J, N_GC, dm); //this is already computed outside RKStep
+        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //this is already computed outside RKStep
+          
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, E, H, J, N_GC, Deltax, Deltay);
+        exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
+        exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
-                B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
-            }
-        }
-//        Compute_vc(B_1, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-//        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_E(B, B_1, E, J, vc, tC, N_GC, t, dm, bparams);
-        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
+        exchng2Scalar(Fx, N_GC, comm1D, nbrleft, nbrright);
+        exchng2Scalar(Fy, N_GC, comm1D, nbrleft, nbrright);
+        exchng2Scalar(Fz, N_GC, comm1D, nbrleft, nbrright);
+        
+        //Computes intermediate value in Huen's methods for B and D
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
                 B_1[1][i][j] = B[1][i][j] + Deltat*Qy[i][j];
+                B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
+
+                D_1[0][i][j] = D[0][i][j] + Deltat*Fx[i][j];
+                D_1[1][i][j] = D[1][i][j] + Deltat*Fy[i][j];
+                D_1[2][i][j] = D[2][i][j] + Deltat*Fz[i][j];
             }
         }
         B_BoundaryConditions(B_1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
+        LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver);
+        UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver);
+
+        Compute_Rho(D_1, Rho, dm);
+        Compute_J(B_1, E, H, D_1, Rho, J, N_GC, dm);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, E, H, J, N_GC, Deltax, Deltay);
+
+        //Computes final value in Huen's method for B and D
+        for(size_t i=0; i<B.shape()[1]; i++){
+            for(size_t j=0; j<B.shape()[2]; j++){
+                B_np1[0][i][j] = 0.5*( B[0][i][j] + B_1[0][i][j] + Deltat*Qx[i][j] );
+                B_np1[1][i][j] = 0.5*( B[1][i][j] + B_1[1][i][j] + Deltat*Qy[i][j] );
+                B_np1[2][i][j] = 0.5*( B[2][i][j] + B_1[2][i][j] + Deltat*Qz[i][j] );
+
+                D_np1[0][i][j] = 0.5*( D[0][i][j] + D_1[0][i][j] + Deltat*Fx[i][j] );
+                D_np1[1][i][j] = 0.5*( D[1][i][j] + D_1[1][i][j] + Deltat*Fy[i][j] );
+                D_np1[2][i][j] = 0.5*( D[2][i][j] + D_1[2][i][j] + Deltat*Fz[i][j] );
+            }
+        }
+
+    B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
+    LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver);
+    UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver);
+
+    InitializeH(x, y, N_GC, B_np1, H);
+    InitializeE(x, y, N_GC, E, D_np1);
+    Compute_Rho(D_np1, Rho, dm);
+    Compute_J(B_np1, E, H, D_1, Rho, J, N_GC, dm);
+   
 
 //        std::fstream Dataout;
 //        std::string timestr = std::to_string(t*t_0/yr);
@@ -995,32 +992,6 @@ void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc
 //            Dataout << " " << std::endl;
 //        }
 //        Dataout.close();
-
-        //Compute_J(B_1, J, N_GC, dm);
-        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_vc(B_1, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        //B_torEvolve(Qz, B_1, J, vc, tC, N_GC, t, dm, bparams);
-        exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
-                B_np1[2][i][j] = 0.5*( B[2][i][j] + B_1[2][i][j] + Deltat*Qz[i][j] );
-            }
-        }
-//        Compute_vc(B_1, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-//        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_E(B_1, B_np1, E, J, vc, tC, N_GC, t, dm, bparams);
-        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
-                B_np1[0][i][j] = 0.5*( B[0][i][j] + B_1[0][i][j] + Deltat*Qx[i][j] );
-                B_np1[1][i][j] = 0.5*( B[1][i][j] + B_1[1][i][j] + Deltat*Qy[i][j] );
-            }
-        }
-        B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-        exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
-
 //        Dataout.open("Bz_np1Check_"+timestr+".dat",std::fstream::out);
 //        for(size_t i = 0; i < B.shape()[1]; i++){
 //            Dataout << i << std::endl;

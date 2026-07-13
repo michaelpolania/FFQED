@@ -16,7 +16,7 @@ void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & 
 //void Compute_vc(VectorField & B, VectorField & vc, VectorField & J, TransCoeffs & tC, size_t N_GC, double t, const Domain & dm, const BandBCParams & bparams, int world_rank);
 //void B_torEvolve(ScalarField & Qz, VectorField & B, VectorField & J, VectorField & vc, TransCoeffs & tC, size_t N_GC, double t, const Domain & dm, const BandBCParams & bparams);
 void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField & vc, VectorField & J, TransCoeffs & tC, size_t N_GC, double t, const Domain & dm, const BandBCParams & bparams);
-void Compute_EMF(ScalarField & Qx, ScalarField & Qy, VectorField & E, size_t N_GC, std::vector<double> & Deltax, double Deltay);
-
+//void Compute_EMF(ScalarField & Qx, ScalarField & Qy, VectorField & E, size_t N_GC, std::vector<double> & Deltax, double Deltay);
+void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, VectorField & E, VectorField & H, VectorField & J, size_t N_GC, std::vector<double> & Deltax, double Deltay);
 #endif // BOUNDARY_CONDITIONS_H_INCLUDED
 
