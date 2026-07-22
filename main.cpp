@@ -928,7 +928,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         //Compute_J(B, E, H, D, Rho, J, N_GC, dm); //this is already computed outside RKStep
         //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //this is already computed outside RKStep
           
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, E, H, J, N_GC, Deltax, Deltay);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, E, H, J, D, B, N_GC, Deltax, Deltay);
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -952,9 +952,12 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver);
         UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver);
 
+
+        InitializeH(x, y, N_GC, B_1, H);
+        InitializeE(x, y, N_GC, E, D_1);
         Compute_Rho(D_1, Rho, dm);
         Compute_J(B_1, E, H, D_1, Rho, J, N_GC, dm);
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, E, H, J, N_GC, Deltax, Deltay);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, E, H, J, D, B, N_GC, Deltax, Deltay);
 
         //Computes final value in Huen's method for B and D
         for(size_t i=0; i<B.shape()[1]; i++){

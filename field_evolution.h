@@ -17,6 +17,7 @@ void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & 
 //void B_torEvolve(ScalarField & Qz, VectorField & B, VectorField & J, VectorField & vc, TransCoeffs & tC, size_t N_GC, double t, const Domain & dm, const BandBCParams & bparams);
 void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField & vc, VectorField & J, TransCoeffs & tC, size_t N_GC, double t, const Domain & dm, const BandBCParams & bparams);
 //void Compute_EMF(ScalarField & Qx, ScalarField & Qy, VectorField & E, size_t N_GC, std::vector<double> & Deltax, double Deltay);
-void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, VectorField & E, VectorField & H, VectorField & J, size_t N_GC, std::vector<double> & Deltax, double Deltay);
-#endif // BOUNDARY_CONDITIONS_H_INCLUDED
+//std::pair<double, double> Ez_Flux_Calculation(int i, int j, VectorField & D, VectorField & B, std::vector<double> & Deltax, double Deltay);
+void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, VectorField & E, VectorField & H, VectorField & J, VectorField & D, VectorField & B, size_t N_GC, std::vector<double> & Deltax, double Deltay);
 
+#endif

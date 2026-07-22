@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <random>
 #include <cmath>
+#include <utility>
 
 #include "common.h"
 #include "initial_conditions.h"
@@ -536,110 +537,383 @@ void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & 
 return;
                 
 }
-                
 
 /*
-    Computes c*electric field components along cell edges in reduced units i.e., c*t_0/(L_0*B_0)*E
+std::pair<double, double> Ez_Flux_Calculation(int i, int j, VectorField & D, VectorField & B, std::vector<double> & Deltax, double Deltay){
 
-    Inputs: B, J, vc: magnetic field in reduced units at cell face centers, current density and velocity field at cell face edges
-            Bn: updated intermediate values of B, in which only toroidal field is included
-            N_GC: number of ghost cells
-            tC: transCoeffs object containing Ohmic and Hall diffusivities in reduced units and shear modulus and mass density in cgs units
-            Deltax, Deltay: cell sizes in x and y directions in reduced units
-            t: time in reduced units
-            dm: Domain object containing information about the simulation domain
-            bparams: BandBCParams object containing information about the initial magnetic field and boundary conditions
-    Output: E: electric field on cell face edges in reduced units
-*/
+    //Computes minmod of centered, backward, and forward differences for x at i,j/i-1,j/i,j-1/i-1,j-1/i,j+1/i-1,j+1
+    double slope_x_ij = minmod((D[2][i+1][j] - D[2][i-1][j]) / (2 * Deltax[i]),  2 * (D[2][i][j] - D[2][i-1][j]) / Deltax[i], 2 * (D[2][i+1][j] - D[2][i][j]) / Deltax[i]);
+    double slope_x_iminus1_j = minmod((D[2][i][j] - D[2][i-2][j]) / (2 * Deltax[i]),  2 * (D[2][i-1][j] - D[2][i-2][j]) / Deltax[i], 2 * (D[2][i][j] - D[2][i-1][j]) / Deltax[i]);
+    double slope_x_i_jminus1 = minmod((D[2][i+1][j-1] - D[2][i-1][j-1]) / (2 * Deltax[i]),  2 * (D[2][i][j-1] - D[2][i-1][j-1]) / Deltax[i], 2 * (D[2][i+1][j-1] - D[2][i][j-1]) / Deltax[i]);
+    double slope_x_ij_minus1 = minmod((D[2][i][j-1] - D[2][i-2][j-1]) / (2 * Deltax[i]),  2 * (D[2][i-1][j-1] - D[2][i-2][j-1]) / Deltax[i], 2 * (D[2][i][j-1] - D[2][i-1][j-1]) / Deltax[i]);
+    double slope_x_i_jplus1 = minmod((D[2][i+1][j+1] - D[2][i-1][j+1]) / (2 * Deltax[i]),  2 * (D[2][i][j+1] - D[2][i-1][j+1]) / Deltax[i], 2 * (D[2][i+1][j+1] - D[2][i][j+1]) / Deltax[i]);
+    double slope_x_iminus1_jplus1 = minmod((D[2][i][j+1] - D[2][i-2][j+1]) / (2 * Deltax[i]),  2 * (D[2][i-1][j+1] - D[2][i-2][j+1]) / Deltax[i], 2 * (D[2][i][j+1] - D[2][i-1][j+1]) / Deltax[i]);
 
-/*
-void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField & J, VectorField & vc, TransCoeffs & tC, size_t N_GC, double t, const Domain & dm, const BandBCParams & bparams)
-{
+    //Computes minmod of centered, backward, and forward differences for y at i,j/i-1,j/i,j-1/i-1,j-1/i,j+1
+    double slope_y_ij = minmod((D[2][i][j+1] - D[2][i][j-1]) / (2 * Deltay),  2 * (D[2][i][j] - D[2][i][j-1]) / Deltay, 2 * (D[2][i][j+1] - D[2][i][j]) / Deltay);
+    double slope_y_iminus1_j = minmod((D[2][i-1][j+1] - D[2][i-1][j-1]) / (2 * Deltay),  2 * (D[2][i-1][j] - D[2][i-1][j-1]) / Deltay, 2 * (D[2][i-1][j+1] - D[2][i-1][j]) / Deltay);
+    double slope_y_i_jminus1 = minmod((D[2][i][j] - D[2][i][j-2]) / (2 * Deltay),  2 * (D[2][i][j-1] - D[2][i][j-2]) / Deltay, 2 * (D[2][i][j] - D[2][i][j-1]) / Deltay);
+    double slope_y_ij_minus1 = minmod((D[2][i-1][j] - D[2][i-1][j-2]) / (2 * Deltay),  2 * (D[2][i-1][j-1] - D[2][i-1][j-2]) / Deltay, 2 * (D[2][i-1][j] - D[2][i-1][j-1]) / Deltay);
+    double slope_y_i_jplus1 = minmod((D[2][i][j+2] - D[2][i][j]) / (2 * Deltay),  2 * (D[2][i][j+1] - D[2][i][j]) / Deltay, 2 * (D[2][i][j+2] - D[2][i][j+1]) / Deltay);
 
-    std::vector<double> Deltax = dm.Deltax;
-    double Deltay = dm.Deltay;
+    //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
+    //G_1{i,j-1/2} calculation (G_1)
 
-    std::vector<double> x = dm.x; //cell centers in the x-direction. Note: no ghost cells.
-    std::vector<double> y = dm.y; //cell centers in the y-direction. Note: no ghost cells.
+    double G_1_up = D[2][i][j] - 0.5 * slope_y_ij * Deltay;
+    double G_1_down = D[2][i][j-1] + 0.5 * slope_y_i_jminus1 * Deltay;
+    double G_1 = 0.5 * (G_1_up + G_1_down) - 0.5 * (B[0][i][j] - B[0][i][j-1]);
 
-    double vx_av, vy_av, vz_av; //averaged values of the velocity = -current density
-    double Bx_up, By_up, Bz_up; //upwinded field values
+    //G_1{i-1,j-1/2} calculation (G_2)
 
-    double alphaz_jm1, alphaz_j, alphaz_im1, alphaz_i;
-    double alphay_im1, alphay_i, alphax_jm1, alphax_j;
-    double Deltax_n2, Deltax_n1, Deltax_1; //spacing between cell centres of i-2 and i-1, i-1 and i, i and i+1 cells, respectively.
+    double G_2_up = D[2][i-1][j] - 0.5 * slope_y_iminus1_j * Deltay;
+    double G_2_down = D[2][i-1][j-1] + 0.5 * slope_y_ij_minus1 * Deltay;
+    double G_2 = 0.5 * (G_2_up + G_2_down) - 0.5 * (B[0][i][j] - B[0][i][j-1]);
 
-    //Compute electric field at edges using magnetic field
-    //E[0][i][j] = E_x^{i,j-1/2}
-    //E[1][i][j] = E_y^{i-1/2,j}
-    //E[2][i][j] = E_z^{i-1/2,j-1/2}
-    for(size_t i=N_GC; i<B.shape()[1]-N_GC; i++){
-        Deltax_n2 = 0.5*(Deltax[i-2]+Deltax[i-1]);
-        Deltax_n1 = 0.5*(Deltax[i-1]+Deltax[i]);
-        Deltax_1 = 0.5*(Deltax[i]+Deltax[i+1]);
-        for(size_t j=N_GC; j<B.shape()[2]-N_GC; j++){
+    //F_1{i-1/2,j} calculation (F_1)
 
-            J[0][i][j] = ( Bn[2][i][j] - Bn[2][i][j-1] )/Deltay;
-            J[1][i][j] = ( Bn[2][i-1][j] - Bn[2][i][j] )/Deltax_n1;
-            if(i < B.shape()[1]-N_GC-1){
-                vy_av = 0.25*( -0.5*(tC.eta_H[i][j]+tC.eta_H[i-1][j])*J[1][i][j] - 0.5*(tC.eta_H[i][j]+tC.eta_H[i+1][j])*( Bn[2][i][j] - Bn[2][i+1][j] )/Deltax_1
-                                - 0.5*(tC.eta_H[i-1][j-1]+tC.eta_H[i][j-1])*( Bn[2][i-1][j-1] - Bn[2][i][j-1] )/Deltax_n1 - 0.5*(tC.eta_H[i][j-1]+tC.eta_H[i+1][j-1])*( Bn[2][i][j-1] - Bn[2][i+1][j-1] )/Deltax_1 );
-                if(vy_av > 0){
-                    alphaz_jm1 = minmod( (Bn[2][i][j]-Bn[2][i][j-2])/(2*Deltay), 2*(Bn[2][i][j]-Bn[2][i][j-1])/Deltay, 2*(Bn[2][i][j-1]-Bn[2][i][j-2])/Deltay );
-                    Bz_up = Bn[2][i][j-1] + alphaz_jm1*(Deltay/2.);
-                }
-                else{
-                    alphaz_j = minmod( (Bn[2][i][j+1]-Bn[2][i][j-1])/(2*Deltay), 2*(Bn[2][i][j+1]-Bn[2][i][j])/Deltay, 2*(Bn[2][i][j]-Bn[2][i][j-1])/Deltay );
-                    Bz_up = Bn[2][i][j] - alphaz_j*(Deltay/2.);
-                }
-                vz_av = 0.5*( -0.25*(tC.eta_H[i][j]+tC.eta_H[i-1][j]+tC.eta_H[i][j-1]+tC.eta_H[i-1][j-1])*J[2][i][j] - 0.25*(tC.eta_H[i][j]+tC.eta_H[i][j-1]+tC.eta_H[i+1][j-1]+tC.eta_H[i+1][j])*J[2][i+1][j] );
-                //Can use J[2][i+1][j] above and J[2][i][j+1] below because these reference already-up-to-date, computed currents
-                By_up = B[1][i][j];
-                E[0][i][j] = 0.5*(tC.eta_O[i][j]+tC.eta_O[i][j-1])*J[0][i][j] - ( vy_av*Bz_up - vz_av*By_up )
-                            - ( 0.25*(vc[1][i][j]+vc[1][i+1][j]+vc[1][i][j-1]*vc[1][i+1][j-1])*0.5*(B[2][i][j]+B[2][i][j-1]) - 0.5*(vc[2][i][j]+vc[2][i+1][j])*B[1][i][j] );
-            }
+    double F_1_up = D[2][i][j] - 0.5 * slope_x_ij * Deltax[i];
+    double F_1_down = D[2][i-1][j] + 0.5 * slope_x_iminus1_j * Deltax[i];
+    double F_1 = 0.5 * (F_1_up + F_1_down) - 0.5 * (B[1][i][j] - B[1][i-1][j]);
 
-            vz_av = 0.5*( -0.25*(tC.eta_H[i][j]+tC.eta_H[i-1][j]+tC.eta_H[i][j-1]+tC.eta_H[i-1][j-1])*J[2][i][j] - 0.25*(tC.eta_H[i][j]+tC.eta_H[i-1][j]+tC.eta_H[i][j+1]+tC.eta_H[i-1][j+1])*J[2][i][j+1] );
-            Bx_up = B[0][i][j];
-            vx_av = 0.25*( -0.5*(tC.eta_H[i][j]+tC.eta_H[i][j-1])*J[0][i][j] - 0.5*(tC.eta_H[i-1][j]+tC.eta_H[i-1][j-1])*( Bn[2][i-1][j] - Bn[2][i-1][j-1] )/Deltay
-                            - 0.5*(tC.eta_H[i][j+1]+tC.eta_H[i][j])*( Bn[2][i][j+1] - Bn[2][i][j] )/Deltay - 0.5*(tC.eta_H[i-1][j+1]+tC.eta_H[i-1][j])*( Bn[2][i-1][j+1] - Bn[2][i-1][j] )/Deltay );
-            if(vx_av > 0){
-                alphaz_im1 = minmod( (Bn[2][i][j]-Bn[2][i-2][j])/(Deltax_n2+Deltax_n1), 2*(Bn[2][i][j]-Bn[2][i-1][j])/Deltax_n1, 2*(Bn[2][i-1][j]-Bn[2][i-2][j])/Deltax_n2 );
-                Bz_up = Bn[2][i-1][j] + alphaz_im1*(Deltax[i-1]/2.);
-            }
-            else{
-                alphaz_i = minmod( (Bn[2][i+1][j]-Bn[2][i-1][j])/(Deltax_n1+Deltax_1), 2*(Bn[2][i+1][j]-Bn[2][i][j])/Deltax_1, 2*(Bn[2][i][j]-Bn[2][i-1][j])/Deltax_n1 );
-                Bz_up = Bn[2][i][j] - alphaz_i*(Deltax[i]/2.);
-            }
-            E[1][i][j] = 0.5*(tC.eta_O[i][j]+tC.eta_O[i-1][j])*J[1][i][j] - ( vz_av*Bx_up - vx_av*Bz_up )
-                        - ( 0.5*(vc[2][i][j]+vc[2][i][j+1])*B[0][i][j] - 0.25*(vc[0][i][j]+vc[0][i][j+1]+vc[0][i-1][j]+vc[0][i-1][j+1])*0.5*(B[2][i][j]+B[2][i-1][j]) );
+    //F_1{i-1/2,j-1} calculation (F_2)
 
-            vx_av = 0.5*( -0.5*(tC.eta_H[i][j]+tC.eta_H[i][j-1])*J[0][i][j] - 0.5*(tC.eta_H[i-1][j]+tC.eta_H[i-1][j-1])*( Bn[2][i-1][j] - Bn[2][i-1][j-1] )/Deltay );
-            if(vx_av > 0){
-                alphay_im1 = minmod( (B[1][i][j]-B[1][i-2][j])/(Deltax_n2+Deltax_n1), 2*(B[1][i][j]-B[1][i-1][j])/Deltax_n1, 2*(B[1][i-1][j]-B[1][i-2][j])/Deltax_n2 );
-                By_up = B[1][i-1][j] + alphay_im1*(Deltax[i-1]/2.);
-            }
-            else{
-                alphay_i = minmod( (B[1][i+1][j]-B[1][i-1][j])/(Deltax_n1+Deltax_1), 2*(B[1][i+1][j]-B[1][i][j])/Deltax_1, 2*(B[1][i][j]-B[1][i-1][j])/Deltax_n1 );
-                By_up = B[1][i][j] - alphay_i*(Deltax[i]/2.);
-            }
-            vy_av = 0.5*( -0.5*(tC.eta_H[i][j]+tC.eta_H[i-1][j])*J[1][i][j] - 0.5*(tC.eta_H[i][j-1]+tC.eta_H[i-1][j-1])*( Bn[2][i-1][j-1] - Bn[2][i][j-1] )/Deltax_n1 );
-            if(vy_av > 0){
-                alphax_jm1 = minmod( (B[0][i][j]-B[0][i][j-2])/(2*Deltay), 2*(B[0][i][j]-B[0][i][j-1])/Deltay, 2*(B[0][i][j-1]-B[0][i][j-2])/Deltay );
-                Bx_up = B[0][i][j-1] + alphax_jm1*(Deltay/2.);
-            }
-            else{
-                alphax_j = minmod( (B[0][i][j+1]-B[0][i][j-1])/(2*Deltay), 2*(B[0][i][j+1]-B[0][i][j])/Deltay, 2*(B[0][i][j]-B[0][i][j-1])/Deltay );
-                Bx_up = B[0][i][j] - alphax_j*(Deltay/2.);
-            }
-            E[2][i][j] = 0.25*(tC.eta_O[i][j] + tC.eta_O[i-1][j] + tC.eta_O[i][j-1] + tC.eta_O[i-1][j-1])*J[2][i][j] - ( vx_av*By_up - vy_av*Bx_up )
-                        - ( 0.5*(vc[0][i][j]*B[1][i][j]+vc[0][i-1][j]*B[1][i-1][j]) - 0.5*(vc[1][i][j]*B[0][i][j]+vc[1][i][j-1]*B[0][i][j-1]) );
-        }
-    }
+    double F_2_up = D[2][i][j-1] - 0.5 * slope_x_i_jminus1 * Deltax[i];
+    double F_2_down = D[2][i-1][j-1] + 0.5 * slope_x_ij_minus1 * Deltax[i];
+    double F_2 = 0.5 * (F_2_up + F_2_down) - 0.5 * (B[1][i][j] - B[1][i-1][j]);
 
-    return;
+    //Fluxes for Ez_{i-1/2,j+1/2}
+    //G_3{i,j+1/2} calculation (G_3)
+    double G_3_up = D[2][i][j+1] - 0.5 * slope_y_i_jplus1 * Deltay;
+    double G_3_down = D[2][i][j] + 0.5 * slope_y_ij * Deltay;
+    double G_3 = 0.5 * (G_3_up + G_3_down) - 0.5 * (B[0][i][j+1] - B[0][i][j]);
+
+    //G_4{i-1,j+1/2} calculation (G_4)
+
+    double G_4_up = D[2][i-1][j] - 0.5 * slope_y_iminus1_j * Deltay;
+    double G_4_down = D[2][i-1][j-1] + 0.5 * slope_y_ij_minus1 * Deltay;
+    double G_4 = 0.5 * (G_4_up + G_4_down) - 0.5 * (B[0][i][j+1] - B[0][i][j]);
+
+    //F_3{i-1/2,j} calculation (F_3)
+
+    double F_3_up = D[2][i][j] - 0.5 * slope_x_ij * Deltax[i];
+    double F_3_down = D[2][i-1][j] + 0.5 * slope_x_iminus1_j * Deltax[i];
+    double F_3 = 0.5 * (F_3_up + F_3_down) - 0.5 * (B[1][i][j] - B[1][i-1][j]);
+
+    //F_4{i-1/2,j+1} calculation (F_4)
+
+    double F_4_up = D[2][i][j+1] - 0.5 * slope_x_i_jplus1 * Deltax[i]; 
+    double F_4_down = D[2][i-1][j+1] + 0.5 * slope_x_iminus1_jplus1 * Deltax[i]; 
+    double F_4 = 0.5 * (F_4_up + F_4_down) - 0.5 * (B[1][i][j] - B[1][i-1][j]);
+
+    double Ez_ij = 0.25 * (-F_1 - F_2 + G_1 + G_2);
+    double Ez_i_jplus1 = 0.25 * (-F_3 - F_4 + G_3 + G_4);
+
+    return {Ez_ij, Ez_i_jplus1};
 }
+
 */
+
+std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, VectorField & B, std::vector<double> & Deltax, double Deltay){
+
+    //Compute Bx at cell centers by averaging the two Bx face values at i,j/i,j+1/i,j-1/i,j-2/i-1,j/i-1,j-1
+    double Bx_ij = 0.5 * (B[0][i][j] + B[0][i+1][j]);
+    double Bx_i_jplus1 = 0.5 * (B[0][i][j+1] + B[0][i+1][j+1]);
+    double Bx_i_jminus1 = 0.5 * (B[0][i][j-1] + B[0][i+1][j-1]);
+    double Bx_i_jminus2 = 0.5 * (B[0][i][j-2] + B[0][i+1][j-2]);
+    double Bx_iminus1_j = 0.5 * (B[0][i][j] + B[0][i-1][j]);
+    double Bx_iminus1_jplus1 = 0.5 * (B[0][i][j+1] + B[0][i-1][j+1]);
+    double Bx_ij_minus1 = 0.5 * (B[0][i][j-1] + B[0][i-1][j-1]);
+
+    double slope_Bx_y_j = minmod((B[0][i][j+1] - B[0][i][j-1]) / (2 * Deltay),  2 * (B[0][i][j] - B[0][i][j-1]) / Deltay, 2 * (B[0][i][j+1] - B[0][i][j]) / Deltay);
+    double slope_Bx_y_i_jminus1 = minmod((B[0][i][j] - B[0][i][j-2]) / (2 * Deltay),  2 * (B[0][i][j-1] - B[0][i][j-2]) / Deltay, 2 * (B[0][i][j] - B[0][i][j-1]) / Deltay);
+    double slope_Bx_y_i_jplus1 = minmod((B[0][i][j+2] - B[0][i][j]) / (2 * Deltay),  2 * (B[0][i][j+1] - B[0][i][j]) / Deltay, 2 * (B[0][i][j+2] - B[0][i][j+1]) / Deltay);
+    double slope_Bx_y_iminus1_j = minmod((B[0][i-1][j+1] - B[0][i-1][j-1]) / (2 * Deltay),  2 * (B[0][i-1][j] - B[0][i-1][j-1]) / Deltay, 2 * (B[0][i-1][j+1] - B[0][i-1][j]) / Deltay);
+    double slope_Bx_y_ij_minus1 = minmod((B[0][i-1][j] - B[0][i-1][j-2]) / (2 * Deltay),  2 * (B[0][i-1][j-1] - B[0][i-1][j-2]) / Deltay, 2 * (B[0][i-1][j] - B[0][i-1][j-1]) / Deltay);
+    double slope_Bx_y_iminus1_jplus1 = minmod((B[0][i-1][j+2] - B[0][i-1][j]) / (2 * Deltay),  2 * (B[0][i-1][j+1] - B[0][i-1][j]) / Deltay, 2 * (B[0][i-1][j+2] - B[0][i-1][j+1]) / Deltay);
+
+    double slope_Ez_y_j = minmod((E[2][i][j+1] - E[2][i][j-1]) / (2 * Deltay),  2 * (E[2][i][j] - E[2][i][j-1]) / Deltay, 2 * (E[2][i][j+1] - E[2][i][j]) / Deltay);
+    double slope_Ez_y_i_jminus1 = minmod((E[2][i][j] - E[2][i][j-2]) / (2 * Deltay),  2 * (E[2][i][j-1] - E[2][i][j-2]) / Deltay, 2 * (E[2][i][j] - E[2][i][j-1]) / Deltay);
+    double slope_Ez_y_i_jplus1 = minmod((E[2][i][j+2] - E[2][i][j]) / (2 * Deltay),  2 * (E[2][i][j+1] - E[2][i][j]) / Deltay, 2 * (E[2][i][j+2] - E[2][i][j+1]) / Deltay);
+    double slope_Ez_y_iminus1_j = minmod((E[2][i-1][j+1] - E[2][i-1][j-1]) / (2 * Deltay),  2 * (E[2][i-1][j] - E[2][i-1][j-1]) / Deltay, 2 * (E[2][i-1][j+1] - E[2][i-1][j]) / Deltay);
+    double slope_Ez_y_ij_minus1 = minmod((E[2][i-1][j] - E[2][i-1][j-2]) / (2 * Deltay),  2 * (E[2][i-1][j-1] - E[2][i-1][j-2]) / Deltay, 2 * (E[2][i-1][j] - E[2][i-1][j-1]) / Deltay);
+    double slope_Ez_y_iminus1_jplus1 = minmod((E[2][i-1][j+2] - E[2][i-1][j]) / (2 * Deltay),  2 * (E[2][i-1][j+1] - E[2][i-1][j]) / Deltay, 2 * (E[2][i-1][j+2] - E[2][i-1][j+1]) / Deltay);
+
+    
+    double slope_Ez_x_ij = minmod((E[2][i+1][j] - E[2][i-1][j]) / (2 * Deltax[i]),  2 * (E[2][i][j] - E[2][i-1][j]) / Deltax[i], 2 * (E[2][i+1][j] - E[2][i][j]) / Deltax[i]);
+    double slope_Ez_x_iminus1_j = minmod((E[2][i][j] - E[2][i-2][j]) / (2 * Deltax[i]),  2 * (E[2][i-1][j] - E[2][i-2][j]) / Deltax[i], 2 * (E[2][i][j] - E[2][i-1][j]) / Deltax[i]);
+    double slope_Ez_x_i_jminus1 = minmod((E[2][i+1][j-1] - E[2][i-1][j-1]) / (2 * Deltax[i]),  2 * (E[2][i][j-1] - E[2][i-1][j-1]) / Deltax[i], 2 * (E[2][i+1][j-1] - E[2][i][j-1]) / Deltax[i]);
+    double slope_Ez_x_ij_minus1 = minmod((E[2][i][j-1] - E[2][i-2][j-1]) / (2 * Deltax[i]),  2 * (E[2][i-1][j-1] - E[2][i-2][j-1]) / Deltax[i], 2 * (E[2][i][j-1] - E[2][i-1][j-1]) / Deltax[i]);
+    double slope_Ez_x_i_jplus1 = minmod((E[2][i+1][j+1] - E[2][i-1][j+1]) / (2 * Deltax[i]),  2 * (E[2][i][j+1] - E[2][i-1][j+1]) / Deltax[i], 2 * (E[2][i+1][j+1] - E[2][i][j+1]) / Deltax[i]);
+    double slope_Ez_x_iminus1_jplus1 = minmod((E[2][i][j+1] - E[2][i-2][j+1]) / (2 * Deltax[i]),  2 * (E[2][i-1][j+1] - E[2][i-2][j+1]) / Deltax[i], 2 * (E[2][i][j+1] - E[2][i-1][j+1]) / Deltax[i]);
+    
+    //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
+    //G_1{i,j-1/2} calculation (G_1)
+
+    double Bx_ij_up = Bx_ij - 0.5 * Deltay * slope_Bx_y_j;
+    double Bx_i_jminus1_down = Bx_i_jminus1 + 0.5 * Deltay * slope_Bx_y_i_jminus1;
+
+    //Note: Ez is positive in the G matrix in Yu paper
+    double G_1_up = E[2][i][j] - 0.5 * slope_Ez_y_j * Deltay;
+    double G_1_down = E[2][i][j-1] + 0.5 * slope_Ez_y_i_jminus1 * Deltay;
+    double G_1 = 0.5 * (G_1_up + G_1_down) - 0.5 * (Bx_ij_up - Bx_i_jminus1_down);
+
+    //G_1{i-1,j-1/2} calculation (G_2)
+    
+    double Bx_iminus1_j_up = Bx_iminus1_j - 0.5 * Deltay * slope_Bx_y_iminus1_j;
+    double Bx_ijminus1_down = Bx_ij_minus1 + 0.5 * Deltay * slope_Bx_y_ij_minus1;
+
+    //Note: Ez is positive in the G matrix in Yu paper
+    double G_2_up = E[2][i-1][j] - 0.5 * slope_Ez_y_iminus1_j * Deltay;
+    double G_2_down = E[2][i-1][j-1] + 0.5 * slope_Ez_y_ij_minus1 * Deltay;
+    double G_2 = 0.5 * (G_2_up + G_2_down) - 0.5 * (Bx_iminus1_j_up - Bx_ijminus1_down);
+
+    //F_2{i-1/2,j} calculation (F_1)
+
+    double F_1_up = E[2][i][j] - 0.5 * slope_Ez_x_ij * Deltax[i];
+    double F_1_down = E[2][i-1][j] + 0.5 * slope_Ez_x_iminus1_j  * Deltax[i];
+
+    //Note: Ez is negative in the F matrix in Yu paper and no dissipation term since Bx lives w/ F_1
+
+    double F_1 = 0.5 * (-F_1_up - F_1_down);
+
+    //F_2{i-1/2,j-1} calculation (F_2)
+
+    double F_2_up = E[2][i][j-1] - 0.5 * slope_Ez_x_i_jminus1 * Deltax[i];
+    double F_2_down = E[2][i-1][j-1] + 0.5 * slope_Ez_x_ij_minus1  * Deltax[i];
+
+    //Note: Ez is negative in the F matrix in Yu paper and no dissipation term since Bx lives w/ F_1
+
+    double F_2 = 0.5 * (-F_2_up - F_2_down);
+
+    //Fluxes for Ez{i,j+1} aka Ez_{i-1, j+1/2}
+    //G_1{i,j+1/2} calculation (G_3)
+
+    double Bx_i_jplus1_up = Bx_i_jplus1 - 0.5 * Deltay * slope_Bx_y_i_jplus1;
+    double Bx_ij_down = Bx_ij + 0.5 * Deltay * slope_Bx_y_j;
+
+    //Note: Ez is positive in the G matrix in Yu paper
+    double G_3_up = E[2][i][j+1] - 0.5 * slope_Ez_y_i_jplus1 * Deltay;
+    double G_3_down = E[2][i][j] + 0.5 * slope_Ez_y_j * Deltay;
+    double G_3 = 0.5 * (G_3_up + G_3_down) - 0.5 * (Bx_i_jplus1_up - Bx_ij_down);
+    
+    //G_1{i-1,j+1/2} calculation (G_4)
+
+    double Bx_iminus1_jplus1_up = Bx_iminus1_jplus1 - 0.5 * Deltay * slope_Bx_y_iminus1_jplus1;
+    double Bx_iminus1_j_down = Bx_iminus1_j + 0.5 * Deltay * slope_Bx_y_iminus1_j;
+
+    //Note: Ez is positive in the G matrix in Yu paper
+
+    double G_4_up = E[2][i-1][j+1] - 0.5 * Deltay * slope_Ez_y_iminus1_jplus1;
+    double G_4_down = E[2][i-1][j] + 0.5 * Deltay * slope_Ez_y_iminus1_j;
+
+    double G_4 = 0.5 * (G_4_up + G_4_down) - 0.5 * (Bx_iminus1_jplus1_up - Bx_iminus1_j_down);
+
+    //F_2{i-1/2,j} calculation (F_3) same thing as F_1
+
+    //Note: Ez is negative in the F matrix in Yu paper and no dissipation term since Bx lives w/ F_1
+
+    double F_3 = 0.5 * (-F_1_up - F_1_down);
+
+    //F_2{i-1/2,j+1} calculation (F_4)
+
+    double F_4_up = E[2][i][j+1] - 0.5 * Deltax[i] * slope_Ez_x_i_jplus1;
+    double F_4_down = E[2][i-1][j+1] + 0.5 * Deltax[i] * slope_Ez_x_iminus1_jplus1;
+
+    double F_4 = 0.5 * (-F_4_up - F_4_down);
+
+    //Toth 2000 Eq(19)
+    double Ez_ij = 0.25 * (-F_1 - F_2 + G_1 + G_2);
+    double Ez_i_jplus1 = 0.25 * (-F_3 - F_4 + G_3 + G_4);
+
+    return {Ez_ij, Ez_i_jplus1};
+}
+
+std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, VectorField & B, std::vector<double> & Deltax, double Deltay){
+
+    //Compute By at cell centers by averaging the two By face values
+    double By_ij = 0.5 * (B[1][i][j] + B[1][i][j+1]);
+    double By_iminus1_j = 0.5 * (B[1][i-1][j] + B[1][i-1][j+1]);
+    double By_iminus1_jminus1 = 0.5 * (B[1][i-1][j] + B[1][i-1][j-1]);
+    double By_i_jminus1 = 0.5 * (B[1][i][j] + B[1][i][j-1]);
+    double By_iplus1_jminus1 = 0.5 * (B[1][i+1][j] + B[1][i+1][j-1]);
+    double By_iplus1_j = 0.5 * (B[1][i+1][j] + B[1][i+1][j+1]);
+
+    double slope_By_x_ij = minmod((B[1][i+1][j] - B[1][i-1][j]) / (2 * Deltax[i]),  2 * (B[1][i][j] - B[1][i-1][j]) / Deltax[i], 2 * (B[1][i+1][j] - B[1][i][j]) / Deltax[i]);
+    double slope_By_x_iminus1_j =minmod((B[1][i][j] - B[1][i-2][j]) / (2 * Deltax[i]),  2 * (B[1][i-1][j] - B[1][i-2][j]) / Deltax[i], 2 * (B[1][i][j] - B[1][i-1][j]) / Deltax[i]);
+    double slope_By_x_i_jminus1 = minmod((B[1][i+1][j-1] - B[1][i-1][j-1]) / (2 * Deltax[i]),  2 * (B[1][i][j-1] - B[1][i-1][j-1]) / Deltax[i], 2 * (B[1][i+1][j-1] - B[1][i][j-1]) / Deltax[i]);
+    double slope_By_x_iminus1_jminus1 = minmod((B[1][i][j-1] - B[1][i-2][j-1]) / (2 * Deltax[i]),  2 * (B[1][i-1][j-1] - B[1][i-2][j-1]) / Deltax[i], 2 * (B[1][i][j-1] - B[1][i-1][j-1]) / Deltax[i]);
+    double slope_By_x_iplus1_jminus1 = minmod((B[1][i+2][j-1] - B[1][i][j-1]) / (2 * Deltax[i]),  2 * (B[1][i+1][j-1] - B[1][i][j-1]) / Deltax[i], 2 * (B[1][i+2][j-1] - B[1][i+1][j-1]) / Deltax[i]);
+    double slope_By_x_iplus1_j =  minmod((B[1][i+2][j] - B[1][i][j]) / (2 * Deltax[i]),  2 * (B[1][i+1][j] - B[1][i][j]) / Deltax[i], 2 * (B[1][i+2][j] - B[1][i+1][j]) / Deltax[i]);
+
+    double slope_Ez_y_j = minmod((E[2][i][j+1] - E[2][i][j-1]) / (2 * Deltay),  2 * (E[2][i][j] - E[2][i][j-1]) / Deltay, 2 * (E[2][i][j+1] - E[2][i][j]) / Deltay);
+    double slope_Ez_y_i_jminus1 = minmod((E[2][i][j] - E[2][i][j-2]) / (2 * Deltay),  2 * (E[2][i][j-1] - E[2][i][j-2]) / Deltay, 2 * (E[2][i][j] - E[2][i][j-1]) / Deltay);
+    double slope_Ez_y_i_jplus1 = minmod((E[2][i][j+2] - E[2][i][j]) / (2 * Deltay),  2 * (E[2][i][j+1] - E[2][i][j]) / Deltay, 2 * (E[2][i][j+2] - E[2][i][j+1]) / Deltay);
+    double slope_Ez_y_iminus1_j = minmod((E[2][i-1][j+1] - E[2][i-1][j-1]) / (2 * Deltay),  2 * (E[2][i-1][j] - E[2][i-1][j-1]) / Deltay, 2 * (E[2][i-1][j+1] - E[2][i-1][j]) / Deltay);
+    double slope_Ez_y_ij_minus1 = minmod((E[2][i-1][j] - E[2][i-1][j-2]) / (2 * Deltay),  2 * (E[2][i-1][j-1] - E[2][i-1][j-2]) / Deltay, 2 * (E[2][i-1][j] - E[2][i-1][j-1]) / Deltay);
+    double slope_Ez_y_iminus1_jplus1 = minmod((E[2][i-1][j+2] - E[2][i-1][j]) / (2 * Deltay),  2 * (E[2][i-1][j+1] - E[2][i-1][j]) / Deltay, 2 * (E[2][i-1][j+2] - E[2][i-1][j+1]) / Deltay);
+    double slope_Ez_y_iplus1_j = minmod((E[2][i+1][j+1] - E[2][i+1][j-1]) / (2 * Deltay),  2 * (E[2][i+1][j] - E[2][i+1][j-1]) / Deltay, 2 * (E[2][i+1][j+1] - E[2][i+1][j]) / Deltay);
+    double slope_Ez_y_iplus1_jminus1 = minmod((E[2][i+1][j] - E[2][i+1][j-2]) / (2 * Deltay),  2 * (E[2][i+1][j-1] - E[2][i+1][j-2]) / Deltay, 2 * (E[2][i+1][j] - E[2][i+1][j-1]) / Deltay);
+
+    double slope_Ez_x_ij = minmod((E[2][i+1][j] - E[2][i-1][j]) / (2 * Deltax[i]),  2 * (E[2][i][j] - E[2][i-1][j]) / Deltax[i], 2 * (E[2][i+1][j] - E[2][i][j]) / Deltax[i]);
+    double slope_Ez_x_iminus1_j = minmod((E[2][i][j] - E[2][i-2][j]) / (2 * Deltax[i]),  2 * (E[2][i-1][j] - E[2][i-2][j]) / Deltax[i], 2 * (E[2][i][j] - E[2][i-1][j]) / Deltax[i]);
+    double slope_Ez_x_i_jminus1 = minmod((E[2][i+1][j-1] - E[2][i-1][j-1]) / (2 * Deltax[i]),  2 * (E[2][i][j-1] - E[2][i-1][j-1]) / Deltax[i], 2 * (E[2][i+1][j-1] - E[2][i][j-1]) / Deltax[i]);
+    double slope_Ez_x_ij_minus1 = minmod((E[2][i][j-1] - E[2][i-2][j-1]) / (2 * Deltax[i]),  2 * (E[2][i-1][j-1] - E[2][i-2][j-1]) / Deltax[i], 2 * (E[2][i][j-1] - E[2][i-1][j-1]) / Deltax[i]);
+    double slope_Ez_x_i_jplus1 = minmod((E[2][i+1][j+1] - E[2][i-1][j+1]) / (2 * Deltax[i]),  2 * (E[2][i][j+1] - E[2][i-1][j+1]) / Deltax[i], 2 * (E[2][i+1][j+1] - E[2][i][j+1]) / Deltax[i]);
+    double slope_Ez_x_iminus1_jplus1 = minmod((E[2][i][j+1] - E[2][i-2][j+1]) / (2 * Deltax[i]),  2 * (E[2][i-1][j+1] - E[2][i-2][j+1]) / Deltax[i], 2 * (E[2][i][j+1] - E[2][i-1][j+1]) / Deltax[i]);
+    double slope_Ez_x_iplus1_jminus1 = minmod((E[2][i+2][j-1] - E[2][i][j-1]) / (2 * Deltax[i]),  2 * (E[2][i+1][j-1] - E[2][i][j-1]) / Deltax[i], 2 * (E[2][i+2][j-1] - E[2][i+1][j-1]) / Deltax[i]);
+    double slope_Ez_x_iplus1_j = minmod((E[2][i+2][j] - E[2][i][j]) / (2 * Deltax[i]),  2 * (E[2][i+1][j] - E[2][i][j]) / Deltax[i], 2 * (E[2][i+2][j] - E[2][i+1][j]) / Deltax[i]);
+
+    //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
+    //G_1{i,j-1/2} calculation (G_1)
+
+    //Note: Ez is positive in the G matrix in Yu paper and no dissipation term since By lives w/ G_1
+    double G_1_up = E[2][i][j] - 0.5 * slope_Ez_y_j * Deltay;
+    double G_1_down = E[2][i][j-1] + 0.5 * slope_Ez_y_i_jminus1 * Deltay;
+    double G_1 = 0.5 * (G_1_up + G_1_down);
+
+    //G_1{i-1,j-1/2} calculation (G_2)
+
+    //Note: Ez is positive in the G matrix in Yu paper and no dissipation term since By lives w/ G_1
+    double G_2_up = E[2][i-1][j] - 0.5 * slope_Ez_y_iminus1_j * Deltay;
+    double G_2_down = E[2][i-1][j-1] + 0.5 * slope_Ez_y_ij_minus1 * Deltay;
+    double G_2 = 0.5 * (G_2_up + G_2_down);
+
+    //F_2{i-1/2,j} calculation (F_1)
+
+    double By_ij_up = By_ij - 0.5 * Deltax[i] * slope_By_x_ij;
+    double By_iminus1_j_down = By_iminus1_j + 0.5 * Deltax[i] * slope_By_x_iminus1_j;
+
+    double F_1_up = E[2][i][j] - 0.5 * slope_Ez_x_ij * Deltax[i];
+    double F_1_down = E[2][i-1][j] + 0.5 * slope_Ez_x_iminus1_j  * Deltax[i];
+
+    //Note: Ez is negative in the F matrix in Yu paper
+
+    double F_1 = 0.5 * (-F_1_up - F_1_down) - 0.5 * (By_ij_up - By_iminus1_j_down);
+
+    //F_2{i-1/2,j-1} calculation (F_2)
+
+    double By_i_jminus1_up = By_i_jminus1 - 0.5 * Deltax[i] * slope_By_x_i_jminus1;
+    double By_iminus1_jminus1_down = By_iminus1_jminus1 + 0.5 * Deltax[i] * slope_By_x_iminus1_jminus1;
+
+    double F_2_up = E[2][i][j-1] - 0.5 * slope_Ez_x_i_jminus1 * Deltax[i];
+    double F_2_down = E[2][i-1][j-1] + 0.5 * slope_Ez_x_ij_minus1  * Deltax[i];
+
+    double F_2 = 0.5 * (-F_2_up - F_2_down) - 0.5 * (By_i_jminus1_up - By_iminus1_jminus1_down);
+
+    //E_z Fluxes for Ez{i+1,j} aka Ez_{i+1/2, j-1/2}
+
+    //G_1{i,j-1/2} calculation (G_3), same as G_1
+
+    //Note: Ez is positive in the G matrix in Yu paper and no dissipation term since By lives w/ G_1
+
+    double G_3 = 0.5 * (G_1_up + G_1_down);
+
+    //G_1{i+1, j-1/2}  calculation (G_4)
+
+    double G_4_up = E[2][i+1][j] - 0.5 * Deltay * slope_Ez_y_iplus1_j;
+    double G_4_down = E[2][i+1][j-1] + 0.5 * Deltay * slope_Ez_y_iplus1_jminus1;
+
+    double G_4 = 0.5 * (G_4_up + G_4_down);
+
+    //F_1{i+1/2, j-1} calculation (F_3)
+
+    double By_iplus1_jminus1_up = By_iplus1_jminus1 - 0.5 * Deltax[i] * slope_By_x_iplus1_jminus1;  
+    double By_i_jminus1_down = By_i_jminus1 + 0.5 * Deltax[i] * slope_By_x_i_jminus1;
+    
+    double F_3_up = E[2][i+1][j-1] - 0.5 * slope_Ez_x_iplus1_jminus1 * Deltax[i];
+    double F_3_down = E[2][i][j-1] + 0.5 * slope_Ez_x_i_jminus1  * Deltax[i];
+
+    double F_3 = 0.5 * (F_3_up + F_3_down) - 0.5 * (By_iplus1_jminus1_up - By_i_jminus1_down);
+
+    //F_1{i+1/2,j} calculation (F_4)
+
+    double By_iplus1_j_up = By_iplus1_j - 0.5 * Deltax[i] * slope_By_x_iplus1_j;
+    double By_ij_down = By_ij + 0.5 * Deltax[i] * slope_By_x_ij;
+
+    double F_4_up = E[2][i+1][j] - 0.5 * slope_Ez_x_iplus1_j * Deltax[i];
+    double F_4_down = E[2][i][j] + 0.5 * slope_Ez_x_ij  * Deltax[i];
+
+    double F_4 = 0.5 * (F_4_up + F_4_down) - 0.5 * (By_iplus1_j_up - By_ij_down);
+
+    double Ez_ij = 0.25 * (-F_1 - F_2 + G_1 + G_2);
+    double Ez_iplus1_j = 0.25 * (-F_3 - F_4 + G_3 + G_4);
+
+    return {Ez_ij, Ez_iplus1_j};
+
+}
+
+std::tuple<double, double, double, double> Ez_Flux_Calculation_Qz(int i, int j, VectorField & E, VectorField & B, std::vector<double> & Deltax, double Deltay){
+
+    double slope_Ex_y_ij = minmod((E[0][i][j+1] - E[0][i][j-1]) / (2 * Deltay),  2 * (E[0][i][j] - E[0][i][j-1]) / Deltay, 2 * (E[0][i][j+1] - E[0][i][j]) / Deltay);
+    double slope_Ex_y_i_jminus1 = minmod((E[0][i][j] - E[0][i][j-2]) / (2 * Deltay),  2 * (E[0][i][j-1] - E[0][i][j-2]) / Deltay, 2 * (E[0][i][j] - E[0][i][j-1]) / Deltay);
+    double slope_Ex_y_iminus1_j = minmod((E[0][i-1][j+1] - E[0][i-1][j-1]) / (2 * Deltay),  2 * (E[0][i-1][j] - E[0][i-1][j-1]) / Deltay, 2 * (E[0][i-1][j+1] - E[0][i-1][j]) / Deltay);
+    double slope_Ex_y_iminus1_jminus1 = minmod((E[0][i-1][j] - E[0][i-1][j-2]) / (2 * Deltay),  2 * (E[0][i-1][j-1] - E[0][i-1][j-2]) / Deltay, 2 * (E[0][i-1][j] - E[0][i-1][j-1]) / Deltay);
+   
+    double slope_Ey_x_ij = minmod((E[1][i+1][j] - E[1][i-1][j]) / (2 * Deltax[i]),  2 * (E[1][i][j] - E[1][i-1][j]) / Deltax[i], 2 * (E[1][i+1][j] - E[1][i][j]) / Deltax[i]);
+    double slope_Ey_x_iminus1_j = minmod((E[1][i][j] - E[1][i-2][j]) / (2 * Deltax[i]),  2 * (E[1][i-1][j] - E[1][i-2][j]) / Deltax[i], 2 * (E[1][i][j] - E[1][i-1][j]) / Deltax[i]);
+    double slope_Ey_x_i_jminus1 = minmod((E[1][i+1][j-1] - E[1][i-1][j-1]) / (2 * Deltax[i]),  2 * (E[1][i][j-1] - E[1][i-1][j-1]) / Deltax[i], 2 * (E[1][i+1][j-1] - E[1][i][j-1]) / Deltax[i]);
+    double slope_Ey_x_iminus1_jminus1 = minmod((E[1][i][j-1] - E[1][i-2][j-1]) / (2 * Deltax[i]),  2 * (E[1][i-1][j-1] - E[1][i-2][j-1]) / Deltax[i], 2 * (E[1][i][j-1] - E[1][i-1][j-1]) / Deltax[i]);
+
+    double slope_Bz_y_ij = minmod((B[2][i][j+1] - B[2][i][j-1]) / (2 * Deltay),  2 * (B[2][i][j] - B[2][i][j-1]) / Deltay, 2 * (B[2][i][j+1] - B[2][i][j]) / Deltay);
+    double slope_Bz_y_i_jminus1 = minmod((B[2][i][j] - B[2][i][j-2]) / (2 * Deltay),  2 * (B[2][i][j-1] - B[2][i][j-2]) / Deltay, 2 * (B[2][i][j] - B[2][i][j-1]) / Deltay);
+    double slope_Bz_y_iminus1_j = minmod((B[2][i-1][j+1] - B[2][i-1][j-1]) / (2 * Deltay),  2 * (B[2][i-1][j] - B[2][i-1][j-1]) / Deltay, 2 * (B[2][i-1][j+1] - B[2][i-1][j]) / Deltay); 
+    double slope_Bz_y_iminus1_jminus1 = minmod((B[2][i-1][j] - B[2][i-1][j-2]) / (2 * Deltay),  2 * (B[2][i-1][j-1] - B[2][i-1][j-2]) / Deltay, 2 * (B[2][i-1][j] - B[2][i-1][j-1]) / Deltay);
+    
+    double slope_Bz_x_ij = minmod((B[2][i+1][j] - B[2][i-1][j]) / (2 * Deltax[i]),  2 * (B[2][i][j] - B[2][i-1][j]) / Deltax[i], 2 * (B[2][i+1][j] - B[2][i][j]) / Deltax[i]);
+    double slope_Bz_x_iminus1_j = minmod((B[2][i][j] - B[2][i-2][j]) / (2 * Deltax[i]),  2 * (B[2][i-1][j] - B[2][i-2][j]) / Deltax[i], 2 * (B[2][i][j] - B[2][i-1][j]) / Deltax[i]);
+    double slope_Bz_x_i_jminus1 = minmod((B[2][i+1][j-1] - B[2][i-1][j-1]) / (2 * Deltax[i]),  2 * (B[2][i][j-1] - B[2][i-1][j-1]) / Deltax[i], 2 * (B[2][i+1][j-1] - B[2][i][j-1]) / Deltax[i]);
+    double slope_Bz_x_iminus1_jminus1 = minmod((B[2][i][j-1] - B[2][i-2][j-1]) / (2 * Deltax[i]),  2 * (B[2][i-1][j-1] - B[2][i-2][j-1]) / Deltax[i], 2 * (B[2][i][j-1] - B[2][i-1][j-1]) / Deltax[i]);
+    
+    // dEx/dy calculation
+    
+    //Ex{i-1/2,j-1/2}
+    //G_1{i,j-1/2} calculation G_1
+
+    double G_1_up = E[0][i][j] - 0.5 * Deltay * slope_Ex_y_ij;
+    double G_1_down = E[0][i][j-1] + 0.5 * Deltay * slope_Ex_y_i_jminus1;
+
+    double Bz_ij_up_y = B[2][i][j] - 0.5 * Deltay * slope_Bz_y_ij;
+    double Bz_i_jminus1_down_y = B[2][i][j-1] + 0.5 * Deltay * slope_Bz_y_i_jminus1;
+
+    double G_1 = 0.5 * (-G_1_up - G_1_down) - 0.5 * (Bz_ij_up_y - Bz_i_jminus1_down_y);
+
+    //G_1{i-1,j-1/2} calculation G_2
+
+    double G_2_up = E[0][i-1][j] - 0.5 * Deltay * slope_Ex_y_iminus1_j;
+    double G_2_down = E[0][i-1][j-1] + 0.5 * Deltay * slope_Ex_y_iminus1_jminus1;
+
+    double Bz_iminus1_j_up_y = B[2][i-1][j] - 0.5 * Deltay * slope_Bz_y_iminus1_j;
+    double Bz_iminus1_jminus1_down_y = B[2][i-1][j-1] + 0.5 * Deltay * slope_Bz_y_iminus1_jminus1;
+
+    double G_2 = 0.5 * (-G_2_up - G_2_down) - 0.5 * (Bz_iminus1_j_up_y - Bz_iminus1_jminus1_down_y);
+
+    //F_1{i-1/2, j} calculation F_1
+
+    double F_1_up = E[1][i][j] - 0.5 * Deltax[i] * slope_Ey_x_ij;
+    double F_1_down = E[1][i-1][j] + 0.5 * Deltax[i] * slope_Ey_x_iminus1_j;
+    
+    double Bz_ij_up_x = B[2][i][j] - 0.5 * Deltax[i] * slope_Bz_x_ij;
+    double Bz_iminus1_j_down_x = B[2][i-1][j] + 0.5 * Deltax[i] * slope_Bz_x_iminus1_j;
+
+    double F_1 = 0.5 * (F_1_up + F_1_down) - 0.5 * (Bz_ij_up_x + Bz_iminus1_j_down_x);
+
+    //F_1{i-1/2, j-1} calculation F_2
+
+    double F_2_up = E[1][i][j-1] - 0.5 * Deltax[i] * slope_Ey_x_i_jminus1;
+    double F_2_down = E[1][i-1][j-1] + 0.5 * Deltax[i] * slope_Ey_x_iminus1_jminus1;
+
+    double Bz_i_jminus1_up_x = B[2][i][j-1] - 0.5 * Deltax[i] * slope_Bz_x_i_jminus1;
+    double Bz_iminus1_jminus1_down_x = B[2][i-1][j-1] + 0.5 * Deltax[i] * slope_Bz_x_iminus1_jminus1;
+
+    double F_2 = 0.5 * (F_2_up + F_2_down) - 0.5 * (Bz_i_jminus1_up_x - Bz_iminus1_jminus1_down_x);
+
+
+    double Ex_ij = 0.25 * (G_1 + G_2 - F_1 - F_2);
+
+
+
+}
+
 /*
     Computes electromagnetic force along closed path around cell face. Used to compute time derivative of magnetic field.
     Inputs: E: electric field in reduced units along cell faces
@@ -648,17 +922,22 @@ void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField &
     Output: Qx, Qy, Qz: line integral of E divided by cell face area on bottom cell faces (to update Bx) and left cell faces (to update By) respectively
 */
 
-void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, VectorField & E, VectorField & H, VectorField & J, size_t N_GC, std::vector<double> & Deltax, double Deltay)
+void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, VectorField & E, VectorField & H, VectorField & J, VectorField & D, VectorField & B, size_t N_GC, std::vector<double> & Deltax, double Deltay)
 {
 
     for(size_t i=N_GC; i<E.shape()[1]-N_GC; i++){
         for(size_t j=N_GC; j<E.shape()[2]-N_GC; j++){
-
-            Qx[i][j] = -( E[2][i][j+1] - E[2][i][j] )/Deltay;
-
+            auto [Ez_Qx_ij, Ez_i_jplus1] = Ez_Flux_Calculation_Qx(i, j, D, B, Deltax, Deltay);
+            auto [Ez_Qy_ij, Ez_iplus1_j] = Ez_Flux_Calculation_Qy(i, j, E, B, Deltax, Deltay);
+            //Qx[i][j] = -( E[2][i][j+1] - E[2][i][j] )/Deltay;
+            Qx[i][j] = -(Ez_i_jplus1 - Ez_Qx_ij)/Deltay;
+            
             if( i < E.shape()[1]-N_GC-1 ){
-                Qy[i][j] = -( E[2][i][j] - E[2][i+1][j] )/Deltax[i];
-                Qz[i][j] = ( E[0][i][j+1] - E[0][i][j] )/Deltay -( E[1][i+1][j] - E[1][i][j] )/Deltax[i];
+                //Qy[i][j] = -( E[2][i][j] - E[2][i+1][j] )/Deltax[i];
+                //Qz[i][j] = ( E[0][i][j+1] - E[0][i][j] )/Deltay -( E[1][i+1][j] - E[1][i][j] )/Deltax[i];
+
+                Qy[i][j] = -(Ez_Qy_ij - Ez_iplus1_j)/Deltax[i];
+                //Qz[i][j] = ;
 
             }
         }
