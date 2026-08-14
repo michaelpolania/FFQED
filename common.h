@@ -70,6 +70,7 @@ struct SimParams {
     std::string CrustEOS; //File name for crust EOS data table
     int RK_order = 0; //order of Runge-Kutta timestep method (2 or 3)
     bool varying_mesh = false; //true for varying cell-center spacing in "radial"- (x-)direction or false otherwise
+    bool QED_corrections = false; //true when QED corrections are included
     size_t Nx = 0, Ny = 0; //resolution in x-and y-directions
     double x_min = -1., x_max = -1., y_min = 1., y_max = -1.; //limits of simulation domain in reduced units
     double t_max = 0.; //maximum time in reduced units

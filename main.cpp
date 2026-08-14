@@ -285,19 +285,18 @@ int main(int argc, char **argv)
 
     //Compute initial magnetic field and create VectorField objects to hold electric field and updated magnetic field
     VectorField B(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of B across partial domain
+    
+    //Initializes the D field
+    VectorField D(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of D across partial domain
 
     //InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B); //Generate initial values of B components by cell-face averaging over initial functional form
 
     VectorField B_np1(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of B in reduced units at next time step
     VectorField D_np1(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of D in reduced units at next time step
     
-    VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of E times c in reduced units (E*c/(B_0*L_0/t_0))
+    //VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of E times c in reduced units (E*c/(B_0*L_0/t_0))
     VectorField J(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of J in reduced units (J*L_0/B_0)
     //VectorField V(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of velocity field in reduced units (vc*t_0/L_0)
-
-    //Initializes the D and H fields
-    VectorField D(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of D across partial domain
-    VectorField H(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of H
 
     //Initializes the charge density Rho
     ScalarField Rho(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
@@ -307,9 +306,6 @@ int main(int argc, char **argv)
     driver.y_center = simparams.v_y_center;
     driver.y_width  = simparams.v_y_width;
     driver.f        = simparams.v_f;
-    
-     
-    
     
     //InitializeV(x, y, N_GC, V);
     
@@ -321,13 +317,9 @@ int main(int argc, char **argv)
 
     LowerBoundary_D(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
     UpperBoundary_D(D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
-    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright); 
-    
-    InitializeH(x, y, N_GC, B, H);
-    InitializeE(x, y, N_GC, E, D); 
+    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);  
 
-    Compute_Rho(D, Rho, domain);
-    Compute_J(B, E, H, D, Rho, J, N_GC, domain);
+    //Compute_Rho(D, Rho, domain);
     
     //Create directory for H5 files holding simulation data.
     //Also copy SimSetup.in to this directory, so can see what simulation parameters (e.g., initial conditions) were used for any particular run
@@ -366,6 +358,7 @@ int main(int argc, char **argv)
     /*
             Create h5 file
     */
+    
     std::string RANK_NAME = std::to_string(world_rank);
     std::string file_path = FILE_NAME+"/"+FILE_NAME+"/"+FILE_NAME+"_"+RANK_NAME+FILE_EXT;
     // If a previous run left the file present or locked, try to remove it. If remove fails (locked), fall back to a unique filename.
@@ -924,11 +917,9 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         static VectorField B_1(boost::extents[3][B.shape()[1]][B.shape()[2]]); //Updated B after first step aka intermediate value
         static VectorField D_1(boost::extents[3][D.shape()[1]][D.shape()[2]]); //Updated D after first step aka intermediate value
 
-        //Compute_Rho(D, Rho, dm);
-        //Compute_J(B, E, H, D, Rho, J, N_GC, dm); //this is already computed outside RKStep
-        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //this is already computed outside RKStep
+        Compute_Rho(D, Rho, dm);
           
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, E, H, J, D, B, N_GC, Deltax, Deltay);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, D, B, simparams, dm, process);
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -948,16 +939,15 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
                 D_1[2][i][j] = D[2][i][j] + Deltat*Fz[i][j];
             }
         }
+       
         B_BoundaryConditions(B_1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
         LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver);
         UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver);
 
 
-        InitializeH(x, y, N_GC, B_1, H);
-        InitializeE(x, y, N_GC, E, D_1);
         Compute_Rho(D_1, Rho, dm);
-        Compute_J(B_1, E, H, D_1, Rho, J, N_GC, dm);
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, E, H, J, D, B, N_GC, Deltax, Deltay);
+
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, D_1, B_1, simparams, dm, process);
 
         //Computes final value in Huen's method for B and D
         for(size_t i=0; i<B.shape()[1]; i++){
@@ -976,10 +966,10 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
     LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver);
     UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver);
 
-    InitializeH(x, y, N_GC, B_np1, H);
-    InitializeE(x, y, N_GC, E, D_np1);
     Compute_Rho(D_np1, Rho, dm);
-    Compute_J(B_np1, E, H, D_1, Rho, J, N_GC, dm);
+
+    D = D_np1;
+    B = B_np1;
    
 
 //        std::fstream Dataout;
@@ -1027,7 +1017,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         }
         //Compute_E(B, B_1, E, J, vc, tC, N_GC, t, dm, bparams);
         //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
+        //Compute_RHS(Qx,Qy, Qz, Fx, Fy, Fz, E, H, J, D, B, N_GC, Deltax, Deltay);
         for(size_t i=0; i<B.shape()[1]; i++){
             for(size_t j=0; j<B.shape()[2]; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];

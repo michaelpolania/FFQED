@@ -89,6 +89,11 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
                 params.varying_mesh = true;
             else params.varying_mesh = false;
         }
+        if(labels[j] == "QED_corrections"){
+            if(values[j] == "true")
+                params.QED_corrections = true;
+            else params.QED_corrections = false;
+        }
         if(labels[j] == "Nx")
             params.Nx = stoul(values[j]);
         if(labels[j] == "Ny")

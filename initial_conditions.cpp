@@ -390,29 +390,18 @@ void InitializeE(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
     for (size_t i = N_GC; i < D.shape()[1]-N_GC; i++) {
         for (size_t j = N_GC; j < D.shape()[2]-N_GC; j++) {
 
-            //E[0][i][j] = D[0][i][j]; // Ex
-            //E[1][i][j] = D[1][i][j]; // Ey
-            //E[2][i][j] = D[2][i][j]; // Ez
-
             //Update from 06/29/26
             //Recall, E=D, however, E and D do not live at the same locations, so must interpolate E to cell edges
-            E[0][i][j] =  0.25*(D[0][i][j] + D[0][i+1][j] + D[0][i][j-1] + D[0][i+1][j-1]);
-            E[1][i][j] = 0.25*(D[1][i][j] + D[1][i-1][j] + D[1][i-1][j+1] + D[1][i][j+1]);
-            E[2][i][j] = 0.25*(D[2][i][j] + D[2][i-1][j] + D[2][i][j-1] + D[2][i-1][j-1]);
+            //E[0][i][j] =  0.25*(D[0][i][j] + D[0][i+1][j] + D[0][i][j-1] + D[0][i+1][j-1]);
+            //E[1][i][j] = 0.25*(D[1][i][j] + D[1][i-1][j] + D[1][i-1][j+1] + D[1][i][j+1]);
+            //E[2][i][j] = 0.25*(D[2][i][j] + D[2][i-1][j] + D[2][i][j-1] + D[2][i-1][j-1]);
 
-            
-            if (i == 100 && j==100){
-                //std::cout << "E[i][j] = " << E[1][i+1][j] << std::endl;
-                //std::cout << "A= " << 0.25*(D[1][i][j] + D[1][i-1][j] + D[1][i-1][j+1] + D[1][i][j+1]) << std::endl;
-            }
+            //Predominantly cell-centered formalism (E, H live at cell centers)
 
-
-
-            //std::cout << "D = "
-            //<< E[0][i+N_GC][j+N_GC] << " "
-            //<< E[1][i+N_GC][j+N_GC] << " "
-            //<< E[2][i+N_GC][j+N_GC] << std::endl;  
-
+            E[0][i][j] = 0.5 * (D[0][i][j] + D[0][i+1][j]);
+            E[1][i][j] = 0.5 * (D[1][i][j] + D[1][i][j+1]);
+            E[2][i][j] = D[2][i][j];
+        
         }
     }
 }
@@ -430,14 +419,16 @@ void InitializeH(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
     for (size_t i = N_GC; i < B.shape()[1]-N_GC; i++) {
         for (size_t j = N_GC; j < B.shape()[2]-N_GC; j++) {
 
-            //H[0][i][j] = B[0][i][j]; // Hx
-            //H[1][i][j] = B[1][i][j]; // Hy
-            //H[2][i][j] = B[2][i][j]; // Hz
-
             //Recall, H=B, however, H and B do not live at the same locations, so must interpolate H to cell edges
-            H[0][i][j] =  0.25*(B[0][i][j] + B[0][i+1][j] + B[0][i][j-1] + B[0][i+1][j-1]);
-            H[1][i][j] = 0.25*(B[1][i][j] + B[1][i-1][j] + B[1][i-1][j+1] + B[1][i][j+1]);
-            H[2][i][j] = 0.25*(B[2][i][j] + B[2][i-1][j] + B[2][i][j-1] + B[2][i-1][j-1]);
+            //H[0][i][j] =  0.25*(B[0][i][j] + B[0][i+1][j] + B[0][i][j-1] + B[0][i+1][j-1]);
+            //H[1][i][j] = 0.25*(B[1][i][j] + B[1][i-1][j] + B[1][i-1][j+1] + B[1][i][j+1]);
+            //H[2][i][j] = 0.25*(B[2][i][j] + B[2][i-1][j] + B[2][i][j-1] + B[2][i-1][j-1]);
+
+            //Predominantly cell-centered formalism (E, H live at cell centers)
+
+            H[0][i][j] = 0.5 * (B[0][i][j] + B[0][i+1][j]);
+            H[1][i][j] = 0.5 * (B[1][i][j] + B[1][i][j+1]);
+            H[2][i][j] = B[2][i][j];
 
         }
     }

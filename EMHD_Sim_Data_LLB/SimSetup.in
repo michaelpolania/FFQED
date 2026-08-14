@@ -10,6 +10,9 @@ RK_order: 2
 # true for varying cell-center spacing in "radial"- (x-)direction or false otherwise. Defaults to false if unspecified.
 varying_mesh: false
 
+# True when QED corrections are included (D = E (8pikappa(E^2-c^2B^2)) + E; kappa is nonzero)
+QED_corrections: false
+
 # Resolution in x-direction
 Nx: 200
 
