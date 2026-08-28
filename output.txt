@@ -1,4 +1,4 @@
-0
-0
-Solver done. Total run time is 0.007609 s
+1.43114e-08
+0.912286
+Solver done. Total run time is 0.001553 s
 Wrote simulation data to EMHD_Sim_Data_LLB.h5

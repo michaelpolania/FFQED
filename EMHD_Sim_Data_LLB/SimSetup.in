@@ -32,13 +32,13 @@ y_min: -5e4
 y_max: 5e4
 
 # Maximum time in years, originally 5e2
-t_max: 1e-6
+t_max: 1e2
 
 # Courant number
 k_C: 0.04
 
-# cutoff (energy) density in g/cm^3 (lowest density to include in simulation domain) #1.4e10
-rho_cutoff: 5e9
+# cutoff (energy) density in g/cm^3 (lowest density to include in simulation domain) #1.4e10 was 5e9
+rho_cutoff: 1.4e10
 
 # Temperature of crust in K (used to compute electrical conductivity)
 temperature: 3e8

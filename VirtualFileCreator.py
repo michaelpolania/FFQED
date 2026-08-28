@@ -123,9 +123,9 @@ for n in range(0, Nfiles):
     files.append(OutputFolder+'/'+OutputFolder+'/'+OutputFolder+'_{}.h5'.format(n))
     
 concatenateVecField(files,'B','w')
-concatenateVecField(files,'H','a')
+#concatenateVecField(files,'H','a')
 concatenateVecField(files,'D','a')
-concatenateVecField(files,'E','a')
+#concatenateVecField(files,'E','a')
 concatenateCoords(files,'x','a')
 concatenateCoordsDecomp(files,'y','a')
 add_t(files,'t','a')

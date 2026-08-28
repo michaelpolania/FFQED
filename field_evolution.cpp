@@ -575,6 +575,8 @@ double Compute_A_to_cell_center(VectorField & A, int component_index, int i_offs
     else if (component_index == 1) {
         return 0.5 * (A[1][i_offset][j_offset] + A[1][i_offset][j_offset + 1]);
     }
+
+    return 0.0;
 }
 
 
@@ -624,6 +626,8 @@ double slope_calc (VectorField & A, int component_index, int i_offset, int j_off
         return minmod(slope_central, slope_down, slope_up);
 
     }
+
+    return 0.0;
 
 }
 
@@ -686,7 +690,7 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
     //G_1{i,j+1/2} calculation (G_3)
 
     double Bx_i_jplus1_up = Compute_A_to_cell_center(B, 0, i, j+1) - 0.5 * Deltay * slope_calc(B, 0, i, j+1, 1, Deltax, Deltay);
-    double Bx_ij_down = Compute_A_to_cell_center(B, 0, i, j) + 0.5 * Deltax * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
+    double Bx_ij_down = Compute_A_to_cell_center(B, 0, i, j) + 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
     double G_3_up = E[2][i][j+1] - 0.5 * slope_calc(E, 2, i, j+1, 1, Deltax, Deltay) * Deltay; 
@@ -1266,6 +1270,32 @@ void Compute_EH_from_DB(VectorField & E, VectorField & H, VectorField & D, Vecto
 }
 
 /*
+    Computes the lambda damping term in Cerutti et al. 2015 eq(7) where our x-coordinate
+    is the r coordinate.
+
+    Inputs:
+        index i, Domain object
+    
+    Outputs:
+        lambda damping term, eq(7) in Cerutti et al. 2015
+
+*/
+
+double Compute_Damping_Term(int i, const Domain & dm){
+
+    //Computes max x-coordinate
+    double max_dm_x = *std::max_element(dm.x.begin(), dm.x.end());
+
+    //Numerical parameter that controls damping strength
+    double K_abs = 40.0;
+
+    double damping_term = (K_abs)/(dm.Deltat) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x)) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x)) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x));
+    
+    return damping_term;
+}
+
+
+/*
     This computes the RHS of the time-evolution equations for B and D. 
 
     Inputs:
@@ -1275,14 +1305,14 @@ void Compute_EH_from_DB(VectorField & E, VectorField & H, VectorField & D, Vecto
         Updated Qx, Qy, and Qz for B time-evolution equations
         Updated Fx, Fy, and Fz for D time-evolution equations
 */
-void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, ScalarField & Rho, VectorField & D, VectorField & B, const SimParams & params, const Domain & dm, const Process & ps)
+void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, ScalarField & Rho, VectorField & E, VectorField & H, VectorField & D, VectorField & B, const SimParams & params, const Domain & dm, const Process & ps)
 {
-    VectorField E(boost::extents[3][dm.Nx+2*dm.N_GC][ps.MyE-ps.MyS+2*dm.N_GC]);
-    VectorField H(boost::extents[3][dm.Nx+2*dm.N_GC][ps.MyE-ps.MyS+2*dm.N_GC]);
-    Compute_EH_from_DB(D, B, params, dm);
+    Compute_EH_from_DB(E, H, D, B, params, dm);
 
-    for(size_t i=dm.N_GC; i<E.shape()[1]-dm.N_GC; i++){
-        for(size_t j=dm.N_GC; j<E.shape()[2]-dm.N_GC; j++){
+    double max_dm_x = *std::max_element(dm.x.begin(), dm.x.end());
+
+    for(size_t i=dm.N_GC; i<D.shape()[1]-dm.N_GC-1; i++){
+        for(size_t j=dm.N_GC; j<D.shape()[2]-dm.N_GC-1; j++){
             
             //Change everything from E to D and H to B
             double Bx_avg_ij = Compute_A_to_cell_center(B, 0, i, j);
@@ -1433,6 +1463,20 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 
             double Jz_ij = (Rho[i][j] * E_cross_B_z_ij)/(B_squared_ij) + (curl_H_curl_E_ij * B[2][i][j])/(B_squared_ij);
 
+            if (dm.x[i] >= 0.9 * max_dm_x){
+            
+            Qx[i][j] = -(Compute_Damping_Term(i, dm) * D[0][i][j]) - curl_E_x_left_ij;
+            Qy[i][j] = -(Compute_Damping_Term(i, dm) * D[1][i][j]) - curl_E_y_bottom_ij;
+            Qz[i][j] = -(Compute_Damping_Term(i, dm) * D[2][i][j]) - curl_E_z_ij;
+
+            Fx[i][j] = -(Compute_Damping_Term(i, dm) * B[0][i][j]) + curl_H_x_left_ij - Jx_avg;
+            Fy[i][j] = -(Compute_Damping_Term(i, dm) * B[1][i][j]) + curl_H_y_bottom_ij - Jy_avg;
+            Fz[i][j] = -(Compute_Damping_Term(i, dm) * B[2][i][j]) + curl_H_z_ij - Jz_ij;
+
+            }
+
+            else{
+
             Qx[i][j] = -curl_E_x_left_ij;
             Qy[i][j] = -curl_E_y_bottom_ij;
             Qz[i][j] = -curl_E_z_ij;
@@ -1440,6 +1484,8 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             Fx[i][j] = curl_H_x_left_ij - Jx_avg;
             Fy[i][j] = curl_H_y_bottom_ij - Jy_avg;
             Fz[i][j] = curl_H_z_ij - Jz_ij;
+            }
+            
     }
 
     

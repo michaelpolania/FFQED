@@ -41,8 +41,7 @@ namespace fs = std::filesystem;
 
 const H5std_string FILE_EXT( ".h5" );
 
-void RK_Step(VectorField & B, VectorField & E, VectorField & J, VectorField & vc, VectorField & B_np1, TransCoeffs & tC, const Domain & domain, const Process & process, const BandBCParams & bparams, double t);
-
+void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t);
 int main(int argc, char **argv)
 {
     int world_rank, num_procs;
@@ -278,6 +277,7 @@ int main(int argc, char **argv)
     double DeltaL = 1./std::sqrt( 1./(min_Deltax*min_Deltax) + 1./(Deltay*Deltay) ); //spatial step in reduced units
     double max_eta_H = *std::max_element( tC.eta_H.data(), tC.eta_H.data() + tC.eta_H.num_elements() );
     double Deltat = simparams.k_C*DeltaL*DeltaL/max_eta_H; //CFL limit
+    std::cout << Deltat <<std::endl;
 
     //Define structs domain and process, containing data about the overall simulation domain and the current individual process, respectively
     struct Domain domain = {Nx, Ny, N_GC, Lx, Ly, Deltay, Deltax, x, y, Deltat, Ny_locs, starts};
@@ -319,7 +319,11 @@ int main(int argc, char **argv)
     UpperBoundary_D(D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);  
 
-    //Compute_Rho(D, Rho, domain);
+    double max_dm_x = *std::max_element(x.begin(), x.end());
+    std::cout << max_dm_x << std::endl;
+
+    VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]);
+    VectorField H(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]);
     
     //Create directory for H5 files holding simulation data.
     //Also copy SimSetup.in to this directory, so can see what simulation parameters (e.g., initial conditions) were used for any particular run
@@ -402,18 +406,18 @@ int main(int argc, char **argv)
     B_set->write( Phys_B.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
 
     //Write H to output H5 file and prepare to write data from additional time steps
-    H5::DataSpace *dataspace_H = new DataSpace( RANK, B_dims, B_maxdims );
+    //H5::DataSpace *dataspace_H = new DataSpace( RANK, B_dims, B_maxdims );
 
-    H5::DSetCreatPropList H_prop;
-    hsize_t H_chunk_dims[4] = {1,3,Nx,MyE-MyS};
-    H_prop.setChunk(RANK, H_chunk_dims);
+    //H5::DSetCreatPropList H_prop;
+    //hsize_t H_chunk_dims[4] = {1,3,Nx,MyE-MyS};
+    //H_prop.setChunk(RANK, H_chunk_dims);
 
-    H5::DataSet *H_set = new DataSet(file.createDataSet("H", H5::PredType::NATIVE_DOUBLE, *dataspace_H, H_prop));
+    //H5::DataSet *H_set = new DataSet(file.createDataSet("H", H5::PredType::NATIVE_DOUBLE, *dataspace_H, H_prop));
 
-    VectorField::array_view<3>::type H_view = H[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
-    VectorField Phys_H(boost::extents[3][Nx][MyE-MyS]); //Cell-face average values of H across partial domain. Excludes ghost cells
-    Phys_H = H_view; //copy view of H which removes ghost cells into smaller array which can be written into h5 file
-    H_set->write( Phys_H.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
+    //VectorField::array_view<3>::type H_view = H[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+    //VectorField Phys_H(boost::extents[3][Nx][MyE-MyS]); //Cell-face average values of H across partial domain. Excludes ghost cells
+    //Phys_H = H_view; //copy view of H which removes ghost cells into smaller array which can be written into h5 file
+    //H_set->write( Phys_H.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
 
     //Write D to output H5 file and prepare to write data from additional time steps
     H5::DataSpace *dataspace_D = new DataSpace( RANK, B_dims, B_maxdims );
@@ -430,18 +434,18 @@ int main(int argc, char **argv)
     D_set->write( Phys_D.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
 
     //Write E to output H5 file and prepare to write data from additional time steps
-    H5::DataSpace *dataspace_E = new DataSpace( RANK, B_dims, B_maxdims );
+    //H5::DataSpace *dataspace_E = new DataSpace( RANK, B_dims, B_maxdims );
 
-    H5::DSetCreatPropList E_prop;
-    hsize_t E_chunk_dims[4] = {1,3,Nx,MyE-MyS};
-    E_prop.setChunk(RANK, E_chunk_dims);
+    //H5::DSetCreatPropList E_prop;
+    //hsize_t E_chunk_dims[4] = {1,3,Nx,MyE-MyS};
+    //E_prop.setChunk(RANK, E_chunk_dims);
 
-    H5::DataSet *E_set = new DataSet(file.createDataSet("E", H5::PredType::NATIVE_DOUBLE, *dataspace_E, E_prop));
+    //H5::DataSet *E_set = new DataSet(file.createDataSet("E", H5::PredType::NATIVE_DOUBLE, *dataspace_E, E_prop));
 
-    VectorField::array_view<3>::type E_view = E[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
-    VectorField Phys_E(boost::extents[3][Nx][MyE-MyS]); //Cell-face average values of E across partial domain. Excludes ghost cells
-    Phys_E = E_view; //copy view of E which removes ghost cells into smaller array which can be written into h5 file
-    E_set->write( Phys_E.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
+    //VectorField::array_view<3>::type E_view = E[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+    //VectorField Phys_E(boost::extents[3][Nx][MyE-MyS]); //Cell-face average values of E across partial domain. Excludes ghost cells
+    //Phys_E = E_view; //copy view of E which removes ghost cells into smaller array which can be written into h5 file
+    //E_set->write( Phys_E.data(), PredType::NATIVE_DOUBLE ); //does not write ghost cells.
 
     // Spatial coordinates (cell centers) for output H5 file
     hsize_t x_dims[2] = {1,Nx};
@@ -529,7 +533,7 @@ int main(int argc, char **argv)
     //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright); //Exchange vc cells in a periodic manner in the y-direction into ghost cells
 //    Compute_E(B, B, E, J, vc, tC, N_GC, t, domain, bparams);
 //    E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-    EnergyConservation(B, E, J, tC.eta_O, N_GC, t, domain, bparams, U_BSum, JouleSum, PoyntingSum);
+    //EnergyConservation(B, E, J, tC.eta_O, N_GC, t, domain, bparams, U_BSum, JouleSum, PoyntingSum);
 
     MPI_Allgather(&U_BSum, 1, MPI_DOUBLE, U_BSumVec.data(), 1, MPI_DOUBLE, comm1D);
     MPI_Allgather(&JouleSum, 1, MPI_DOUBLE, JouleSumVec.data(), 1, MPI_DOUBLE, comm1D);
@@ -592,18 +596,19 @@ int main(int argc, char **argv)
 
         iter++;
 
-        //RK_Step(B, E, J, vc, B_np1, tC, domain, process, bparams, t);
+        RK_Step(H, B, E, J, D, B_np1, D_np1, Rho, domain, process, bparams, simparams, t);
 
         //Update time and magnetic field
         t = t + Deltat;
         B = B_np1;
+        D = D_np1;
 
         // Check energy conservation. First recompute current density
         //Compute_J(B, J, N_GC, domain);
-        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
+        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
         //Compute_vc(B, vc, J, tC, N_GC, t, domain, bparams, world_rank);
         //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        EnergyConservation(B, E, J, tC.eta_O, N_GC, t, domain, bparams, U_BSum, JouleSum, PoyntingSum);
+        //EnergyConservation(B, E, J, tC.eta_O, N_GC, t, domain, bparams, U_BSum, JouleSum, PoyntingSum);
 
 //        std::fstream Dataout;
 //        std::string timestr = std::to_string(t*t_0/yr);
@@ -673,22 +678,22 @@ int main(int argc, char **argv)
             //std::cerr << "[HDF5] Wrote B block to file (iter=" << iter << ")" << std::endl;
 
             // Add updated H values to H5 file
-            H_set->extend(B_size);
+            //H_set->extend(B_size);
 
-            H5::DataSpace *H_filespace = new H5::DataSpace(H_set->getSpace());
-            H_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
-            H5::DataSpace *H_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
+            //H5::DataSpace *H_filespace = new H5::DataSpace(H_set->getSpace());
+            //H_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
+            //H5::DataSpace *H_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
 
-            H_view = H[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
-            Phys_H = H_view; //copy view of H which removes ghost cells into smaller array which can be written into h5 file
-            H_set->write( Phys_H.data(), PredType::NATIVE_DOUBLE, *H_memspace, *H_filespace );
-            delete H_filespace;
-            delete H_memspace;
+            //H_view = H[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+            //Phys_H = H_view; //copy view of H which removes ghost cells into smaller array which can be written into h5 file
+            //H_set->write( Phys_H.data(), PredType::NATIVE_DOUBLE, *H_memspace, *H_filespace );
+            //delete H_filespace;
+            //delete H_memspace;
 
             // Add updated D values to H5 file
             D_set->extend(B_size);
 
-            H5::DataSpace *D_filespace = new H5::DataSpace(E_set->getSpace());
+            H5::DataSpace *D_filespace = new H5::DataSpace(D_set->getSpace());
             D_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
             H5::DataSpace *D_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
 
@@ -699,17 +704,17 @@ int main(int argc, char **argv)
             delete D_memspace;
 
             // Add updated E values to H5 file
-            E_set->extend(B_size);
+            //E_set->extend(B_size);
 
-            H5::DataSpace *E_filespace = new H5::DataSpace(E_set->getSpace());
-            E_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
-            H5::DataSpace *E_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
+            //H5::DataSpace *E_filespace = new H5::DataSpace(E_set->getSpace());
+            //E_filespace->selectHyperslab(H5S_SELECT_SET, B_dimsext, B_offset);
+            //H5::DataSpace *E_memspace = new H5::DataSpace( RANK, B_dimsext, NULL );
 
-            E_view = E[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
-            Phys_E = E_view; //copy view of E which removes ghost cells into smaller array which can be written into h5 file
-            E_set->write( Phys_E.data(), PredType::NATIVE_DOUBLE, *E_memspace, *E_filespace );
-            delete E_filespace;
-            delete E_memspace;
+            //E_view = E[ boost::indices[range()][range(N_GC,Nx+N_GC)][range(N_GC,MyE-MyS+N_GC)] ];
+            //Phys_E = E_view; //copy view of E which removes ghost cells into smaller array which can be written into h5 file
+            //E_set->write( Phys_E.data(), PredType::NATIVE_DOUBLE, *E_memspace, *E_filespace );
+            //delete E_filespace;
+            //delete E_memspace;
 
                 // Was this for debugging? This was not in original EMHD Cartesian code
                 // std::cerr << "[HDF5] Wrote vc block to file (iter=" << iter << ")" << std::endl;
@@ -834,23 +839,23 @@ int main(int argc, char **argv)
     }
 
     B_prop.close();
-    H_prop.close();
+    //H_prop.close();
     D_prop.close();
-    E_prop.close();
+    //E_prop.close();
     x_prop.close();
     y_prop.close();
     t_prop.close();
     delete dataspace_B;
-    delete dataspace_H;
+    //delete dataspace_H;
     delete dataspace_D;
-    delete dataspace_E;
+    //delete dataspace_E;
     delete dataspace_t;
     delete dataspace_x;
     delete dataspace_y;
     delete B_set;
-    delete H_set;
+    //delete H_set;
     delete D_set;
-    delete E_set;
+    //delete E_set;
     delete x_set;
     delete y_set;
     delete t_set;
@@ -881,7 +886,7 @@ int main(int argc, char **argv)
           //     t: time in reduced units
         //Output: B_np1: updated magnetic field
 
-void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J, VectorField & D, VectorField & vc, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t)
+void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t)
 {
     size_t Ny = dm.Ny;
     size_t N_GC = dm.N_GC;
@@ -919,7 +924,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
 
         Compute_Rho(D, Rho, dm);
           
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, D, B, simparams, dm, process);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, simparams, dm, process);
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -947,7 +952,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
 
         Compute_Rho(D_1, Rho, dm);
 
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, D_1, B_1, simparams, dm, process);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, simparams, dm, process);
 
         //Computes final value in Huen's method for B and D
         for(size_t i=0; i<B.shape()[1]; i++){
@@ -967,11 +972,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
     UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver);
 
     Compute_Rho(D_np1, Rho, dm);
-
-    D = D_np1;
-    B = B_np1;
    
-
 //        std::fstream Dataout;
 //        std::string timestr = std::to_string(t*t_0/yr);
 ////        if(iter%100 == 0){
@@ -1007,7 +1008,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
 //        Compute_J(B, J, N_GC, dm); //this is already computed outside RKStep
 //        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //this is already computed outside RKStep
         //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-        exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
+        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
         //B_torEvolve(Qz, B, J, vc, tC, N_GC, t, dm, bparams);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
         for(size_t i=0; i<B.shape()[1]; i++){

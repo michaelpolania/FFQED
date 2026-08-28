@@ -21,10 +21,11 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
 std::pair<double, double> Hz_Flux_Calculation_Fy(int i, int j, VectorField & H, VectorField & D, double Deltax, double Deltay);
 double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, std::vector<double> & Deltax, double Deltay);
 //std::pair<double, double> Ez_Flux_Calculation(int i, int j, VectorField & D, VectorField & B, std::vector<double> & Deltax, double Deltay);
-void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, ScalarField & Rho, VectorField & D, VectorField & B, const SimParams & params, const Domain & dm, const Process & ps);
+void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, ScalarField & Rho, VectorField & E, VectorField & H, VectorField & D, VectorField & B, const SimParams & params, const Domain & dm, const Process & ps);
 double Compute_A_to_cell_center(VectorField & A, int component_index, int i_offset, int j_offset);
 double Solve_lambda_Newton(double D_squared, double B_squared, double kappa, int max_iter, double tol);
 double Solve_Lambda_Cubic(double D_squared, double B_squared);
-void Compute_EH_from_DB(VectorField & D, VectorField & B, const SimParams & params,  const Domain & dm);
+void Compute_EH_from_DB(VectorField & E, VectorField & H, VectorField & D, VectorField & B, const SimParams & params,  const Domain & dm);
 double slope_calc (VectorField & A, int component_index, int i_offset, int j_offset, int slope_direction, double Deltax, double Deltay);
+double Compute_Damping_Term(int i, const Domain & dm);
 #endif
