@@ -42,8 +42,8 @@ constexpr double GaussConverter3 = 4.002719868e16; //conversion factor: 1 sqrt(M
 
 constexpr double B_0 = 1e13; //characteristic magnetic field (G)
 constexpr double n_e0 = 1e-4; //characteristic electron density (fm^{-3})
-constexpr double L_0 = 1e5; //characteristic length scale (cm)
-constexpr double t_0 = 4.*pi*unit_e*n_e0*1e39*L_0*L_0/(B_0*c); //characteristic timescale (s). Taken as the Hall time-scale with length scale 1 km and field 10^{13} G
+constexpr double L_0 = 1e6; //characteristic length scale (cm), radius of neutron star 10 km... originally 1e6
+constexpr double t_0 = (L_0)/(c); //characteristic timescale (s). Taken as the light crossing time.
 constexpr double T_0 = 1e8; //characteristic temperature (K)
 constexpr double s_0 = 1e18; //characteristic entropy density (erg/K/cm^3)
 constexpr double E_0 = B_0*L_0/(c*t_0); //characteristic electric field (statV/cm)
@@ -128,16 +128,16 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
 
         // ---- Velocity driver parameters ----
         if(labels[j] == "v_max")
-            params.v_max = stod(values[j]);
+            params.v_max = stod(values[j])/c;
         if(labels[j] == "v_y_center")
             //params.v_y_center = stod(values[j])/L_0;
-            params.v_y_center = stod(values[j]);
+            params.v_y_center = stod(values[j])/L_0;
         if(labels[j] == "v_y_width")
             //params.v_y_width = stod(values[j])/L_0;
-            params.v_y_width = stod(values[j]);
+            params.v_y_width = stod(values[j])/L_0;
         if(labels[j] == "v_f")
             //params.v_f = stod(values[j])*t_0;
-            params.v_f = stod(values[j]);
+            params.v_f = stod(values[j]) * t_0;
         // ---- B field initial conditions ----
         if(labels[j] == "B_pol_init")
             Bparams.B_pol_init = stod(values[j])/B_0;

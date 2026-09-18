@@ -18,7 +18,8 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
 
 
 // D field
-void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver);
+//void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver);
+void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, const Domain & dm);
 void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver);
 
 // E field

@@ -3,30 +3,19 @@
   "configurations": [
     {
       "name": "Debug main (single rank)",
-      "type": "cppdbg",
+      "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/main",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "MIMode": "lldb",
-      "preLaunchTask": "make",
-      "stopAtEntry": false,
-      "externalConsole": false
+      "preLaunchTask": "make"
     },
     {
-      "name": "Attach to rank 0",
-      "type": "cppdbg",
-      "request": "attach",
-      "program": "${workspaceFolder}/main",
-      "MIMode": "lldb",
-      "processId": "${command:pickProcess}"
-    },
-    {
-      "name": "Attach to rank 0 (CodeLLDB)",
+      "name": "Attach to MPI rank",
       "type": "lldb",
       "request": "attach",
       "program": "${workspaceFolder}/main",
-      "pid": "${command:pickMyProcess}"
+      "pid": "${command:pickProcess}"
     }
   ]
 }

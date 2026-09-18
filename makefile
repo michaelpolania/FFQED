@@ -4,7 +4,8 @@ CFLAGS=-O3 -std=c++17
 #CFLAGS=-O2 -O3
 
 # Use CXXFLAGS for C++ code (-std=c++17 belongs here, not in CFLAGS)
-CXXFLAGS = -O3 -std=c++17
+CXXFLAGS = -O3 -std=c++17 -march=native
+
 #CXXFLAGS = -g -O0 -std=c++17
 
 ifdef MPI_DEBUG
@@ -51,6 +52,7 @@ CXXFLAGS += $(LDHDIR)
 
 # Optional defines (kept from your original)
 LDDEFINES=-DOLD_HEADER_FILENAME -DHDF_NO_NAMESPACE -DNO_STATIC_CAST
+HDF5_PREFIX = /opt/homebrew/opt/hdf5-mpi
 
 # Quick check for HDF5 C++ header. If it's missing, stop with a helpful message.
 H5_HEADER=$(HDF5_PREFIX)/include/H5Cpp.h

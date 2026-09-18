@@ -14,7 +14,7 @@ varying_mesh: false
 QED_corrections: false
 
 # Resolution in x-direction
-Nx: 200
+Nx: 1000
 
 # Resolution in y-direction
 Ny: 200
@@ -22,20 +22,20 @@ Ny: 200
 # Lower limit of simulation domain in x-direction in cm
 x_min: 0
 
-# Upper limit of simulation domain in x-direction in cm #9.1e4
-x_max: 9.1e4
+# Upper limit of simulation domain in x-direction in cm, 100 r* = 10^8 cm
+x_max: 1e8
 
 # Lower limit of simulation domain in y-direction in cm
-y_min: -5e4
+y_min: -5e6
 
 # Upper limit of simulation domain in y-direction in cm
-y_max: 5e4
+y_max: 5e6
 
-# Maximum time in years, originally 5e2
-t_max: 1e2
+# Maximum time in years, originally 5e2 1.057e-11
+t_max: 1e-11
 
 # Courant number
-k_C: 0.04
+k_C: 0.50
 
 # cutoff (energy) density in g/cm^3 (lowest density to include in simulation domain) #1.4e10 was 5e9
 rho_cutoff: 1.4e10
@@ -44,7 +44,7 @@ rho_cutoff: 1.4e10
 temperature: 3e8
 
 # Maximum number of snapshots to save to H5 file 500
-saves_number: 1
+saves_number: 200
 
 # Cadence (number of timesteps) to print energy conservation information to terminal, 1
 ECons_cadence: 1
@@ -162,8 +162,8 @@ xwidth_tor: 1e3
 y0_tor: 0
 ywidth_tor: 1e5
 
-# Velocity driver parameters
-v_max: 1e-4
+# Velocity driver parameters in units of cm, cm/s and Hz
+v_max: 1e-3
 v_y_center: 0
-v_y_width: 1e4
-v_f: 1.0
+v_y_width: 1e7
+v_f: 30

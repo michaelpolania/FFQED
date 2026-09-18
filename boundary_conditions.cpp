@@ -44,37 +44,37 @@ double Initialvz(double y, double t, void *driver)
         Output: D with updated boundary values
 */
 
-void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver)
+void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, const Domain & dm)
 {
+     //Loops all the way up to last physical cell in the y-direction
+     for(size_t i=0; i<N_GC; i++){
+        for(size_t j=N_GC; j<D.shape()[2]-N_GC; j++){
 
-    //Loops all the way up to last physical cell in the y-direction
-    for(size_t j = N_GC; j < D.shape()[2] - N_GC; j++){
-        for(size_t i = 0; i < N_GC; i++){
-
-            double y_j = y[j];
-            double y_j_avg = 0.5 * (y[j] + y[j-1]);
-            double y_j_minus_1 = y[j-1];
-            double DBC_x = 0.5 * Initialvz(y_j, t, &driver) * (0.5*(B[1][N_GC][j] + B[1][N_GC][j+1]) + 0.5*(B[1][N_GC-1][j] + B[1][N_GC-1][j+1]));
+            double y_j = y[j] - 0.5 * dm.Deltay;
+            double y_j_minus_1 = y[j-1] - 0.5 * dm.Deltay;
+            
+            // D = - v X B = - v_z X B_x, which is just a y_component for D
+            double DBC_x = 0.0;
             double DBC_y = -0.5 * (0.5 * Initialvz(y_j, t, &driver) * (B[0][N_GC][j] + B[0][N_GC + 1][j]) + 0.5 * Initialvz(y_j_minus_1, t, &driver) * (B[0][N_GC][j-1] + B[0][N_GC + 1][j-1]));
             double DBC_z = 0.0;
 
-            //D_x already lives on the boundary
-            D[0][N_GC][j] = DBC_x;
+            double B_x = Initialvz(y_j, 0.1, &driver);
 
-            //std::cout << "DBC_y = " << DBC_y << std::endl; 
-            D[0][N_GC-1-i][j] = 2.*DBC_x - D[0][N_GC+1+i][j];
+
+            D[0][N_GC-1-i][j] = 2.*DBC_x  - D[0][N_GC+1+i][j];
             D[1][N_GC-1-i][j] = 2.*DBC_y - D[1][N_GC+i][j];
             D[2][N_GC-1-i][j] = 2.*DBC_z - D[2][N_GC+i][j];
-            
+
+    
+
         }
     }
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);    
     return;
-        }   
+}
 
-
-
-
+    
+    
 /*
         Sets upper boundary condition on Displacement field (enforces value is zero at boundary)
         Inputs: D: magnetic field as a vector field
@@ -109,6 +109,7 @@ void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm
     }
 
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
+    return;
 }
 
 

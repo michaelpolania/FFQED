@@ -70,10 +70,10 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
             if(i < x.size()-1){
                 gsl_integration_qag(&Fy, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
                 B[1][i+N_GC][j+N_GC] = result1/Deltax[i];
-                //gsl_integration_qag(&Fz1, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
-                //gsl_integration_qag(&Fz2, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result2, &error);
-                //B[2][i+N_GC][j+N_GC] = result1*result2/(Deltax[i]*Deltay);
-                B[2][i+N_GC][j+N_GC] = 5.;
+                gsl_integration_qag(&Fz1, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
+                gsl_integration_qag(&Fz2, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result2, &error);
+                B[2][i+N_GC][j+N_GC] = result1*result2/(Deltax[i]*Deltay);
+                
             }
             
             //If at the last one, define By and Bz to be the values computed at the previous cell until BCs are defined
@@ -106,12 +106,12 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
 */
 double InitialBx(double y, void * params)
 {
-    //struct BConfig_params *p = (struct BConfig_params *) params;
-    //double B_pol_max = p -> B_pol_max;
-    //double theta_B = p -> theta_B;
+    struct BConfig_params *p = (struct BConfig_params *) params;
+    double B_pol_max = p -> B_pol_max;
+    double theta_B = p -> theta_B;
 
-    //return B_pol_max*sin(theta_B);
-    return 0.;
+    return B_pol_max*sin(theta_B);
+    //return 0.;
 }
 
 /*
@@ -127,7 +127,7 @@ double InitialBy(double x, void * params)
     //double theta_B = p -> theta_B;
 
     //return B_pol_max*cos(theta_B);
-    return 3.*x;
+    return 0.0;
 }
 
 /*
@@ -144,7 +144,7 @@ double InitialBz1(double x, void * params)
     //double x_width = p -> x_width;
 
     //return B_tor_max*exp(-pow(x-x_center,2.)/(2.*x_width*x_width));
-    return 5;
+    return 0;
 }
 
 /*
@@ -161,7 +161,7 @@ double InitialBz2(double y, void * params)
     //double y_width = p -> y_width;
 
     //return B_tor_max * exp(-pow(y-y_center,2.)/(2.*y_width*y_width));
-    return 0;
+    return 0.0;
 
 }
 
@@ -232,8 +232,8 @@ double InitialDz(double x, void *params) {
 
 void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, VectorField &D, const Domain & dm, std::vector<double> &Deltax, double Deltay)
 {
-    double E1 = 1.0;
-    double E2 = 1.0;
+    double E1 = 0.0;
+    double E2 = 0.0;
     EConfig_params config = {E1, E2};
 
     // Define Dz GSL function (direct 1D integration over x)
