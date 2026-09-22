@@ -116,8 +116,8 @@ int main(int argc, char **argv)
     double Deltay = Ly/double(Ny); //size of each cell in y-direction in reduced units
     double t = 0.; //current simulation time. Initialize to 0.
     const double t_max = simparams.t_max; //maximum simulation time
-    std::cout <<t_max<<std::endl; 
-    std::cout <<t_0<<std::endl; 
+    //std::cout <<t_max<<std::endl; 
+    //std::cout <<t_0<<std::endl; 
 
     /*
         Define finite volume cell centres and spacing between them.
@@ -292,9 +292,9 @@ int main(int argc, char **argv)
     double DeltaL = 1./std::sqrt( 1./(min_Deltax*min_Deltax) + 1./(Deltay*Deltay) ); //spatial step in reduced units
     //double Deltat = simparams.k_C*DeltaL*L_0/(c * t_0); //CFL limit in reduced units
     double Deltat = simparams.k_C * DeltaL;
-    std::cout << Deltat <<std::endl;
-    std::cout << Lx<< std::endl;
-    std::cout << Ly << std::endl;
+    //std::cout << Deltat <<std::endl;
+    //std::cout << Lx<< std::endl;
+    //std::cout << Ly << std::endl;
     //Define structs domain and process, containing data about the overall simulation domain and the current individual process, respectively
     struct Domain domain = {Nx, Ny, N_GC, Lx, Ly, Deltay, Deltax, x, y, Deltat, Ny_locs, starts};
     struct Process process = {simparams.RK_order, world_rank, nbrleft, nbrright, MyS, MyE, comm1D};
@@ -325,36 +325,15 @@ int main(int argc, char **argv)
     
     //InitializeV(x, y, N_GC, V);
     
-    //InitializeD(x, y, N_GC, D, domain, Deltax, Deltay);
-    std::fill(D.data(), D.data() + D.num_elements(), 0.0);
+    InitializeD(x, y, N_GC, D, domain, Deltax, Deltay);
     InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
 
     B_BoundaryConditions(B, bparams, Ny, N_GC, 0.0, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
     exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright); 
 
+    //initialize E and H
+
     LowerBoundary_D(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, domain);
-        // ---- VERIFICATION PRINTS FOR D ARRAY (IN MAIN) ----
-    //std::cout << "\n=============================================" << std::endl;
-    //std::cout << "     MAIN: D FIELD INITIALIZATION REPORT     " << std::endl;
-    //std::cout << "=============================================" << std::endl;
-
-    // Pick an arbitrary x-index in the middle of your grid for testing
-    // (If Nx isn't defined here, replace with an integer like 50 or Nx_total/2)
-    size_t test_i = N_GC -1; 
-
-    // 1. Print Lower Ghost Cells (Should be non-zero due to boundary setup)
-    //std::cout << "[LOWER GHOST CELL (j=0)]" << std::endl;
-    //std::cout << "  Dx: " << D[0][test_i][0] 
-     //         << " | Dy: " << D[1][test_i][0] 
-       //       << " | Dz: " << D[2][test_i][0] << std::endl;
-
-    // 2. Print Physical Lower Boundary Cell (Should be non-zero)
-    //std::cout << "\n[PHYSICAL LOWER BOUNDARY (j=N_GC)]" << std::endl;
-    //std::cout << "  Dx: " << D[0][test_i][N_GC] 
-      //        << " | Dy: " << D[1][test_i][N_GC] 
-        //      << " | Dz: " << D[2][test_i][N_GC] << std::endl;
-
-  
     UpperBoundary_D(D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);  
 
@@ -975,16 +954,10 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         Compute_Rho(D, Rho, dm);
         
         //std::cout << "Makes it here" << std::endl;
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, simparams, dm, process);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, simparams, dm, process, t); 
         // Check Compute_RHS's output directly
-bool rhs_nan = false;
-for (size_t i = 0; i < Fx.shape()[0] && !rhs_nan; i++)
-    for (size_t j = 0; j < Fx.shape()[1] && !rhs_nan; j++)
-        if (std::isnan(Fx[i][j]) || std::isnan(Fy[i][j]) || std::isnan(Fz[i][j]) ||
-            std::isnan(Qx[i][j]) || std::isnan(Qy[i][j]) || std::isnan(Qz[i][j]))
-            rhs_nan = true;
-if (rhs_nan && process.world_rank == 0)
-    std::cerr << "NaN in Compute_RHS output (Q/F), t=" << t << std::endl;
+
+
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -993,40 +966,34 @@ if (rhs_nan && process.world_rank == 0)
         exchng2Scalar(Fz, N_GC, comm1D, nbrleft, nbrright);
         
         //Computes intermediate value in Huen's methods for B and D
-        for(size_t i=N_GC; i<B.shape()[1]-N_GC; i++){
-            for(size_t j=N_GC; j<B.shape()[2]-N_GC; j++){
+        for(size_t i=0; i<B.shape()[1]; i++){
+            for(size_t j=0; j<B.shape()[2]; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
                 B_1[1][i][j] = B[1][i][j] + Deltat*Qy[i][j];
                 B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
-
+                
                 D_1[0][i][j] = D[0][i][j] + Deltat*Fx[i][j];
                 D_1[1][i][j] = D[1][i][j] + Deltat*Fy[i][j];
                 D_1[2][i][j] = D[2][i][j] + Deltat*Fz[i][j];
             }
         }
-       if (has_nan(D_1, dm) && process.world_rank == 0)
-    std::cerr << "NaN in D_1 BEFORE Force_Free_Constraint, t=" << t << std::endl;
+
+
         Force_Free_Constraint(B_1, D_1, dm, process);
-        if (has_nan(D_1, dm) && process.world_rank == 0)
-    std::cerr << "NaN in D_1 after Force_Free_Constraint (predictor), t=" << t << std::endl;
+    
+        exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
+        exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
+
         
         B_BoundaryConditions(B_1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
         LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver, dm);
-        if (has_nan(D_1, dm) && process.world_rank == 0)
-    std::cerr << "NaN in D_1 after Force_Free_Constraint (predictor), t=" << t << std::endl;
-        // 🔍 NATIVE C++ BOUNDARY INJECTION AUDIT
-if (process.world_rank == 0) {
-   //std::cout << "  Ghost Cell [1][0][5]: " << D_1[1][0][5] << std::endl;
-//std::cout << "  Ghost Cell [1][1][5]: " << D_1[1][1][5] << std::endl;
-//std::cout << "  First Physical [1][N_GC][5]: " << D_1[1][dm.N_GC][5] << std::endl;
-}
 
         UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver);
 
 
         Compute_Rho(D_1, Rho, dm);
 
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D_1, B_1, simparams, dm, process);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D_1, B_1, simparams, dm, process, t);
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -1035,8 +1002,8 @@ if (process.world_rank == 0) {
         exchng2Scalar(Fz, N_GC, comm1D, nbrleft, nbrright);
 
         //Computes final value in Huen's method for B and D
-        for(size_t i=N_GC; i<B.shape()[1]-N_GC; i++){
-            for(size_t j=N_GC; j<B.shape()[2]-N_GC; j++){
+        for(size_t i=0; i<B.shape()[1]; i++){
+            for(size_t j=0; j<B.shape()[2]; j++){
                 B_np1[0][i][j] = 0.5*( B[0][i][j] + B_1[0][i][j] + Deltat*Qx[i][j] );
                 B_np1[1][i][j] = 0.5*( B[1][i][j] + B_1[1][i][j] + Deltat*Qy[i][j] );
                 B_np1[2][i][j] = 0.5*( B[2][i][j] + B_1[2][i][j] + Deltat*Qz[i][j] );
@@ -1049,6 +1016,9 @@ if (process.world_rank == 0) {
 
     
     Force_Free_Constraint(B_np1, D_np1, dm, process);
+    exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
+    exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
+    
     B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
     LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver, dm);
     UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver);

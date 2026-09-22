@@ -144,7 +144,7 @@ double InitialBz1(double x, void * params)
     //double x_width = p -> x_width;
 
     //return B_tor_max*exp(-pow(x-x_center,2.)/(2.*x_width*x_width));
-    return 0;
+    return 0.0;
 }
 
 /*

@@ -599,7 +599,7 @@ double Compute_A_to_cell_center(VectorField & A, int component_index, int i_offs
 
 double slope_calc (VectorField & A, int component_index, int i_offset, int j_offset, int slope_direction, double Deltax, double Deltay){
     
-    Compute_A_to_cell_center(A, component_index, i_offset, j_offset);
+    //Compute_A_to_cell_center(A, component_index, i_offset, j_offset);
 
     if (slope_direction == 0) {
 
@@ -645,7 +645,11 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
     //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
     //G_1{i,j-1/2} calculation (G_1)
 
-    double Bx_ij_up = Compute_A_to_cell_center(B, 0, i, j) - 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
+    //double Bx_ij_up = Compute_A_to_cell_center(B, 0, i, j) - 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
+    double a_to_cc_Bx_ij = Compute_A_to_cell_center(B, 0, i, j);
+double slope_Bx_ij_y = slope_calc(B, 0, i, j, 1, Deltax, Deltay);
+double Bx_ij_up = a_to_cc_Bx_ij - 0.5 * Deltay * slope_Bx_ij_y;
+    
     double Bx_i_jminus1_down = Compute_A_to_cell_center(B, 0, i, j-1) + 0.5 * Deltay * slope_calc(B, 0, i, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
@@ -729,8 +733,9 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
     //Toth 2000 Eq(19)
     double Ez_ij = 0.25 * (-F_1 - F_2 + G_1 + G_2);
     double Ez_i_jplus1 = 0.25 * (-F_3 - F_4 + G_3 + G_4);
-
+    
     return {Ez_ij, Ez_i_jplus1};
+
 }
 
 /*
@@ -835,7 +840,7 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
 
 /*
     Computes reconstructed fluxes using slope limiters to update B_z.
-    Inputs: i, j, D, B, Deltax, and Deltay
+    Inputs: i, j, E, B, Deltax, and Deltay
 
     Outputs: Update for Bz by computing F_3/F_4 (Ey), G_3/G_4 (Ex) fluxes computed using Yu 2011 Eq(9).
 */
@@ -883,6 +888,47 @@ double Qz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
 
     //Eq(9) in Yu paper
     double Qz = -(F_4 - F_3)/(Deltax) - (G_4 - G_3)/(Deltay);
+
+   if (i == 2 && j == 5) {
+    int N_GC = 2;
+    std::cout << "\n============================================\n";
+    std::cout << "=== Qz_reconstruction at i=2,j=5 ===\n";
+    std::cout << "============================================\n";
+
+    std::cout << "\n--- Reconstruction quantities ---\n";
+    std::cout << "G_3 = " << G_3 << "  G_4 = " << G_4 << std::endl;
+    std::cout << "F_3 = " << F_3 << "  F_4 = " << F_4 << std::endl;
+
+    std::cout << "\n--- Bz reconstruction values ---\n";
+    std::cout << "Bz_ij_up_x          = " << Bz_ij_up_x << std::endl;
+    std::cout << "Bz_iminus1_j_down_x = " << Bz_iminus1_j_down_x << std::endl;
+
+    std::cout << "\n--- Bz neighboring cells ---\n";
+
+    std::cout << "Bz(i-1,j) = "
+              << B[2][i-1+N_GC][j+N_GC] << std::endl;
+
+    std::cout << "Bz(i,j)   = "
+              << B[2][i+N_GC][j+N_GC] << std::endl;
+
+    std::cout << "Bz(i+1,j) = "
+              << B[2][i+1+N_GC][j+N_GC] << std::endl;
+
+    std::cout << "\n--- Raw array indices ---\n";
+
+    std::cout << "Bz[" << i-1+N_GC << "][" << j+N_GC << "] = "
+              << B[2][i-1+N_GC][j+N_GC] << std::endl;
+
+    std::cout << "Bz[" << i+N_GC << "][" << j+N_GC << "] = "
+              << B[2][i+N_GC][j+N_GC] << std::endl;
+
+    std::cout << "Bz[" << i+1+N_GC << "][" << j+N_GC << "] = "
+              << B[2][i+1+N_GC][j+N_GC] << std::endl;
+
+    std::cout << "\nQz = " << Qz << std::endl;
+
+    std::cout << "============================================\n";
+}
 
     return Qz;
 
@@ -985,6 +1031,20 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
     //Toth 2000 Eq(19)
     double Hz_ij = 0.25 * (-F_1 - F_2 + G_1 + G_2);
     double Hz_i_jplus1 = 0.25 * (-F_3 - F_4 + G_3 + G_4);
+    /*
+    if (i == 2 && j == 5){
+    std::cout << "=== Hz_Flux_Calculation_Fx breakdown at i=2,j=5 ===" << std::endl;
+    std::cout << "  D[0][i][j]   = " << D[0][i][j]   << std::endl;
+    std::cout << "  D[0][i-1][j] = " << D[0][i-1][j] << std::endl;
+    std::cout << "  H[2][i][j]   = " << H[2][i][j]   << std::endl;
+    std::cout << "  H[2][i-1][j] = " << H[2][i-1][j] << std::endl;
+    std::cout << "  Dx_ij_up = " << Dx_ij_up << std::endl;
+    std::cout << "  Dx_iminus1_j_up = " << Dx_iminus1_j_up << std::endl;
+    std::cout << "  G_1 = " << G_1 << "  G_2 = " << G_2 << std::endl;
+    std::cout << "  F_1 = " << F_1 << "  F_2 = " << F_2 << std::endl;
+    std::cout << "  Hz_ij = " << Hz_ij << "  Hz_i_jplus1 = " << Hz_i_jplus1 << std::endl;
+}
+    */
 
     return {Hz_ij, Hz_i_jplus1};
 }
@@ -1428,7 +1488,7 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
         Updated Qx, Qy, and Qz for B time-evolution equations
         Updated Fx, Fy, and Fz for D time-evolution equations
 */
-void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, ScalarField & Rho, VectorField & E, VectorField & H, VectorField & D, VectorField & B, const SimParams & params, const Domain & dm, const Process & ps)
+void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarField & Fx, ScalarField & Fy, ScalarField & Fz, ScalarField & Rho, VectorField & E, VectorField & H, VectorField & D, VectorField & B, const SimParams & params, const Domain & dm, const Process & ps, double t)
 {
     
      if (ps.world_rank == 0) {
@@ -1437,19 +1497,17 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
         //std::cout << "CP1 - Initial primitive B[0][N_GC][N_GC] value: " << B[0][dm.N_GC][dm.N_GC] << std::endl;
     }
     if (ps.world_rank == 0) {
-    std::cout << "B ghost i=0,j=5: " << B[0][0][5] << " " << B[1][0][5] << " " << B[2][0][5] << std::endl;
-    std::cout << "B ghost i=1,j=5: " << B[0][1][5] << " " << B[1][1][5] << " " << B[2][1][5] << std::endl;
-    std::cout << "D ghost i=0,j=5: " << D[0][0][5] << " " << D[1][0][5] << " " << D[2][0][5] << std::endl;
-    std::cout << "D ghost i=1,j=5: " << D[0][1][5] << " " << D[1][1][5] << " " << D[2][1][5] << std::endl;
+    //std::cout << "B ghost i=0,j=5: " << B[0][0][5] << " " << B[1][0][5] << " " << B[2][0][5] << std::endl;
+    //std::cout << "B ghost i=1,j=5: " << B[0][1][5] << " " << B[1][1][5] << " " << B[2][1][5] << std::endl;
+    //std::cout << "D ghost i=0,j=5: " << D[0][0][5] << " " << D[1][0][5] << " " << D[2][0][5] << std::endl;
+    //std::cout << "D ghost i=1,j=5: " << D[0][1][5] << " " << D[1][1][5] << " " << D[2][1][5] << std::endl;
 
     // NEW: check first two physical cells (i=N_GC, i=N_GC+1), not ghost cells
-    std::cout << "D physical i=N_GC,j=5:   " << D[0][dm.N_GC][5]   << " " << D[1][dm.N_GC][5]   << " " << D[2][dm.N_GC][5]   << std::endl;
-    std::cout << "D physical i=N_GC+1,j=5: " << D[0][dm.N_GC+1][5] << " " << D[1][dm.N_GC+1][5] << " " << D[2][dm.N_GC+1][5] << std::endl;
+    //std::cout << "D physical i=N_GC,j=5:   " << D[0][dm.N_GC][5]   << " " << D[1][dm.N_GC][5]   << " " << D[2][dm.N_GC][5]   << std::endl;
+    //std::cout << "D physical i=N_GC+1,j=5: " << D[0][dm.N_GC+1][5] << " " << D[1][dm.N_GC+1][5] << " " << D[2][dm.N_GC+1][5] << std::endl;
 }
     Compute_EH_from_DB(E, H, D, B, params, dm);
     //std::cout << "Makes it here 3." << std::endl;
-
-    static double min_Bsq = 1e300;
 
     
 
@@ -1538,7 +1596,6 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             double B_squared_ij = B[2][i][j] * B[2][i][j] + Bx_avg_ij*Bx_avg_ij + By_avg_ij*By_avg_ij;
             double B_squared_iplus1_j = B[2][i+1][j]*B[2][i+1][j] + Bx_avg_iplus1_j*Bx_avg_iplus1_j + By_avg_iplus1_j*By_avg_iplus1_j;
             double B_squared_i_jplus1 = B[2][i][j+1]*B[2][i][j+1] + Bx_avg_i_jplus1*Bx_avg_i_jplus1 + By_avg_i_jplus1*By_avg_i_jplus1;
-            min_Bsq = std::min({min_Bsq, B_squared_ij, B_squared_iplus1_j, B_squared_i_jplus1});
 
 
             //(curl(H) dot B - curl(E) dot D)_ij calculation
@@ -1556,6 +1613,7 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 
             double curl_H_z_ij = Fz_reconstruction(i, j, H, D, dm.Deltax[i], dm.Deltay);
             double curl_E_z_ij = Qz_reconstruction(i, j, E, B, dm.Deltax[i], dm.Deltay);
+
 
             double curl_H_curl_E_ij = 0.5 * (curl_H_x_left_ij * Bx_avg_ij + curl_H_x_right_ij * Bx_avg_iplus1_j) + 0.5 * (curl_H_y_bottom_ij * By_avg_ij + curl_H_y_top_ij * By_avg_i_jplus1) + curl_H_z_ij * B[2][i][j] - 0.5 * (curl_E_x_left_ij * Dx_avg_ij + curl_E_x_right_ij * Dx_avg_iplus1_j) - 0.5 * (curl_E_y_bottom_ij * Dy_avg_ij + curl_E_y_top_ij * Dy_avg_i_jplus1) - curl_E_z_ij * D[2][i][j];
 
@@ -1615,7 +1673,6 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 
             double Jz_ij = (Rho[i][j] * E_cross_B_z_ij)/(B_squared_ij) + (curl_H_curl_E_ij * B[2][i][j])/(B_squared_ij);
             
-            
             if (dm.x[i] >= 0.9 * max_dm_x){
             
             Qx[i][j] = -(Compute_Damping_Term(i, dm) * B[0][i][j]) - curl_E_x_left_ij;
@@ -1637,17 +1694,6 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             Fx[i][j] = curl_H_x_left_ij - Jx_avg;
             Fy[i][j] = curl_H_y_bottom_ij - Jy_avg;
             Fz[i][j] = curl_H_z_ij - Jz_ij;
-            }
-            
-            if (std::isnan(Qx[i][j]) || std::isnan(Fx[i][j]) || std::isnan(Qy[i][j]) || std::isnan(Fy[i][j]) || std::isnan(Qz[i][j]) || std::isnan(Fz[i][j]) ) {
-    std::cout << "NaN at i=" << i << " j=" << j
-               << "  Qx = " << Qx[i][j]
-               << "  Qy = " << Qy[i][j]
-               <<"  Qz = " << Qz[i][j]
-                << "  Fx = " << Fx[i][j]
-               << "  Fy = " << Fy[i][j]
-               << "  Fz = " << Fz[i][j]
-               << std::endl;
             }
               
             //Qx[i][j] = -curl_E_x_left_ij;
