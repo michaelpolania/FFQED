@@ -24,7 +24,7 @@ import os.path
 
 import h5py
 
-OutputFolder = 'EMHD_Sim_Data_LLB'
+OutputFolder = 'EMHD_Sim_Data_ShortTime'
 
 ################### Combining parallel-written H5 files into single virtual H5 file ########################
 
@@ -116,18 +116,37 @@ def add_EC(file_names_to_concatenate,keys,openkey):
 
 # If virtual H5 file already exists, do not re-create it. Will need to delete it if new data is generated.
 # if os.path.isfile(OutputFolder+'/'+OutputFolder+'.h5') == False:
+def VirtualFileCreate(OutputFolder):
+    OutputFolderAbs = os.path.abspath(OutputFolder)
+    OutputFolder = OutputFolder.rsplit('/',1)[-1]
+    files = []
+    Nfiles = len(glob.glob(OutputFolderAbs+'/'+OutputFolder+'/'+'*.h5'))
+    for n in range(0, Nfiles):
+        files.append(OutputFolderAbs+'/'+OutputFolder+'/'+OutputFolder+'_{}.h5'.format(n))
 
-files = []
-Nfiles = len(glob.glob(OutputFolder+'/'+OutputFolder+'/'+'*.h5'))
-for n in range(0, Nfiles):
-    files.append(OutputFolder+'/'+OutputFolder+'/'+OutputFolder+'_{}.h5'.format(n))
+    # Generate virtual data set. Only use openkey "w" on first set (deletes previous data set); subsequently use "a"
+    concatenateVecField(files,'B','w')
+    #concatenateVecField(files,'H','a')
+    concatenateVecField(files,'D','a')
+    #concatenateVecField(files,'E','a')
+    concatenateCoords(files,'x','a')
+    concatenateCoordsDecomp(files,'y','a')
+    add_t(files,'t','a')
+    add_attrs(files[0],'a')
+    add_EC(files,['U_B','JH','PF','DeltaEInt'],'a')
     
-concatenateVecField(files,'B','w')
-#concatenateVecField(files,'H','a')
-concatenateVecField(files,'D','a')
-#concatenateVecField(files,'E','a')
-concatenateCoords(files,'x','a')
-concatenateCoordsDecomp(files,'y','a')
-add_t(files,'t','a')
-add_attrs(files[0],'a')
-add_EC(files,['U_B','JH','PF','DeltaEInt'],'a')
+
+# files = []
+# Nfiles = len(glob.glob(OutputFolder+'/'+OutputFolder+'/'+'*.h5'))
+# for n in range(0, Nfiles):
+#     files.append(OutputFolder+'/'+OutputFolder+'/'+OutputFolder+'_{}.h5'.format(n))
+    
+# concatenateVecField(files,'B','w')
+# #concatenateVecField(files,'H','a')
+# concatenateVecField(files,'D','a')
+# #concatenateVecField(files,'E','a')
+# concatenateCoords(files,'x','a')
+# concatenateCoordsDecomp(files,'y','a')
+# add_t(files,'t','a')
+# add_attrs(files[0],'a')
+# add_EC(files,['U_B','JH','PF','DeltaEInt'],'a')

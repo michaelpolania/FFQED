@@ -30,6 +30,7 @@ import glob
 import os.path
 
 import h5py
+import VirtualFileCreator
 
 c = 29979245800 #speed of light in cm/s
 t_year = 3600*24*365 #1 year in seconds
@@ -41,6 +42,7 @@ Rstar = 12*L_km #assumed stellar radius in cm
 t_cr = Rstar/c #light crossing time in s
 
 OutputFolder = 'EMHD_Sim_Data_LLB'
+VirtualFileCreator.VirtualFileCreate(OutputFolder) #create virtual h5 file for all parallel
 
 Nfrac = 50 #use every Nth time step in video was 5
 
