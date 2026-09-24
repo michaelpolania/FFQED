@@ -645,11 +645,7 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
     //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
     //G_1{i,j-1/2} calculation (G_1)
 
-    //double Bx_ij_up = Compute_A_to_cell_center(B, 0, i, j) - 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
-    double a_to_cc_Bx_ij = Compute_A_to_cell_center(B, 0, i, j);
-double slope_Bx_ij_y = slope_calc(B, 0, i, j, 1, Deltax, Deltay);
-double Bx_ij_up = a_to_cc_Bx_ij - 0.5 * Deltay * slope_Bx_ij_y;
-    
+    double Bx_ij_up = Compute_A_to_cell_center(B, 0, i, j) - 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
     double Bx_i_jminus1_down = Compute_A_to_cell_center(B, 0, i, j-1) + 0.5 * Deltay * slope_calc(B, 0, i, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
@@ -819,7 +815,7 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
     double F_3_up = E[2][i+1][j-1] - 0.5 * slope_calc(E, 2, i+1, j-1, 0, Deltax, Deltay) * Deltax; 
     double F_3_down = E[2][i][j-1] + 0.5 * slope_calc(E, 2, i, j-1, 0, Deltax, Deltay)  * Deltax;
 
-    double F_3 = 0.5 * (F_3_up + F_3_down) - 0.5 * (By_iplus1_jminus1_up - By_i_jminus1_down);
+    double F_3 = 0.5 * (-F_3_up - F_3_down) - 0.5 * (By_iplus1_jminus1_up - By_i_jminus1_down);
 
     //F_1{i+1/2,j} calculation (F_4)
 
@@ -829,7 +825,7 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
     double F_4_up = E[2][i+1][j] - 0.5 * slope_calc(E, 2, i+1, j, 0, Deltax, Deltay) * Deltax;
     double F_4_down = E[2][i][j] + 0.5 * slope_calc(E, 2, i, j, 0, Deltax, Deltay)  * Deltax; 
 
-    double F_4 = 0.5 * (F_4_up + F_4_down) - 0.5 * (By_iplus1_j_up - By_ij_down);
+    double F_4 = 0.5 * (-F_4_up - F_4_down) - 0.5 * (By_iplus1_j_up - By_ij_down);
 
     double Ez_ij = 0.25 * (-F_1 - F_2 + G_1 + G_2);
     double Ez_iplus1_j = 0.25 * (-F_3 - F_4 + G_3 + G_4);
@@ -887,48 +883,16 @@ double Qz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
     double F_4 = 0.5 * (F_4_up + F_4_down) - 0.5 * (Bz_iplus1_j_up_x - Bz_ij_down_x);
 
     //Eq(9) in Yu paper
-    double Qz = -(F_4 - F_3)/(Deltax) - (G_4 - G_3)/(Deltay);
+    //double Qz = - (F_4 - F_3)/(Deltax) + (-G_4 + G_3)/(Deltay);
 
-   if (i == 2 && j == 5) {
-    int N_GC = 2;
-    std::cout << "\n============================================\n";
-    std::cout << "=== Qz_reconstruction at i=2,j=5 ===\n";
-    std::cout << "============================================\n";
+    //double Qz = - (F_4 - F_3)/(Deltax) + (G_4 - G_3)/(Deltay);
 
-    std::cout << "\n--- Reconstruction quantities ---\n";
-    std::cout << "G_3 = " << G_3 << "  G_4 = " << G_4 << std::endl;
-    std::cout << "F_3 = " << F_3 << "  F_4 = " << F_4 << std::endl;
+    double Qz_x = -(F_4 - F_3) / Deltax;
+    double Qz_y =  -(G_4 - G_3) / Deltay;
 
-    std::cout << "\n--- Bz reconstruction values ---\n";
-    std::cout << "Bz_ij_up_x          = " << Bz_ij_up_x << std::endl;
-    std::cout << "Bz_iminus1_j_down_x = " << Bz_iminus1_j_down_x << std::endl;
+    double Qz = Qz_x + Qz_y;
 
-    std::cout << "\n--- Bz neighboring cells ---\n";
-
-    std::cout << "Bz(i-1,j) = "
-              << B[2][i-1+N_GC][j+N_GC] << std::endl;
-
-    std::cout << "Bz(i,j)   = "
-              << B[2][i+N_GC][j+N_GC] << std::endl;
-
-    std::cout << "Bz(i+1,j) = "
-              << B[2][i+1+N_GC][j+N_GC] << std::endl;
-
-    std::cout << "\n--- Raw array indices ---\n";
-
-    std::cout << "Bz[" << i-1+N_GC << "][" << j+N_GC << "] = "
-              << B[2][i-1+N_GC][j+N_GC] << std::endl;
-
-    std::cout << "Bz[" << i+N_GC << "][" << j+N_GC << "] = "
-              << B[2][i+N_GC][j+N_GC] << std::endl;
-
-    std::cout << "Bz[" << i+1+N_GC << "][" << j+N_GC << "] = "
-              << B[2][i+1+N_GC][j+N_GC] << std::endl;
-
-    std::cout << "\nQz = " << Qz << std::endl;
-
-    std::cout << "============================================\n";
-}
+    std::cout << "Qz = " << Qz << std::endl;
 
     return Qz;
 
@@ -1166,7 +1130,7 @@ double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
     double Bz_ij_up_y = B[2][i][j] - 0.5 * Deltay * slope_calc(B, 2, i, j, 1, Deltax, Deltay); 
     double Bz_i_jminus1_down_y = B[2][i][j-1] + 0.5 * Deltay * slope_calc(B, 2, i, j-1, 1, Deltax, Deltay);
 
-    double G_3 = 0.5 * (-G_3_up - G_3_down) - 0.5 * (Bz_ij_up_y - Bz_i_jminus1_down_y);
+    double G_3 = 0.5 * (G_3_up + G_3_down) - 0.5 * (Bz_ij_up_y - Bz_i_jminus1_down_y);
 
     //G_3{i,j+1/2} calculation G_4
 
@@ -1176,7 +1140,7 @@ double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
     double Bz_i_jplus1_up_y = B[2][i][j+1] - 0.5 * Deltay * slope_calc(B, 2, i, j+1, 1, Deltax, Deltay);
     double Bz_ij_down_y = B[2][i][j] + 0.5 * Deltay * slope_calc(B, 2, i, j, 1, Deltax, Deltay);
 
-    double G_4 = 0.5 * (-G_4_up - G_4_down) - 0.5 * (Bz_i_jplus1_up_y - Bz_ij_down_y);
+    double G_4 = 0.5 * (G_4_up + G_4_down) - 0.5 * (Bz_i_jplus1_up_y - Bz_ij_down_y);
 
     //F_3{i-1/2,j} calculation (F_3)
 
@@ -1186,7 +1150,7 @@ double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
     double Bz_ij_up_x = B[2][i][j] - 0.5 * Deltax * slope_calc(B, 2, i, j, 0, Deltax, Deltay);
     double Bz_iminus1_j_down_x = B[2][i-1][j] + 0.5 * Deltax * slope_calc(B, 2, i-1, j, 0, Deltax, Deltay);
 
-    double F_3 = 0.5 * (F_3_up + F_3_down) - 0.5 * (Bz_ij_up_x - Bz_iminus1_j_down_x);
+    double F_3 = 0.5 * (-F_3_up - F_3_down) - 0.5 * (Bz_ij_up_x - Bz_iminus1_j_down_x);
     
     //F_3{i+1/2,j} calculation (F_4)
 
@@ -1197,10 +1161,10 @@ double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
     double Bz_ij_down_x = B[2][i][j] + 0.5 * Deltax * slope_calc(B, 2, i, j, 0, Deltax, Deltay); 
 
     //Changed from F_4_up+F_4_down
-    double F_4 = 0.5 * (F_4_up + F_4_down) - 0.5 * (Bz_iplus1_j_up_x - Bz_ij_down_x);
+    double F_4 = 0.5 * (-F_4_up - F_4_down) - 0.5 * (Bz_iplus1_j_up_x - Bz_ij_down_x);
 
     //Eq(9) in Yu paper
-    double Fz = - (F_4 - F_3)/(Deltax) - (G_4 - G_3)/(Deltay);
+    double Fz =  (F_4 - F_3)/(Deltax) - (G_4 - G_3)/(Deltay); //check signs
 
     return Fz;
 }
@@ -1676,8 +1640,8 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             if (dm.x[i] >= 0.9 * max_dm_x){
             
             Qx[i][j] = -(Compute_Damping_Term(i, dm) * B[0][i][j]) - curl_E_x_left_ij;
-            Qy[i][j] = -(Compute_Damping_Term(i, dm) * B[1][i][j]) - curl_E_y_bottom_ij;
-            Qz[i][j] = -(Compute_Damping_Term(i, dm) * B[2][i][j]) - curl_E_z_ij;
+            Qy[i][j] = -(Compute_Damping_Term(i, dm) * B[1][i][j]) + curl_E_y_bottom_ij;
+            Qz[i][j] = -(Compute_Damping_Term(i, dm) * B[2][i][j]) + curl_E_z_ij;
 
             Fx[i][j] = -(Compute_Damping_Term(i, dm) * D[0][i][j]) + curl_H_x_left_ij - Jx_avg;
             Fy[i][j] = -(Compute_Damping_Term(i, dm) * D[1][i][j]) + curl_H_y_bottom_ij - Jy_avg;
@@ -1688,8 +1652,8 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             else{
 
             Qx[i][j] = -curl_E_x_left_ij;
-            Qy[i][j] = -curl_E_y_bottom_ij;
-            Qz[i][j] = -curl_E_z_ij;
+            Qy[i][j] = curl_E_y_bottom_ij;
+            Qz[i][j] = curl_E_z_ij;
 
             Fx[i][j] = curl_H_x_left_ij - Jx_avg;
             Fy[i][j] = curl_H_y_bottom_ij - Jy_avg;

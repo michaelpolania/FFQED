@@ -59,6 +59,7 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
     for(size_t i=0; i<x.size(); i++){
         for(size_t j=0; j<y.size(); j++){
     
+            //i=j=N_Gc
 
 
             //Computes integration for Bx, integrates over y

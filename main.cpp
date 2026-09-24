@@ -55,7 +55,6 @@ bool has_nan(const VectorField& F, const Domain& dm) {
 void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t);
 int main(int argc, char **argv)
 {
-    #include <cmath>
 
     int world_rank, num_procs;
     /* Initialize the infrastructure necessary for communication */

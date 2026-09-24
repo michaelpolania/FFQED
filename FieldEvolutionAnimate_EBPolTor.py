@@ -392,6 +392,25 @@ anim.save('FieldEvoEBPolTor'+OutputFolder+'.mp4',writer=writerVideo)#,savefig_kw
 #writerVideo = animation.PillowWriter(fps=30)
 #anim.save('FieldEvoEBPolTor'+OutputFolder+'.gif',writer=writerVideo)
 
+i_debug = 2
+j_debug = 198
+
+Dy_time = D[:, 1, i_debug, j_debug]
+
+plt.figure(figsize=(8,5), dpi=200)
+
+plt.plot(t, Dy_time)
+
+plt.xlabel(r'$t/t_{\mathrm{cr}}$', fontsize=16)
+plt.ylabel(r'$D_y$', fontsize=16)
+plt.title(
+    rf'$D_y$ at $(i,j)=({i_debug},{j_debug})$',
+    fontsize=16
+)
+
+plt.grid(True)
+plt.tight_layout()
+
 plt.show()
 plt.close()
 
