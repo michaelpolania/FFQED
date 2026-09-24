@@ -67,7 +67,6 @@ struct Domain {
 
 struct SimParams {
 
-    std::string CrustEOS; //File name for crust EOS data table
     int RK_order = 0; //order of Runge-Kutta timestep method (2 or 3)
     bool varying_mesh = false; //true for varying cell-center spacing in "radial"- (x-)direction or false otherwise
     bool QED_corrections = false; //true when QED corrections are included
@@ -75,8 +74,6 @@ struct SimParams {
     double x_min = -1., x_max = -1., y_min = 1., y_max = -1.; //limits of simulation domain in reduced units
     double t_max = 0.; //maximum time in reduced units
     double k_C = 0.; //Courant number
-    double rho_cutoff = 0.; //cutoff (energy) density in g/cm^3
-    double temperature = 0.; //temperature of crust in K
     size_t saves_number = 0; //maximum number of snapshots to save to H5 file
     size_t ECons_cadence = 0; //cadence to print energy conservation information to terminal
     std::string OutputFile; //File name for output H5 file (excluding file extension)
@@ -118,38 +115,6 @@ struct BandBCParams {
     // ---- H field boundary conditions ----
     std::string H_perp_lower, H_parallel_lower, H_perp_upper, H_parallel_upper;
 
-    // ---- Toroidal velocity shear ----
-    std::string tor_vel_shear = "none"; //which toroidal lattice velocity shear to include. Defaults to "none"
-    bool pol_vel = false; //whether to include a poloidal velocity field. Defaults to false
-    double t_w = 0., t_m = 0., tor_n = 0.; //time width, centered time, steepness of toroidal velocity shear
-    double vc_mag = 0., xwidth_tor = 0., ywidth_tor = 0., x0_tor = 0.5, y0_tor = 0.; //properties of toroidal velocity shear
-
-};
-
-/*
-    TransCoeffs class
-
-    Members are ScalarFields containing transport coefficients
-
-    Class objects are instantiated with x and y Nx and Ny sizes of the ScalarFields
-*/
-class TransCoeffs {
-    public:
-        size_t Nx, Ny;
-
-    ScalarField eta_H;
-    ScalarField deta_Hdx;
-    ScalarField eta_O;
-    RadialScalarField shear_mod;
-    RadialScalarField rho;
-
-    TransCoeffs(size_t Nx, size_t Ny) :
-        eta_H(boost::extents[Nx][Ny]),
-        deta_Hdx(boost::extents[Nx][Ny]),
-        eta_O(boost::extents[Nx][Ny]),
-        shear_mod(boost::extents[Nx]),
-        rho(boost::extents[Nx])
-    {}
 };
 
 template <typename T>

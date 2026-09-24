@@ -23,18 +23,11 @@ constexpr double G = 6.67430e-8; //gravitational constant in dyn*cm^2/g^2
 constexpr double k_B = 8.61733034e-11; //Boltzmann constant in MeV/K
 constexpr double k_Bcgs = 1.380649e-16; //Boltzmann constant in cgs units (erg/K)
 constexpr double M_e = 0.51099895000; //electron mass in MeV
-constexpr double M_m = 105.66; //muon mass in MeV (105.658375 MeV)
 constexpr double M_N = 938.92; //mean nucleon mass in MeV (938.91875434 MeV)
-constexpr double M_n = 939.56542052; //neutron mass in MeV
 constexpr double MeVtoErg = 1/6.2415e5; //conversion factor from MeV to erg
 constexpr double M_solar = 1.98847e33; //solar mass in g
 constexpr double alpha_e = 0.0072973525693; //electromagnetic fine structure constant (dimensionless)
 constexpr double eB_crit = M_e*M_e; //critical magnetic field times elementary charge in MeV^2
-constexpr double ComptonWL = hbarc/M_e; //reduced electron Compton wavelength hbar*c/(m_e*c^2) in fm
-constexpr double amu = 931.49410242; //1 amu in MeV
-constexpr double microU = 931.49410242*1.0e-6; //1 micro-u (10^{-6} atomic mass units) in MeV
-constexpr double gammaEM = 0.577215664901532; //Euler-Mascheroni constant
-constexpr double sigma_SB = 5.670374e-5; //Stefan-Boltzmann constant in erg/cm^2/s/K^4
 
 constexpr double GaussConverter = 6.241509074e-8/hbarc; //conversion factor between 1 statCoulomb*Gauss to __ MeV/fm/hbarc = ___ fm^-2
 constexpr double GaussConverter2 = 6.241509074e-8*hbarc; //conversion factor between 1 statCoulomb*Gauss to __ MeV/fm*hbarc = ___ MeV^2
@@ -80,8 +73,6 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
     //Set values of parameters in params object
     for(size_t j=0; j<labels.size(); j++){
 
-        if(labels[j] == "CrustEOS")
-            params.CrustEOS  = values[j];
         if(labels[j] == "RK_order")
             params.RK_order = stoi(values[j]);
         if(labels[j] == "varying_mesh"){
@@ -110,10 +101,6 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
             params.t_max = stod(values[j])*yr/t_0;
         if(labels[j] == "k_C")
             params.k_C = stod(values[j]);
-        if(labels[j] == "rho_cutoff")
-            params.rho_cutoff = stod(values[j]);
-        if(labels[j] == "temperature")
-            params.temperature = stod(values[j]);
         if(labels[j] == "saves_number")
             params.saves_number = stoul(values[j]);
         if(labels[j] == "ECons_cadence")
@@ -235,32 +222,10 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
             Bparams.H_perp_upper = values[j];
         if(labels[j] == "H_parallel_upper")
             Bparams.H_parallel_upper = values[j];
-
-        // ---- Toroidal velocity shear ----
-        if(labels[j] == "tor_vel_shear")
-            Bparams.tor_vel_shear = values[j];
-        if(labels[j] == "t_w")
-            Bparams.t_w = stod(values[j])*yr/t_0;
-        if(labels[j] == "t_m")
-            Bparams.t_m = stod(values[j])*yr/t_0;
-        if(labels[j] == "tor_n")
-            Bparams.tor_n = stod(values[j]);
-        if(labels[j] == "vc_mag")
-            Bparams.vc_mag = stod(values[j]);
-        if(labels[j] == "xwidth_tor")
-            Bparams.xwidth_tor = stod(values[j])/L_0;
-        if(labels[j] == "ywidth_tor")
-            Bparams.ywidth_tor = stod(values[j])/L_0;
-        if(labels[j] == "x0_tor")
-            Bparams.x0_tor = stod(values[j])/L_0;
-        if(labels[j] == "y0_tor")
-            Bparams.y0_tor = stod(values[j])/L_0;
     }
 
     // ---- Validation block ----
     if( world_rank == 0 ){
-        if( params.CrustEOS.empty() )
-            std::cout << "Missing crust EOS data table name" << std::endl;
         if( params.RK_order == 0 )
             std::cout << "Missing Runge-Kutta timestepping order" << std::endl;
         if( params.Nx == 0 )
@@ -272,10 +237,6 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
         // CHANGED: t_max = 0 is valid for initial condition verification runs, so no warning needed
         if( params.k_C < 1e-20 )
             std::cout << "Missing Courant number" << std::endl;
-        if( params.rho_cutoff < 1e-20 )
-            std::cout << "Missing cutoff density" << std::endl;
-        if( params.temperature < 1e-20 )
-            std::cout << "Missing temperature" << std::endl;
         if( params.saves_number == 0 )
             std::cout << "Missing maximum number of snapshots to save" << std::endl;
         if( params.ECons_cadence == 0 )
@@ -355,21 +316,6 @@ void load_params(SimParams & params, BandBCParams & Bparams, int world_rank)
             std::cout << "Missing upper BC on parallel H field; assuming vacuum" << std::endl;
         }
 
-        // ---- Toroidal velocity shear validation ----
-        if( Bparams.tor_vel_shear != "none" ){
-            if( Bparams.t_w < 1e-20 )
-                std::cout << "Missing time width of toroidal velocity shear" << std::endl;
-            if( Bparams.t_m < 1e-20 )
-                std::cout << "Missing centered time of toroidal velocity shear" << std::endl;
-            if( Bparams.tor_n < 1e-20 )
-                std::cout << "Missing steepness of toroidal velocity shear" << std::endl;
-            if( Bparams.vc_mag < 1e-30 )
-                std::cout << "Missing magnitude of toroidal velocity shear" << std::endl;
-            if( Bparams.xwidth_tor < 1e-20 )
-                std::cout << "Missing x-width of toroidal velocity shear" << std::endl;
-            if( Bparams.ywidth_tor < 1e-20 )
-                std::cout << "Missing y-width of toroidal velocity shear" << std::endl;
-        }
     }
 
     return;

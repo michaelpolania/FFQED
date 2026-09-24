@@ -13,7 +13,6 @@ double compute_A3_y(int i, int j, const Fields & f);
 double compute_A3_z(int i, int j, const Fields & f);
 void Compute_Rho(VectorField & D, ScalarField & Rho, const Domain & dm);
 void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & D, ScalarField & Rho, VectorField & J, size_t N_GC, const Domain & dm);
-void Compute_E(VectorField & B, VectorField & Bn, VectorField & E, VectorField & vc, VectorField & J, TransCoeffs & tC, size_t N_GC, double t, const Domain & dm, const BandBCParams & bparams);
 std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, VectorField & B, std::vector<double> & Deltax, double Deltay);
 std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, VectorField & B, double Deltax, double Deltay);
 double Qz_reconstruction(int i, int j, VectorField & E, VectorField & B, std::vector<double> & Deltax, double Deltay);

@@ -26,17 +26,10 @@
 namespace fs = std::filesystem;
 
 #include "boost/multi_array.hpp"
-
-#include <gsl/gsl_math.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_integration.h>
-#include <gsl/gsl_spline.h>
-
 #include "common.h"
 #include "initial_conditions.h"
 #include "boundary_conditions.h"
 #include "conservation_checks.h"
-#include "microphysics.h"
 #include "field_evolution.h"
 
 const H5std_string FILE_EXT( ".h5" );
@@ -191,101 +184,6 @@ int main(int argc, char **argv)
         Define physical parameters and simulation domain
     */
 
-    const double rho_cutoff = simparams.rho_cutoff; //cutoff (energy) density in g/cm^3 (lowest density to include in simulation domain).
-    DataInterpolation EOS_Interps; //object of DataInterpolation class to contain EOS interpolating functions as function of "radial" coordinate x
-    load_EOS(simparams.CrustEOS,rho_cutoff,EOS_Interps);
-
-    ScalarField T(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
-
-    //Declare object containing ScalarFields/RadialScalarFields for transport coefficients
-    //This object are referenced throughout the code.
-    TransCoeffs tC(Nx+2*N_GC, MyE-MyS+2*N_GC);
-
-    ScalarField n_e(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
-    ScalarField dn_eInvdx(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
-    ScalarField sigma(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
-
-    RadialScalarField A(boost::extents[Nx+2*N_GC]); //mass number
-    RadialScalarField Z(boost::extents[Nx+2*N_GC]); //atomic number
-    RadialScalarField n_i(boost::extents[Nx+2*N_GC]); //ion number density in fm^-3
-    RadialScalarField n_b(boost::extents[Nx+2*N_GC]); //baryon number density in fm^-3
-    RadialScalarField rho(boost::extents[Nx+2*N_GC]); //mass-energy density in g/cm^3
-
-    for(size_t i=0; i<Nx+2*N_GC; i++){
-        if( i < N_GC ){
-            A[i] = gsl_spline_eval(EOS_Interps.A_spline, EOS_Interps.R_cc, EOS_Interps.A_acc);
-            Z[i] = gsl_spline_eval(EOS_Interps.Z_spline, EOS_Interps.R_cc, EOS_Interps.Z_acc);
-            n_b[i] = gsl_spline_eval(EOS_Interps.n_b_spline, EOS_Interps.R_cc, EOS_Interps.n_b_acc);
-            n_i[i] = gsl_spline_eval(EOS_Interps.n_i_spline, EOS_Interps.R_cc, EOS_Interps.n_i_acc);
-            rho[i] = gsl_spline_eval(EOS_Interps.rho_spline, EOS_Interps.R_cc, EOS_Interps.rho_acc);
-        }
-        else if( i > Nx+N_GC-2 ){
-            A[i] = gsl_spline_eval(EOS_Interps.A_spline, EOS_Interps.R_rhocutoff, EOS_Interps.A_acc);
-            Z[i] = gsl_spline_eval(EOS_Interps.Z_spline, EOS_Interps.R_rhocutoff, EOS_Interps.Z_acc);
-            n_b[i] = gsl_spline_eval(EOS_Interps.n_b_spline, EOS_Interps.R_rhocutoff, EOS_Interps.n_b_acc);
-            n_i[i] = gsl_spline_eval(EOS_Interps.n_i_spline, EOS_Interps.R_rhocutoff, EOS_Interps.n_i_acc);
-            rho[i] = gsl_spline_eval(EOS_Interps.rho_spline, EOS_Interps.R_rhocutoff, EOS_Interps.rho_acc);
-        }
-        else{
-            A[i] = gsl_spline_eval(EOS_Interps.A_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]-x_min), EOS_Interps.A_acc);
-            Z[i] = gsl_spline_eval(EOS_Interps.Z_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]-x_min), EOS_Interps.Z_acc);
-            n_b[i] = gsl_spline_eval(EOS_Interps.n_b_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]-x_min), EOS_Interps.n_b_acc);
-            n_i[i] = gsl_spline_eval(EOS_Interps.n_i_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]-x_min), EOS_Interps.n_i_acc);
-            rho[i] = gsl_spline_eval(EOS_Interps.rho_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]-x_min), EOS_Interps.rho_acc);
-        }
-        for(size_t j=0; j<MyE-MyS+2*N_GC; j++){
-            T[i][j] = simparams.temperature*k_B; //temperature in MeV
-            if( i < N_GC ){
-//                n_e[i][j] = gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc, EOS_Interps.n_e_acc);
-//                dn_eInvdx[i][j] = 0.;
-                n_e[i][j] = gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*x[N_GC-1-i], EOS_Interps.n_e_acc);
-                dn_eInvdx[i][j] = 1./n_e[i][j];
-//                dn_eInvdx[i][j] = ( 1./gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[0]+0.5*Deltax[2]-x_min), EOS_Interps.n_e_acc)
-//                                    - 1./gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[0]-0.5*Deltax[2]-x_min), EOS_Interps.n_e_acc))/Deltax[i];
-            }
-            else if( i > Nx+2*N_GC-3 ){
-                n_e[i][j] = gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*x[2*Nx+2*N_GC-i-3], EOS_Interps.n_e_acc);
-                dn_eInvdx[i][j] = 1./n_e[i][j];
-//                n_e[i][j] = gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_rhocutoff, EOS_Interps.n_e_acc);
-//                dn_eInvdx[i][j] = 0.;
-//                dn_eInvdx[i][j] = ( 1./gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[Nx-1]+0.5*Deltax[Nx+N_GC]-x_min), EOS_Interps.n_e_acc)
-//                                    - 1./gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[Nx-1]-0.5*Deltax[Nx+N_GC]-x_min), EOS_Interps.n_e_acc))/Deltax[i];
-            }
-            else{
-                n_e[i][j] = gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*x[i-N_GC], EOS_Interps.n_e_acc);
-                dn_eInvdx[i][j] = 1./n_e[i][j];
-//                n_e[i][j] = gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]-x_min), EOS_Interps.n_e_acc);
-//                n_e[i][j] = gsl_spline_eval_integ(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]-0.5*Deltax[i]-x_min),
-//                                                    EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]+0.5*Deltax[i]-x_min), EOS_Interps.n_e_acc)/Deltax[i]; //electron number density in fm^{-3}
-//                dn_eInvdx[i][j] = ( 1./gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]+0.5*Deltax[i]-x_min), EOS_Interps.n_e_acc)
-//                                    - 1./gsl_spline_eval(EOS_Interps.n_e_spline, EOS_Interps.R_cc + (EOS_Interps.R_rhocutoff-EOS_Interps.R_cc)/Lx*(x[i-N_GC]-0.5*Deltax[i]-x_min), EOS_Interps.n_e_acc))/Deltax[i];
-            }
-        }
-    }
-
-    sigmaCalc(T, n_e, A, Z, n_i, n_b, "Electrical", sigma);
-
-//    double sigma_const = 1e25, ne_const = n_e0;//1e-3;
-    double Gamma; //Coulomb coupling parameter
-    for(size_t i=0; i<Nx+2*N_GC; i++){
-        for(size_t j=N_GC; j<MyE-MyS+N_GC; j++){
-//            tC.eta_O[i][j] = c*c*t_0/(4.*pi*sigma_const*L_0*L_0); //Ohmic diffusivity in reduced units
-//            tC.eta_H[i][j] = c*B_0*t_0/(4.*pi*unit_e*ne_const*1e39*L_0*L_0); //Hall diffusivity in reduced units. 1e39 factor converts n_e from fm^-3 to cm^-3
-//            tC.deta_Hdx[i][j] = 0; //x-derivative of Hall diffusivity in reduced units. 1e39 factor converts n_e from fm^-3 to cm^-3
-            tC.eta_O[i][j] = c*c*t_0/(4.*pi*sigma[i][j]*L_0*L_0); //Ohmic diffusivity in reduced units
-            tC.eta_H[i][j] = c*B_0*t_0/(4.*pi*unit_e*n_e[i][j]*1e39*L_0*L_0); //Hall diffusivity in reduced units. 1e39 factor converts n_e from fm^-3 to cm^-3
-            tC.deta_Hdx[i][j] = c*B_0*t_0/(4.*pi*unit_e*1e39*L_0*L_0)*dn_eInvdx[i][j]; //x-derivative of Hall diffusivity in reduced units. 1e39 factor converts n_e from fm^-3 to cm^-3
-//            Gamma = Z[i]*Z[i]*unit_e*unit_e/(k_Bcgs*T[i][j]*T_0*pow(3./(4.*pi*n_i[i]*1e39),1./3.));
-            tC.shear_mod[i] = pow( 4.*pi/3.,1./3. )*pow(n_i[i]*1e39,4./3.)*Z[i]*Z[i]*unit_e*unit_e*0.1194/( 1. + 1.781*pow(100./Gamma,2.) ); //shear modulus in dyn/cm^2
-            tC.rho[i] = rho[i]; //mass density in g/cm^3
-        }
-    }
-
-    //Exchange transport coefficients on periodic dimension.
-    exchng2Scalar(tC.eta_O,N_GC,comm1D,nbrleft,nbrright);
-    exchng2Scalar(tC.eta_H,N_GC,comm1D,nbrleft,nbrright);
-    exchng2Scalar(tC.deta_Hdx,N_GC,comm1D,nbrleft,nbrright);
-
     //Determine time step using cell centre spacing and Hall diffusivity
     double min_Deltax = *std::min_element( Deltax.begin(), Deltax.end() );
     double DeltaL = 1./std::sqrt( 1./(min_Deltax*min_Deltax) + 1./(Deltay*Deltay) ); //spatial step in reduced units
@@ -311,7 +209,6 @@ int main(int argc, char **argv)
     
     //VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of E times c in reduced units (E*c/(B_0*L_0/t_0))
     VectorField J(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of J in reduced units (J*L_0/B_0)
-    //VectorField V(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of velocity field in reduced units (vc*t_0/L_0)
 
     //Initializes the charge density Rho
     ScalarField Rho(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
@@ -936,8 +833,6 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
     driver.y_center = simparams.v_y_center;
     driver.y_width  = simparams.v_y_width;
     driver.f        = simparams.v_f;
-
-    size_t i_f = round(bparams.x0_tor*dm.Nx);
 
     if(order == 2){
 

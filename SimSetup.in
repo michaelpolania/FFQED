@@ -1,6 +1,3 @@
-# File name for crust EOS data table
-CrustEOS: TOVBSk24Crust.dat
-
 # File name for output H5 file (excluding file extension)
 OutputFile: EMHD_Sim_Data_LLB
 
@@ -36,12 +33,6 @@ t_max: 1.0e-11
 
 # Courant number
 k_C: 0.50
-
-# cutoff (energy) density in g/cm^3 (lowest density to include in simulation domain) #1.4e10 was 5e9
-rho_cutoff: 1.4e10
-
-# Temperature of crust in K (used to compute electrical conductivity)
-temperature: 3e8
 
 # Maximum number of snapshots to save to H5 file 500
 saves_number: 200
@@ -137,30 +128,6 @@ H_perp_upper: vacuum
 
 # Upper boundary conditions on parallel electric field i.e., Hy and Hz ("vacuum" = 0 or "continuous")
 H_parallel_upper: vacuum
-
-# Toroidal velocity shear. Options:
-# "none": no shearing toroidal velocity
-# "aftershock": series of aftershocks, timed based on Omori-Utsu law with amplitudes drawn from a power law
-# "LL12": based on analytic solution of Levin and Lyutikov, MNRAS 427, 1574 (2012)
-# "LLB16": based on analytic solution of Li, Levin and Beloborodov, ApJ 833, 189 (2016)
-# "fixedToroidal"
-# "toroidalBreak"
-tor_vel_shear: none
-
-# Toroidal velocity shear duration in years t_w and toroidal velocity shear centered time in years t_m. Determine initial rise time = t_m - t_w/2  #30
-# Magnitude of toroidal velocity shear vc_mag in units of c. #1e-13
-t_w: 0.1
-t_m: -1e-5
-vc_mag: 1e-14
-
-# Steepness of toroidal velocity shear rise. An exponent (the larger, the steeper the rise). Should be >~ 3
-tor_n: 30
-
-# Center and width (standard deviation) of Gaussian toroidal velocity shear in x(y)-direction in cm. Defaults to 5e4, 0, 0, 0.
-x0_tor: 6.5e4
-xwidth_tor: 1e3
-y0_tor: 0
-ywidth_tor: 1e5
 
 # Velocity driver parameters in units of cm, cm/s and Hz
 v_max: 1e-3
