@@ -1,5 +1,5 @@
 # File name for output H5 file (excluding file extension)
-OutputFile: EMHD_Sim_Data_LLB
+OutputFile: EMHD_Sim_Data_ShortTime
 
 # Order of Runge-Kutta timestep method (2 or 3)
 RK_order: 2
@@ -11,10 +11,10 @@ varying_mesh: false
 QED_corrections: false
 
 # Resolution in x-direction
-Nx: 600
+Nx: 200
 
 # Resolution in y-direction
-Ny: 200
+Ny: 100
 
 # Lower limit of simulation domain in x-direction in cm
 x_min: 0
@@ -29,7 +29,7 @@ y_min: -5e5
 y_max: 5e5
 
 # Maximum time in years, originally 5e2 1.057e-11
-t_max: 1.0e-11
+t_max: 1.0e-12
 
 # Courant number
 k_C: 0.50
@@ -130,7 +130,7 @@ H_perp_upper: vacuum
 H_parallel_upper: vacuum
 
 # Velocity driver parameters in units of cm, cm/s and Hz
-v_max: 1e-3
+v_max: 1e4
 v_y_center: 0
-v_y_width: 1e7
+v_y_width: 1e5
 v_f: 30.0

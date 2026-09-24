@@ -1360,9 +1360,8 @@ double Compute_Damping_Term(int i, const Domain & dm){
 void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, const Process & ps){
 
    
-    VectorField D_new = D; 
+    VectorField D_new = D;
 
- 
     const double EPSILON = 1e-14;
 
     for(size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC - 1; i++){
@@ -1378,7 +1377,7 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
 
             double Bx_mag = std::sqrt((Bx * Bx) + (By_avg_x * By_avg_x) + (Bz_avg_x * Bz_avg_x));
 
-            
+
             if (Bx_mag > EPSILON) {
                 double Bhat_x = Bx / Bx_mag;
                 double Bhat_y = By_avg_x / Bx_mag;
@@ -1435,7 +1434,7 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
         }
     }
 
-  
+
     D = D_new;
     return;
 }

@@ -50,7 +50,8 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
      for(size_t i=0; i<N_GC; i++){
         for(size_t j=N_GC; j<D.shape()[2]-N_GC; j++){
 
-            double y_j = y[j - N_GC] - 0.5 * dm.Deltay;
+            // double y_j = y[j - N_GC] - 0.5 * dm.Deltay;
+            double y_j = y[j - N_GC];
 
             double y_j_minus_1;
             
@@ -59,17 +60,15 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
             //double DBC_y = -0.5 * (0.5 * Initialvz(y_j, t, &driver) * (B[0][N_GC][j] + B[0][N_GC + 1][j]) + 0.5 * Initialvz(y_j_minus_1, t, &driver) * (B[0][N_GC][j-1] + B[0][N_GC + 1][j-1]));
             
             if (j==N_GC){
-
-                y_j_minus_1 = y_j - dm.Deltay;
-
+                // y_j_minus_1 = y_j - dm.Deltay;
+                y_j_minus_1 = y[D.shape()[2]-2*N_GC-1];
             }
-
             else{
-
-                y_j_minus_1 = y[j - 1 - N_GC] - 0.5 * dm.Deltay;
+                y_j_minus_1 = y[j - 1 - N_GC];
             }
             double DBC_x = 0.25 * Initialvz(y_j, t, &driver) * (B[1][N_GC][j-1] + B[1][N_GC][j] + B[1][N_GC-1][j] + B[1][N_GC-1][j-1]);
-            double DBC_y = 0.5 * Initialvz(y[j-N_GC], t, &driver) * (B[0][N_GC][j] + B[0][N_GC][j-1]);
+            // double DBC_y = 0.5 * Initialvz(y[j-N_GC], t, &driver) * (B[0][N_GC][j] + B[0][N_GC][j-1]);
+            double DBC_y = -( 0.5 * Initialvz(y_j, t, &driver) * B[0][N_GC][j] + 0.5 * Initialvz(y_j_minus_1, t, &driver) * B[0][N_GC][j-1] );
             double DBC_z = 0.0;
 
 
