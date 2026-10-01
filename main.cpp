@@ -196,12 +196,15 @@ int main(int argc, char **argv)
     struct Domain domain = {Nx, Ny, N_GC, Lx, Ly, Deltay, Deltax, x, y, Deltat, Ny_locs, starts};
     struct Process process = {simparams.RK_order, world_rank, nbrleft, nbrright, MyS, MyE, comm1D};
 
+    //std::cout << x.size() << std::endl;
+     
+
     //Compute initial magnetic field and create VectorField objects to hold electric field and updated magnetic field
     VectorField B(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of B across partial domain
     
     //Initializes the D field
     VectorField D(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of D across partial domain
-
+    //std::cout << D.shape()[1]-N_GC-1 << std::endl; 
     //InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B); //Generate initial values of B components by cell-face averaging over initial functional form
 
     VectorField B_np1(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of B in reduced units at next time step
@@ -525,7 +528,7 @@ int main(int argc, char **argv)
         B = B_np1;
         D = D_np1;
 
-        std::cout << t << std::endl;
+        //std::cout << t << std::endl;
 
         // Check energy conservation. First recompute current density
         //Compute_J(B, J, N_GC, domain);
@@ -820,6 +823,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
     std::vector<double> Deltax = dm.Deltax;
     double Deltay = dm.Deltay;
     double Deltat = dm.Deltat;
+    const double t_next = t + Deltat;
     std::vector<int> Ny_locs = dm.Ny_locs;
     std::vector<int> starts = dm.starts;
 
@@ -879,15 +883,17 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
 
         
-        B_BoundaryConditions(B_1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-        LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver, dm);
+        B_BoundaryConditions(B_1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
+        LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
+        UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
 
-        UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t, driver);
+        exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
+        exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
 
 
         Compute_Rho(D_1, Rho, dm);
 
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D_1, B_1, simparams, dm, process, t);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D_1, B_1, simparams, dm, process, t_next);
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -913,9 +919,12 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
     exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
     exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
     
-    B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-    LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver, dm);
-    UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t, driver);
+    B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
+    LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
+    UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
+
+    exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
+    exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
 
     Compute_Rho(D_np1, Rho, dm);
    

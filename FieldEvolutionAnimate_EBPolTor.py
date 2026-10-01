@@ -41,10 +41,10 @@ B_0Local = 1e13 #in G. Must be of the form 10^X for integer X
 Rstar = 12*L_km #assumed stellar radius in cm
 t_cr = Rstar/c #light crossing time in s
 
-OutputFolder = 'EMHD_Sim_Data_LLB'
+OutputFolder = 'EMHD_Sim_Data_ShortTime'
 VirtualFileCreator.VirtualFileCreate(OutputFolder) #create virtual h5 file for all parallel
 
-Nfrac = 50 #use every Nth time step in video was 5
+Nfrac = 5 #use every Nth time step in video was 5
 
 #with h5py.File(OutputFolder+'/'+OutputFolder+'.h5', mode='r') as file:
 with h5py.File(f'{OutputFolder}/{OutputFolder}/{OutputFolder}_0.h5', mode='r') as file:
@@ -359,8 +359,8 @@ def BFieldPolTorPlot(frame,B,t,Nfrac):
         cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=np.amin(Dz), vmax=np.amax(Dz), cmap="Spectral_r")
     ΨDcontours = make_levels(np.amin(ΨDi), np.amax(ΨDi))
     cntr2 = ax2.contour(yi, xi, ΨDi, ΨDcontours, colors='k', linestyles='solid')
-    print("ΨD min/max/mean:", np.amin(ΨD), np.amax(ΨD), np.mean(ΨD))
-    print("ΨD 5th/95th percentile:", np.percentile(ΨD, 5), np.percentile(ΨD, 95))
+    #print("ΨD min/max/mean:", np.amin(ΨD), np.amax(ΨD), np.mean(ΨD))
+   # print("ΨD 5th/95th percentile:", np.percentile(ΨD, 5), np.percentile(ΨD, 95))
     '''
     if( np.amax(np.abs(Dz)) <= 1e-10 ):
         cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
@@ -395,13 +395,14 @@ anim.save('FieldEvoEBPolTor'+OutputFolder+'.mp4',writer=writerVideo)#,savefig_kw
 #anim.save('FieldEvoEBPolTor'+OutputFolder+'.gif',writer=writerVideo)
 
 i_debug = 2
-j_debug = 198
+j_debug = 4
 
-Dy_time = D[:, 1, i_debug, j_debug]
+Dy_time = B[:, 1, i_debug, j_debug]
 
 plt.figure(figsize=(8,5), dpi=200)
 
-plt.plot(t, Dy_time)
+#plt.plot(t, Dy_time)
+#plt.ylim(0, 0.02)
 
 plt.xlabel(r'$t/t_{\mathrm{cr}}$', fontsize=16)
 plt.ylabel(r'$D_y$', fontsize=16)
