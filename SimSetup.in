@@ -1,5 +1,5 @@
 # File name for output H5 file (excluding file extension)
-OutputFile: EMHD_Sim_Data_ShortTime
+OutputFile: EMHD_Sim_Data_ShortTime2
 
 # Order of Runge-Kutta timestep method (2 or 3)
 RK_order: 2
@@ -14,7 +14,7 @@ QED_corrections: false
 Nx: 200
 
 # Resolution in y-direction
-Ny: 100
+Ny: 60
 
 # Lower limit of simulation domain in x-direction in cm
 x_min: 0
