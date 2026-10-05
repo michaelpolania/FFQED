@@ -24,11 +24,9 @@ import os.path
 
 import h5py
 
-OutputFolder = 'EMHD_Sim_Data_ShortTime'
-
 ################### Combining parallel-written H5 files into single virtual H5 file ########################
 
-def concatenateVecField(file_names_to_concatenate,key,openkey):
+def concatenateVecField(file_names_to_concatenate,OutputFolderAbs,OutputFolder,key,openkey):
     # entry_key = 'u'  # where the data is inside of the source files.
     shT = h5py.File(file_names_to_concatenate[0],'r')[key].shape[0]
     shComps = h5py.File(file_names_to_concatenate[0],'r')[key].shape[1]
@@ -39,7 +37,7 @@ def concatenateVecField(file_names_to_concatenate,key,openkey):
     shYTot = np.sum(shY,axis=0)
 
     layout = h5py.VirtualLayout(shape=(shT,shComps,shX,shYTot,), dtype=np.float64)
-    with h5py.File(OutputFolder+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
+    with h5py.File(OutputFolderAbs+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
         minIndex = 0
         for i, filename in enumerate(file_names_to_concatenate):
             vsource = h5py.VirtualSource(filename, key, shape=(shT,shComps,shX,shY[i],))
@@ -51,13 +49,13 @@ def concatenateVecField(file_names_to_concatenate,key,openkey):
         f.close()
 
 # Adds coordinate 'key' to virtual data set. Assumes coordinate is not domain-decomposed.
-def concatenateCoords(file_names_to_concatenate,key,openkey):
+def concatenateCoords(file_names_to_concatenate,OutputFolderAbs,OutputFolder,key,openkey):
     # entry_key = 'u'  # where the data is inside of the source files.
     shT = h5py.File(file_names_to_concatenate[0],'r')[key].shape[0]
     shX = h5py.File(file_names_to_concatenate[0],'r')[key].shape[1]
 
     layout = h5py.VirtualLayout(shape=(shT,shX,), dtype=np.float64)
-    with h5py.File(OutputFolder+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
+    with h5py.File(OutputFolderAbs+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
         vsource = h5py.VirtualSource(file_names_to_concatenate[0], key, shape=(shT,shX,))
         # layout[i, :, :] = vsource
         layout[:,0:shX] = vsource
@@ -66,7 +64,7 @@ def concatenateCoords(file_names_to_concatenate,key,openkey):
         f.close()
 
 # Adds coordinate 'key' in domain-decomposed direction to virtual data set
-def concatenateCoordsDecomp(file_names_to_concatenate,key,openkey):
+def concatenateCoordsDecomp(file_names_to_concatenate,OutputFolderAbs,OutputFolder,key,openkey):
     # entry_key = 'u'  # where the data is inside of the source files.
     shT = h5py.File(file_names_to_concatenate[0],'r')[key].shape[0]
     shX = []
@@ -75,7 +73,7 @@ def concatenateCoordsDecomp(file_names_to_concatenate,key,openkey):
     shXTot = np.sum(shX)
 
     layout = h5py.VirtualLayout(shape=(shT,shXTot,), dtype=np.float64)
-    with h5py.File(OutputFolder+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
+    with h5py.File(OutputFolderAbs+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
         minIndex = 0
         for i, filename in enumerate(file_names_to_concatenate):
             vsource = h5py.VirtualSource(filename, key, shape=(shT,shX[i],))
@@ -87,26 +85,26 @@ def concatenateCoordsDecomp(file_names_to_concatenate,key,openkey):
         f.close()
 
 # Adds time series to virtual data set
-def add_t(file_names_to_concatenate,key,openkey):
+def add_t(file_names_to_concatenate,OutputFolderAbs,OutputFolder,key,openkey):
     sh = h5py.File(file_names_to_concatenate[0], 'r')[key].shape  # get the first one's shape.
     layout = h5py.VirtualLayout((1,) + sh, dtype=np.float64)
     vsource = h5py.VirtualSource(file_names_to_concatenate[0], key, shape=sh)
     layout[0] = vsource
-    with h5py.File(OutputFolder+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
+    with h5py.File(OutputFolderAbs+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
         f.create_virtual_dataset(key, layout, fillvalue=0)
         f.close()
 
 #Adds attributes to virtual data set
-def add_attrs(file_name,openkey):
+def add_attrs(file_name,OutputFolderAbs,OutputFolder,openkey):
     with h5py.File(file_name, 'r', libver='latest') as orig:
-        with h5py.File(OutputFolder+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
+        with h5py.File(OutputFolderAbs+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
             for key, value in orig.attrs.items():
                 f.attrs[key] = value
                 
 # Adds energy conservation date to virtual data set
-def add_EC(file_names_to_concatenate,keys,openkey):
+def add_EC(file_names_to_concatenate,OutputFolderAbs,OutputFolder,keys,openkey):
     sh = h5py.File(file_names_to_concatenate[0], 'r')[keys[0]].shape  # get the first one's shape.
-    with h5py.File(OutputFolder+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
+    with h5py.File(OutputFolderAbs+'/'+OutputFolder+'.h5', openkey, libver='latest') as f:
         for i in range(len(keys)): #adds each entry in keys as an entry to virtual data set
             layout = h5py.VirtualLayout((1,) + sh, dtype=np.float64)
             vsource = h5py.VirtualSource(file_names_to_concatenate[0], keys[i], shape=sh)
@@ -125,28 +123,31 @@ def VirtualFileCreate(OutputFolder):
         files.append(OutputFolderAbs+'/'+OutputFolder+'/'+OutputFolder+'_{}.h5'.format(n))
 
     # Generate virtual data set. Only use openkey "w" on first set (deletes previous data set); subsequently use "a"
-    concatenateVecField(files,'B','w')
-    #concatenateVecField(files,'H','a')
-    concatenateVecField(files,'D','a')
-    #concatenateVecField(files,'E','a')
-    concatenateCoords(files,'x','a')
-    concatenateCoordsDecomp(files,'y','a')
-    add_t(files,'t','a')
-    add_attrs(files[0],'a')
-    add_EC(files,['U_B','JH','PF','DeltaEInt'],'a')
+    concatenateVecField(files,OutputFolderAbs,OutputFolder,'B','w')
+    #concatenateVecField(files,OutputFolderAbs,OutputFolder,'H','a')
+    concatenateVecField(files,OutputFolderAbs,OutputFolder,'D','a')
+    #concatenateVecField(files,OutputFolderAbs,OutputFolder,'E','a')
+    concatenateCoords(files,OutputFolderAbs,OutputFolder,'x','a')
+    concatenateCoordsDecomp(files,OutputFolderAbs,OutputFolder,'y','a')
+    add_t(files,OutputFolderAbs,OutputFolder,'t','a')
+    add_attrs(files[0],OutputFolderAbs,OutputFolder,'a')
+    add_EC(files,OutputFolderAbs,OutputFolder,['U_B','JH','PF','DeltaEInt'],'a')
     
+# OutputFolder = 'EMHD_Sim_Data_ShortTime'
+# OutputFolderAbs = os.path.abspath(OutputFolder)
+# OutputFolder = OutputFolder.rsplit('/',1)[-1]
 
 # files = []
 # Nfiles = len(glob.glob(OutputFolder+'/'+OutputFolder+'/'+'*.h5'))
 # for n in range(0, Nfiles):
 #     files.append(OutputFolder+'/'+OutputFolder+'/'+OutputFolder+'_{}.h5'.format(n))
     
-# concatenateVecField(files,'B','w')
-# #concatenateVecField(files,'H','a')
-# concatenateVecField(files,'D','a')
-# #concatenateVecField(files,'E','a')
-# concatenateCoords(files,'x','a')
-# concatenateCoordsDecomp(files,'y','a')
-# add_t(files,'t','a')
-# add_attrs(files[0],'a')
-# add_EC(files,['U_B','JH','PF','DeltaEInt'],'a')
+# concatenateVecField(files,OutputFolderAbs,OutputFolder,'B','w')
+# #concatenateVecField(files,OutputFolderAbs,OutputFolder,'H','a')
+# concatenateVecField(files,OutputFolderAbs,OutputFolder,'D','a')
+# #concatenateVecField(files,OutputFolderAbs,OutputFolder,'E','a')
+# concatenateCoords(files,OutputFolderAbs,OutputFolder,'x','a')
+# concatenateCoordsDecomp(files,OutputFolderAbs,OutputFolder,'y','a')
+# add_t(files,OutputFolderAbs,OutputFolder,'t','a')
+# add_attrs(files[0],OutputFolderAbs,OutputFolder,'a')
+# add_EC(files,OutputFolderAbs,OutputFolder,['U_B','JH','PF','DeltaEInt'],'a')
