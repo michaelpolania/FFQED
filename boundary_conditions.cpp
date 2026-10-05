@@ -110,14 +110,19 @@ void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm
     //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
 
     //Loops all the way up to last physical cell in the y-direction
-    for(size_t j = N_GC; j < D.shape()[2] - N_GC; j++){
+    for(size_t i=0; i<N_GC; i++){
+        for(size_t j=N_GC; j<D.shape()[2]-N_GC; j++){
 
+            
+            //D[0][D.shape()[1] - 2*N_GC + N_GC + i][j] = -D[0][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+            //D[1][D.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = -D[1][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+            //D[2][D.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = -D[2][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+            
+            //Continous boundary condition
+            D[0][D.shape()[1]-N_GC+i][j] = D[0][D.shape()[1]-N_GC-2-i][j];
+            D[1][D.shape()[1]-N_GC-1+i][j] = D[1][D.shape()[1]-N_GC-2-i][j];
+            D[2][D.shape()[1]-N_GC-1+i][j] = D[2][D.shape()[1]-N_GC-2-i][j];
 
-        for (size_t i = 0; i < N_GC; i++) {
-    
-            D[0][D.shape()[1] - 2*N_GC + N_GC + i][j] = -D[0][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
-            D[1][D.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = -D[1][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
-            D[2][D.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = -D[2][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
 }
 
     }
