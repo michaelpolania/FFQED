@@ -76,6 +76,10 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
             D[1][N_GC-1-i][j] = 2.*DBC_y - D[1][N_GC+i][j];
             D[2][N_GC-1-i][j] = 2.*DBC_z - D[2][N_GC+i][j];
 
+            
+
+
+
            
 
 
@@ -151,7 +155,7 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
     //Exchange ghost cells in a periodic manner in the y-direction
     //exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright);
 
-    for(size_t i=0; i<N_GC; i++){
+     for(size_t i=0; i<N_GC; i++){
         for(size_t j=N_GC; j<B.shape()[2]-N_GC; j++){
 
             /*
@@ -166,10 +170,10 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
             /*
                 Upper boundary x=Lx
             */
-            
-            B[0][B.shape()[1] - 2*N_GC + N_GC + i][j] = B[0][B.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
-            B[1][B.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = B[1][B.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
-            B[2][B.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = B[2][B.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
+
+            B[0][B.shape()[1]-N_GC+i][j] = B[0][B.shape()[1]-N_GC-2-i][j];
+            B[1][B.shape()[1]-N_GC-1+i][j] = B[1][B.shape()[1]-N_GC-2-i][j];
+            B[2][B.shape()[1]-N_GC-1+i][j] = B[2][B.shape()[1]-N_GC-2-i][j];
 
             
             }
