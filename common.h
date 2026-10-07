@@ -132,6 +132,7 @@ void load_params(SimParams & params, BandBCParams & bparams, int world_rank);
 void MPE_Decomp1D(size_t N, int num_procs, int MyID, size_t & s, size_t & e);
 void exchng2Vector(VectorField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright);
 void exchng2Scalar(ScalarField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright);
+void exchng2StdVector(std::vector<double> A, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright);
 size_t save_cadenceCalc(double Deltat, double t_max, size_t saves_number);
 double minmod(double a, double b, double c);
 double TrapezoidIntegrator(std::vector<double> & A, double dx);

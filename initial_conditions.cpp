@@ -57,30 +57,30 @@ void InitializeB(std::vector<double> & x, std::vector<double> & y, const BandBCP
    
     //iterates over every physical cell, not ghost cells
     for(size_t i=0; i<x.size(); i++){
-        for(size_t j=0; j<y.size(); j++){
+        for(size_t j=N_GC; j<y.size()-N_GC; j++){
     
             //i=j=N_Gc
 
 
             //Computes integration for Bx, integrates over y
             gsl_integration_qag(&Fx, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result1, &error);
-            B[0][i+N_GC][j+N_GC] = result1/Deltay;
+            B[0][i+N_GC][j] = result1/Deltay;
             
             //Ask Peter?
             //For every cell except the last one, compute integration normally (as done for x)
             if(i < x.size()-1){
                 gsl_integration_qag(&Fy, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
-                B[1][i+N_GC][j+N_GC] = result1/Deltax[i];
+                B[1][i+N_GC][j] = result1/Deltax[i];
                 gsl_integration_qag(&Fz1, x[i]-Deltax[i]/2., x[i]+Deltax[i]/2., 0, 1e-7, 1000, 3, w, &result1, &error);
                 gsl_integration_qag(&Fz2, y[j]-Deltay/2., y[j]+Deltay/2., 0, 1e-7, 1000, 3, w, &result2, &error);
-                B[2][i+N_GC][j+N_GC] = result1*result2/(Deltax[i]*Deltay);
+                B[2][i+N_GC][j] = result1*result2/(Deltax[i]*Deltay);
                 
             }
             
             //If at the last one, define By and Bz to be the values computed at the previous cell until BCs are defined
             else{
-                B[1][i+N_GC][j+N_GC] = B[1][i+N_GC-1][j+N_GC]; //initialize By continuous across the outer boundary. This gets changed by B_BoundaryConditions, but is needed to get the By BC correct initially.
-                B[2][i+N_GC][j+N_GC] = B[2][i+N_GC-1][j+N_GC]; //initialize Bz continuous across the outer boundary. This gets changed by B_BoundaryConditions.
+                B[1][i+N_GC][j] = B[1][i+N_GC-1][j]; //initialize By continuous across the outer boundary. This gets changed by B_BoundaryConditions, but is needed to get the By BC correct initially.
+                B[2][i+N_GC][j] = B[2][i+N_GC-1][j]; //initialize Bz continuous across the outer boundary. This gets changed by B_BoundaryConditions.
             }
         }
     }
@@ -246,15 +246,15 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
     double result1, result2, error;
 
     for(size_t i = 0; i < x.size(); i++){
-        for(size_t j = 0; j < y.size(); j++){
-            D[0][i+N_GC][j+N_GC] = 0.0;
+        for(size_t j = N_GC; j < y.size()-N_GC; j++){
+            D[0][i+N_GC][j] = 0.0;
 
             if(i < x.size()-1){
                 double x_min = x[i] - Deltax[i]/2.0;
                 double x_max = x[i] + Deltax[i]/2.0;
 
                 // 1. Compute Dy: Setup the struct with the current cell's y-coordinate
-                DyIntegrationParams dy_params = { y[j]- Deltay*0.5, &config };
+                DyIntegrationParams dy_params = { y[j] - Deltay*0.5, &config };
                 gsl_function Fy;
                 Fy.function = &Dy_over_x_integrand;
                 Fy.params = &dy_params;
@@ -268,8 +268,8 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
                 D[2][i+N_GC][j+N_GC] = result2 / Deltax[i];
             }
             else{
-                D[1][i+N_GC][j+N_GC] = D[1][i+N_GC-1][j+N_GC]; 
-                D[2][i+N_GC][j+N_GC] = D[2][i+N_GC-1][j+N_GC]; 
+                D[1][i+N_GC][j] = D[1][i+N_GC-1][j];
+                D[2][i+N_GC][j] = D[2][i+N_GC-1][j];
             }
 
              if (i == 98 && j == 98){

@@ -398,6 +398,31 @@ void exchng2Scalar(ScalarField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, i
 }
 
 /*
+    Fills ghost cells by exchanging data between cells - for ScalarField objects
+    Input: A: local std::vector<double> A
+           N_GC: number of ghost cells to exchange
+           comm1D: MPI communicator for processes organized into Cartesian grid
+           nbrleft, nbrright: which processes are to the left and right of this one
+*/
+void exchng2StdVector(std::vector<double> A, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright)
+{
+    size_t Ny_loc = A.size();
+
+    MPI_Datatype stridetype;
+    MPI_Type_vector( 1, N_GC, Ny_loc, MPI_DOUBLE, &stridetype);
+    MPI_Type_commit( &stridetype );
+
+    // MPI_Sendrecv( &(A[Ny_loc-2*N_GC]), 1, Ny_loc, nbrright, 0, &(A[0]), 1, Ny_loc, nbrleft, 0, comm1D, MPI_STATUS_IGNORE);
+    // MPI_Sendrecv( &(A[N_GC]), 1, Ny_loc, nbrleft, 1, &(A[Ny_loc-N_GC]), 1, Ny_loc, nbrright, 1, comm1D, MPI_STATUS_IGNORE);
+
+    MPI_Sendrecv( &A[Ny_loc - 2*N_GC], 1, stridetype, nbrright, 0, &A[0], 1, stridetype, nbrleft,  0, comm1D, MPI_STATUS_IGNORE );
+    MPI_Sendrecv( &A[N_GC], 1, stridetype, nbrleft, 1, &A[Ny_loc - N_GC], 1, stridetype, nbrright, 1, comm1D, MPI_STATUS_IGNORE );
+    MPI_Type_free( &stridetype );
+
+    return;
+}
+
+/*
     Computes cadence for saving simulation snapshots to H5 file
     Inputs: Deltat, t_max: timestep and maximum simulation time in reduced units
             saves_number: maximum number of snapshots saved to H5 file

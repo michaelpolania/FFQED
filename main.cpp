@@ -180,6 +180,15 @@ int main(int argc, char **argv)
     std::vector<double> x(xFull.begin(), xFull.end() ); //Local domain cell mid-points in x-direction. Unsplit
     std::vector<double> y(yFull.begin() + MyS, yFull.begin() + MyE ); //Local domain cell mid-points in y-direction. Split based on the start and end indices computed by MPE_Decomp1D
 
+    //Add ghost cell entries to y vectors.
+    for(size_t i=0; i<N_GC; i++){
+        y.insert(y.begin(),0);
+        y.push_back(0.);
+    }
+    exchng2StdVector(y, N_GC, comm1D, nbrleft, nbrright);
+
+    std::vector<double> ydomain(yFull.begin() + MyS, yFull.begin() + MyE ); //Local domain cell mid-points in y-direction. Split based on the start and end indices computed by MPE_Decomp1D. Excludes ghost cells. Used for h5 file.
+
     /*
         Define physical parameters and simulation domain
     */
@@ -196,8 +205,7 @@ int main(int argc, char **argv)
     struct Domain domain = {Nx, Ny, N_GC, Lx, Ly, Deltay, Deltax, x, y, Deltat, Ny_locs, starts};
     struct Process process = {simparams.RK_order, world_rank, nbrleft, nbrright, MyS, MyE, comm1D};
 
-    //std::cout << x.size() << std::endl;
-     
+    // std::cout << "y_size = " << y.size() << std::endl;
 
     //Compute initial magnetic field and create VectorField objects to hold electric field and updated magnetic field
     VectorField B(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of B across partial domain
@@ -393,7 +401,7 @@ int main(int argc, char **argv)
     y_prop.setChunk(RANK_coords, y_chunk_dims);
 
     H5::DataSet *y_set = new DataSet(file.createDataSet("y", H5::PredType::NATIVE_DOUBLE, *dataspace_y, y_prop));
-    y_set->write( y.data(), PredType::NATIVE_DOUBLE );
+    y_set->write( ydomain.data(), PredType::NATIVE_DOUBLE );
 
     // Time data for output H5 file
     hsize_t t_dims[2] = {1,1};
@@ -494,26 +502,6 @@ int main(int argc, char **argv)
 //            Dataout << " " << std::endl;
 //        }
 //        Dataout.close();
-//
-//        Dataout.open("eta_OCheck_"+RANK_NAME+"_"+timestr+".dat",std::fstream::out);
-//        for(size_t i = 0; i < B.shape()[1]; i++){
-//            for(size_t j = 0; j < B.shape()[2]; j++){
-//                Dataout << std::setprecision(10) << tC.eta_O[i][j] << "   ";
-//            }
-//            Dataout << std::endl;
-//            Dataout << " " << std::endl;
-//        }
-//        Dataout.close();
-
-//        Dataout.open("vcxCheck_"+RANK_NAME+"_"+timestr+".dat",std::fstream::out);
-//        for(size_t i = 0; i < B.shape()[1]; i++){
-//            for(size_t j = 0; j < B.shape()[2]; j++){
-//                Dataout << std::setprecision(10) << vc[0][i][j] << "   ";
-//            }
-//            Dataout << std::endl;
-//            Dataout << " " << std::endl;
-//        }
-//        Dataout.close();
 //    }
 
       //t <= t_max
@@ -527,7 +515,7 @@ int main(int argc, char **argv)
         t = t + Deltat;
         B = B_np1;
         D = D_np1;
-
+        
         //std::cout << t << std::endl;
 
         // Check energy conservation. First recompute current density
