@@ -14,11 +14,7 @@ QED_corrections: false
 Nx: 1000
 
 # Resolution in y-direction
-<<<<<<< HEAD
-Ny: 200
-=======
 Ny: 60
->>>>>>> cacc99866bb03f1e0d6a3485612fdeaade4adc76
 
 # Lower limit of simulation domain in x-direction in cm
 x_min: 0
@@ -33,7 +29,7 @@ y_min: -5e5
 y_max: 5e5
 
 # Maximum time in years, originally 5e2 1.057e-11
-t_max: 1.0e-12
+t_max: 1.0e-11
 
 # Courant number
 k_C: 0.50

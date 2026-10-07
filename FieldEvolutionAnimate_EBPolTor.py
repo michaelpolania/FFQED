@@ -41,7 +41,7 @@ B_0Local = 1e13 #in G. Must be of the form 10^X for integer X
 Rstar = 12*L_km #assumed stellar radius in cm
 t_cr = Rstar/c #light crossing time in s
 
-OutputFolder = 'EMHD_Sim_Data_ShortTime'
+OutputFolder = 'EMHD_Sim_Data_ShortTime2'
 VirtualFileCreator.VirtualFileCreate(OutputFolder) #create virtual h5 file for all parallel
 
 Nfrac = 5 #use every Nth time step in video was 5
@@ -71,6 +71,14 @@ with h5py.File(f'{OutputFolder}/{OutputFolder}/{OutputFolder}_0.h5', mode='r') a
 file.close()
 
 print(f"Number of timesteps in data set: {len(t):.0f}")
+
+BxFull = B[:,0]
+ByFull = B[:,1]
+BzFull = B[:,2]
+
+DxFull = D[:,0]
+DyFull = D[:,1]
+DzFull = D[:,2]
     
 deltax_dat = np.empty([0])
 for i in range(len(x)):
@@ -195,16 +203,8 @@ ax2.set_title(rf'$D_{{\mathrm{{pol}}}}$ (lines) and $D_{{z,{BScale:.0f}}}$ (colo
 
 # Ψcontours = np.linspace( 1.05*np.amin(Ψi), np.amax(Ψi)-0.05*np.amin(Ψi), 20 )
 ΨBcontours = np.linspace( np.amin(ΨBi), (np.amax(ΨBi)-np.amin(ΨBi)), 26 )
-#ΨDcontours = np.linspace( np.amin(ΨDi), (np.amax(ΨDi)-np.amin(ΨDi)), 26 )
-#ΨDcontours = 0.1*ΨBcontours #can change this, but must guarantee that it is not all zeroes
-
-def make_levels(lo, hi, n=26):
-    if np.isclose(hi, lo):
-        eps = 1e-12 if lo == 0 else abs(lo) * 1e-6
-        return np.linspace(lo - eps, lo + eps, n)
-    return np.linspace(lo, hi, n)
-
-ΨDcontours = make_levels(np.amin(ΨDi), np.amax(ΨDi))
+# ΨDcontours = np.linspace( np.amin(ΨDi), (np.amax(ΨDi)-np.amin(ΨDi)), 26 )
+ΨDcontours = 0.00001*ΨBcontours #can change this, but must guarantee that it is not all zeroes
 
 if( np.amax(np.abs(Bz)) <= 1e-10 ):
     cntrf1 = ax1.pcolormesh(yi, xi, Bzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
@@ -357,10 +357,7 @@ def BFieldPolTorPlot(frame,B,t,Nfrac):
         cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
     else:
         cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=np.amin(Dz), vmax=np.amax(Dz), cmap="Spectral_r")
-    ΨDcontours = make_levels(np.amin(ΨDi), np.amax(ΨDi))
     cntr2 = ax2.contour(yi, xi, ΨDi, ΨDcontours, colors='k', linestyles='solid')
-    #print("ΨD min/max/mean:", np.amin(ΨD), np.amax(ΨD), np.mean(ΨD))
-   # print("ΨD 5th/95th percentile:", np.percentile(ΨD, 5), np.percentile(ΨD, 95))
     '''
     if( np.amax(np.abs(Dz)) <= 1e-10 ):
         cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
@@ -393,26 +390,6 @@ writerVideo = animation.FFMpegWriter(fps=30)
 anim.save('FieldEvoEBPolTor'+OutputFolder+'.mp4',writer=writerVideo)#,savefig_kwargs={"bbox_inches":"tight"})
 #writerVideo = animation.PillowWriter(fps=30)
 #anim.save('FieldEvoEBPolTor'+OutputFolder+'.gif',writer=writerVideo)
-
-i_debug = 2
-j_debug = 4
-
-Dy_time = B[:, 1, i_debug, j_debug]
-
-plt.figure(figsize=(8,5), dpi=200)
-
-#plt.plot(t, Dy_time)
-#plt.ylim(0, 0.02)
-
-plt.xlabel(r'$t/t_{\mathrm{cr}}$', fontsize=16)
-plt.ylabel(r'$D_y$', fontsize=16)
-plt.title(
-    rf'$D_y$ at $(i,j)=({i_debug},{j_debug})$',
-    fontsize=16
-)
-
-plt.grid(True)
-plt.tight_layout()
 
 plt.show()
 plt.close()

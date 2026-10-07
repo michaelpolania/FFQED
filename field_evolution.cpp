@@ -1273,15 +1273,8 @@ return physical_lambda;
 */
 void Compute_EH_from_DB(VectorField & E, VectorField & H, VectorField & D, VectorField & B, const SimParams & params,  const Domain & dm) {
 
-    //for (size_t i = dm.N_GC; i < B.shape()[1]-dm.N_GC; i++) {
-        //for (size_t j = dm.N_GC; j < B.shape()[2]-dm.N_GC; j++) {
-    
-    //for (size_t i = 0; i < B.shape()[1] - 1; i++) {
-    //for (size_t j = 0; j < B.shape()[2] - 1; j++) {
-
-    for (size_t i = 0; i < dm.x.size(); i++){
-        for (size_t j = 0; j < dm.y.size(); j++){
-
+   for (size_t i = dm.N_GC; i < B.shape()[1] - dm.N_GC; i++) {
+        for (size_t j = dm.N_GC; j < B.shape()[2] - dm.N_GC; j++) {
             
             double Dx = Compute_A_to_cell_center(D, 0, i, j);
             double Dy = Compute_A_to_cell_center(D, 1, i, j);
@@ -1350,7 +1343,7 @@ double Compute_Damping_Term(int i, const Domain & dm){
     double max_dm_x = *std::max_element(dm.x.begin(), dm.x.end());
 
     //Numerical parameter that controls damping strength
-    double K_abs = 2.0;
+    double K_abs = 20.0;
 
     double damping_term = (K_abs)/(dm.Deltat) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x)) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x)) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x));
     
@@ -1364,8 +1357,8 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
 
     const double EPSILON = 1e-14;
 
-    for(size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC - 1; i++){
-      for(size_t j = dm.N_GC; j < D.shape()[2] - dm.N_GC - 1; j++){
+    for(size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC; i++){
+      for(size_t j = dm.N_GC; j < D.shape()[2] - dm.N_GC; j++){
 
             //For Dx component
             double Bx = B[0][i][j];
@@ -1430,9 +1423,33 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
             } else {
                 D_new[2][i][j] = D[2][i][j];
             }
-
         }
     }
+
+            for (size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC; i++) {
+                for (size_t j = dm.N_GC; j < D.shape()[2] - dm.N_GC; j++) {
+                    double Dx = Compute_A_to_cell_center(D_new, 0, i, j);
+                    double Dy = Compute_A_to_cell_center(D_new, 1, i, j);
+                    double Dz = D_new[2][i][j];
+                    double Bx = Compute_A_to_cell_center(B, 0, i, j);
+                    double By = Compute_A_to_cell_center(B, 1, i, j);
+                    double Bz = B[2][i][j];
+
+                    double D_squared = Dx*Dx + Dy*Dy + Dz*Dz;
+                    double B_squared = Bx*Bx + By*By + Bz*Bz;
+
+                    //If force-free condition is not satisfied.
+                    if (D_squared > B_squared) {
+                    double s = std::sqrt(B_squared / D_squared);
+                    //std::cout << "s = " << s << std::endl;
+                    D_new[0][i][j] *= s;
+                    D_new[1][i][j] *= s;
+                    D_new[2][i][j] *= s;
+        }
+    }
+}
+
+        
 
 
     D = D_new;
@@ -1464,8 +1481,8 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 
     double max_dm_x = *std::max_element(dm.x.begin(), dm.x.end());
 
-    for(size_t i=dm.N_GC; i<D.shape()[1]-dm.N_GC-1; i++){
-        for(size_t j=dm.N_GC; j<D.shape()[2]-dm.N_GC-1; j++){
+    for(size_t i=dm.N_GC; i<D.shape()[1]-dm.N_GC - 1; i++){
+        for(size_t j=dm.N_GC; j<D.shape()[2]-dm.N_GC - 1; j++){
             
             //Change everything from E to D and H to B
             double Bx_avg_ij = Compute_A_to_cell_center(B, 0, i, j);
@@ -1621,8 +1638,22 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 
             double Jz_ij = (Rho[i][j] * E_cross_B_z_ij)/(B_squared_ij) + (curl_H_curl_E_ij * B[2][i][j])/(B_squared_ij);
             
-            
-            
+            Qx[i][j] = -curl_E_x_left_ij;
+            Qy[i][j] = curl_E_y_bottom_ij;
+            Qz[i][j] = curl_E_z_ij;
+
+            Fx[i][j] = curl_H_x_left_ij - Jx_avg;
+            Fy[i][j] = -curl_H_y_bottom_ij - Jy_avg;
+            Fz[i][j] = curl_H_z_ij - Jz_ij;
+
+        }
+    }
+
+return;
+
+} 
+
+            /*
             if (dm.x[i] >= 0.9 * max_dm_x){
             
             Qx[i][j] = -(Compute_Damping_Term(i, dm) * B[0][i][j]) - curl_E_x_left_ij;
@@ -1645,6 +1676,10 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             Fy[i][j] = -curl_H_y_bottom_ij - Jy_avg;
             Fz[i][j] = curl_H_z_ij - Jz_ij;
             }
+            */
+            
+
+            
             
 
            
@@ -1654,11 +1689,4 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
           
     
   
-    }
 
-
-    
-    
-}
-return;
-}

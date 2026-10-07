@@ -20,8 +20,8 @@ from matplotlib import figure
 from matplotlib import rc
 import matplotlib.animation as animation
 import matplotlib as mpl
-# mpl.rcParams['animation.ffmpeg_path'] = r'/opt/homebrew/bin/ffmpeg' #comment this out on Peter's computer
-mpl.rcParams['animation.ffmpeg_path'] = r'/usr/bin/ffmpeg' #comment this out on Michael's computer
+mpl.rcParams['animation.ffmpeg_path'] = r'/opt/homebrew/bin/ffmpeg' #comment this out on Peter's computer
+#mpl.rcParams['animation.ffmpeg_path'] = r'/usr/bin/ffmpeg' #comment this out on Michael's computer
 mpl.rcParams['mathtext.fontset'] = 'cm' #sets font to LaTeX font
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -41,7 +41,7 @@ B_0Local = 1e13 #in G. Must be of the form 10^X for integer X
 Rstar = 12*L_km #assumed stellar radius in cm
 t_cr = Rstar/c #light crossing time in s
 
-OutputFolder = 'EMHD_Sim_Data_ShortTime'
+OutputFolder = 'EMHD_Sim_Data_ShortTime2'
 VirtualFileCreator.VirtualFileCreate(OutputFolder) #create virtual h5 file for all parallel
 
 Nfrac = 4 #use every Nth time step in video was 5
