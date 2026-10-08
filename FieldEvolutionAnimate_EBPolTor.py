@@ -41,7 +41,7 @@ B_0Local = 1e13 #in G. Must be of the form 10^X for integer X
 Rstar = 12*L_km #assumed stellar radius in cm
 t_cr = Rstar/c #light crossing time in s
 
-OutputFolder = 'EMHD_Sim_Data_ShortTime2'
+OutputFolder = 'EMHD_Sim_Data_ShortTime'
 VirtualFileCreator.VirtualFileCreate(OutputFolder) #create virtual h5 file for all parallel
 
 Nfrac = 5 #use every Nth time step in video was 5
@@ -204,15 +204,17 @@ ax2.set_title(rf'$D_{{\mathrm{{pol}}}}$ (lines) and $D_{{z,{BScale:.0f}}}$ (colo
 # Ψcontours = np.linspace( 1.05*np.amin(Ψi), np.amax(Ψi)-0.05*np.amin(Ψi), 20 )
 ΨBcontours = np.linspace( np.amin(ΨBi), (np.amax(ΨBi)-np.amin(ΨBi)), 26 )
 # ΨDcontours = np.linspace( np.amin(ΨDi), (np.amax(ΨDi)-np.amin(ΨDi)), 26 )
-ΨDcontours = 0.00001*ΨBcontours #can change this, but must guarantee that it is not all zeroes
+#ΨDcontours = 0.00001*ΨBcontours #can change this, but must guarantee that it is not all zeroes
+ΨDcontours = 2e-7*ΨBcontours
 
-if( np.amax(np.abs(Bz)) <= 1e-10 ):
+
+if( np.amax(np.abs(Bz)) <= 1e-16 ):
     cntrf1 = ax1.pcolormesh(yi, xi, Bzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
 else:
     cntrf1 = ax1.pcolormesh(yi, xi, Bzi, vmin=np.amin(Bz), vmax=np.amax(Bz), cmap="Spectral_r")
 cntr1 = ax1.contour(yi, xi, ΨBi, ΨBcontours, colors='k', linestyles='solid')
 
-if( np.amax(np.abs(Dz)) <= 1e-10 ):
+if( np.amax(np.abs(Dz)) <= 1e-16 ):
     cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
 else:
     cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=np.amin(Dz), vmax=np.amax(Dz), cmap="Spectral_r")
@@ -347,13 +349,13 @@ def BFieldPolTorPlot(frame,B,t,Nfrac):
     ΨDi_Init = interpolator(Yi,Xi)
     ΨDi = np.ma.masked_invalid(ΨDi_Init)
            
-    if( np.amax(np.abs(Bz)) <= 1e-10 ):
+    if( np.amax(np.abs(Bz)) <= 1e-16 ):
         cntrf1 = ax1.pcolormesh(yi, xi, Bzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
     else:
         cntrf1 = ax1.pcolormesh(yi, xi, Bzi, vmin=np.amin(Bz), vmax=np.amax(Bz), cmap="Spectral_r")
     cntr1 = ax1.contour(yi, xi, ΨBi, ΨBcontours, colors='k', linestyles='solid')
     
-    if( np.amax(np.abs(Dz)) <= 1e-10 ):
+    if( np.amax(np.abs(Dz)) <= 1e-16 ):
         cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
     else:
         cntrf2 = ax2.pcolormesh(yi, xi, Dzi, vmin=np.amin(Dz), vmax=np.amax(Dz), cmap="Spectral_r")

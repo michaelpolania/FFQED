@@ -44,7 +44,7 @@ double Initialvz(double y, double t, void *driver)
         Output: D with updated boundary values
 */
 
-void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, const Domain & dm)
+void D_BoundaryConditions(std::vector<double> &y, VectorField & D, VectorField & B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, const Domain & dm)
 {
      //Loops all the way up to last physical cell in the y-direction
      for(size_t i=0; i<N_GC; i++){
@@ -64,9 +64,10 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
             double DBC_z = 0.0;
 
 
-            D[0][N_GC-1-i][j] = 2.*DBC_x - D[0][N_GC+1+i][j];
+            D[0][N_GC-1-i][j] = 2.*DBC_x  - D[0][N_GC+1+i][j];
             D[1][N_GC-1-i][j] = 2.*DBC_y - D[1][N_GC+i][j];
             D[2][N_GC-1-i][j] = 2.*DBC_z - D[2][N_GC+i][j];
+   
 
         }
     }
@@ -92,6 +93,7 @@ void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& 
         Output: D with updated boundary values
 */
 
+/*
 void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver)
 {
     //Exchange ghost cells
@@ -119,7 +121,7 @@ void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm
     return;
 }
 
-
+*/
 /*
         Sets boundary condition on magnetic field (continous boundary condition)
         Inputs: B: magnetic field as a vector field

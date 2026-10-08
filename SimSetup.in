@@ -29,7 +29,7 @@ y_min: -5e5
 y_max: 5e5
 
 # Maximum time in years, originally 5e2 1.057e-11
-t_max: 1.0e-14
+t_max: 1.0e-12
 
 # Courant number
 k_C: 0.50

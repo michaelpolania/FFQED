@@ -229,6 +229,10 @@ int main(int argc, char **argv)
     driver.y_center = simparams.v_y_center;
     driver.y_width  = simparams.v_y_width;
     driver.f        = simparams.v_f;
+
+    std::cout << "x_size = " << x.size() << std::endl;
+     std::cout << "y_size = " << y.size() << std::endl;
+
     
     //InitializeV(x, y, N_GC, V);
     
@@ -240,11 +244,12 @@ int main(int argc, char **argv)
 
     //initialize E and H
 
-    LowerBoundary_D(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, domain);
-    UpperBoundary_D(D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
+    //LowerBoundary_D(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, domain);
+    //UpperBoundary_D(D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
+    D_BoundaryConditions(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, domain);
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);  
 
- 
+   
 
     //double max_dm_x = *std::max_element(x.begin(), x.end());
     //std::cout << max_dm_x << std::endl;
@@ -872,9 +877,10 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
 
         
         B_BoundaryConditions(B_1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-        LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
-        UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
+        //LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
+        //UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
 
+        D_BoundaryConditions(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
         exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
         exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
 
@@ -908,8 +914,9 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
     exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
     
     B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-    LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
-    UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
+    //LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
+    //UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
+    D_BoundaryConditions(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
 
     exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
     exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);

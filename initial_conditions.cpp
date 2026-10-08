@@ -262,43 +262,23 @@ void InitializeD(std::vector<double> &x, std::vector<double> &y, size_t N_GC, Ve
                 // Integrate over x
                 gsl_integration_qag(&Fy, x_min, x_max, 0, 1e-7, 1000, 3, w, &result1, &error);
                 D[1][i+N_GC][j+N_GC] = result1 / Deltax[i];
+                
 
                 // 2. Compute Dz: Integrate over x
                 gsl_integration_qag(&Fz, x_min, x_max, 0, 1e-7, 1000, 3, w, &result2, &error);
                 D[2][i+N_GC][j+N_GC] = result2 / Deltax[i];
+                
             }
             else{
                 D[1][i+N_GC][j] = D[1][i+N_GC-1][j];
                 D[2][i+N_GC][j] = D[2][i+N_GC-1][j];
             }
 
-             if (i == 98 && j == 98){
-       
-       // std::cout << "A3x_avg = " << (y[j] + y[j-1])/(20) << std::endl;
-        //std::cout << "x[97]= " << x[i-1] << std::endl;
-        //std::cout << "x[98]= " << x[i] << std::endl;
-        //std::cout << "y[97]= " << y[j-1] << std::endl;
-       // std::cout << "y[98]= " << y[j] << std::endl;
-        //std::cout << Deltax[i] << std::endl;
-        //std::cout << Deltay << std::endl;
-
-        //std::cout << "A1z_avg = " << -(1/(40*M_PI)) * 0.5 *(y[j] + y[j-1]) << std::endl;
-
-    }
+         
         }
     }
 
     gsl_integration_workspace_free(w);
-
-    // Print statements matching your verification logic
-    //std::cout << "D[0][5][5] = " << D[0][100][100] << std::endl;  
-    //std::cout << "D[1][5][5] = " << D[1][100][100] << std::endl;  
-    //std::cout << "D[2][5][5] = " << D[2][100][100] << std::endl;  
-    //std::cout << "x[3] " << x[3] << std::endl;
-    //std::cout << "y[2] " << y[2] << std::endl;
-    //std::cout << "y[3] " << y[3] << std::endl;
-    //std::cout << "E1 " << E1 << std::endl;
-
    
 }
 

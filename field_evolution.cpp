@@ -1357,8 +1357,8 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
 
     const double EPSILON = 1e-14;
 
-    for(size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC; i++){
-      for(size_t j = dm.N_GC; j < D.shape()[2] - dm.N_GC; j++){
+    for(size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC - 1; i++){
+      for(size_t j = dm.N_GC; j < D.shape()[2] - dm.N_GC - 1; j++){
 
             //For Dx component
             double Bx = B[0][i][j];
@@ -1379,6 +1379,8 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
                 double Ddot_Bhat_x = D[0][i][j] * Bhat_x + Dy_avg_x * Bhat_y + Dz_avg_x * Bhat_z;
                 D_new[0][i][j] = D[0][i][j] - (Ddot_Bhat_x * Bhat_x);
             } else {
+                
+
                 D_new[0][i][j] = D[0][i][j]; // Leave unchanged if no B-field exists here
             }
 
@@ -1399,8 +1401,10 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
 
                 double Ddot_Bhat_y = Dx_avg_y * Bhat_x_y + D[1][i][j] * Bhat_y_y + Dz_avg_y * Bhat_z_y;
                 D_new[1][i][j] = D[1][i][j] - (Ddot_Bhat_y * Bhat_y_y);
+                
             } else {
                 D_new[1][i][j] = D[1][i][j];
+                
             }
 
             //For Dz component
@@ -1420,11 +1424,14 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
 
                 double Ddot_Bhat_z = Dx_avg_z * Bhat_x_z + Dy_avg_z * Bhat_y_z + D[2][i][j] * Bhat_z_z;
                 D_new[2][i][j] = D[2][i][j] - (Ddot_Bhat_z * Bhat_z_z);
+                
             } else {
                 D_new[2][i][j] = D[2][i][j];
             }
         }
     }
+
+    /*
 
             for (size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC; i++) {
                 for (size_t j = dm.N_GC; j < D.shape()[2] - dm.N_GC; j++) {
@@ -1448,7 +1455,7 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
         }
     }
 }
-
+    */
         
 
 
@@ -1481,8 +1488,8 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 
     double max_dm_x = *std::max_element(dm.x.begin(), dm.x.end());
 
-    for(size_t i=dm.N_GC; i<D.shape()[1]-dm.N_GC - 1; i++){
-        for(size_t j=dm.N_GC; j<D.shape()[2]-dm.N_GC - 1; j++){
+    for(size_t i=dm.N_GC; i<D.shape()[1]-dm.N_GC; i++){
+        for(size_t j=dm.N_GC; j<D.shape()[2]-dm.N_GC; j++){
             
             //Change everything from E to D and H to B
             double Bx_avg_ij = Compute_A_to_cell_center(B, 0, i, j);
