@@ -602,7 +602,6 @@ double Compute_A_to_cell_center(VectorField & A, int component_index, int i_offs
 
 double slope_calc (VectorField & A, int component_index, int i_offset, int j_offset, int slope_direction, double Deltax, double Deltay){
     
-    //Compute_A_to_cell_center(A, component_index, i_offset, j_offset);
 
     if (slope_direction == 0) {
 
@@ -648,8 +647,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
     //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
     //G_1{i,j-1/2} calculation (G_1)
 
-    double Bx_ij_up = Compute_A_to_cell_center(B, 0, i, j) - 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
-    double Bx_i_jminus1_down = Compute_A_to_cell_center(B, 0, i, j-1) + 0.5 * Deltay * slope_calc(B, 0, i, j-1, 1, Deltax, Deltay);
+    double Bx_ij_up = B[0][i][j] - 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
+    double Bx_i_jminus1_down = B[0][i][j-1] + 0.5 * Deltay * slope_calc(B, 0, i, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
     double G_1_up = E[2][i][j] - 0.5 * slope_calc(E, 2, i, j, 1, Deltax, Deltay) * Deltay;
@@ -658,8 +657,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
 
     //G_1{i-1,j-1/2} calculation (G_2)
     
-    double Bx_iminus1_j_up = Compute_A_to_cell_center(B, 0, i-1, j) - 0.5 * Deltay * slope_calc(B, 0, i-1, j, 1, Deltax, Deltay);
-    double Bx_ijminus1_down = Compute_A_to_cell_center(B, 0, i-1, j-1) + 0.5 * Deltay * slope_calc(B, 0, i-1, j-1, 1, Deltax, Deltay);
+    double Bx_iminus1_j_up = B[0][i-1][j] - 0.5 * Deltay * slope_calc(B, 0, i-1, j, 1, Deltax, Deltay);
+    double Bx_ijminus1_down = B[0][i-1][j-1] + 0.5 * Deltay * slope_calc(B, 0, i-1, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper 
     double G_2_up = E[2][i-1][j] - 0.5 * slope_calc(E, 2, i-1, j, 1, Deltax, Deltay)  * Deltay;
@@ -668,8 +667,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
 
     //F_2{i-1/2,j} calculation (F_1)
 
-    double By_ij_up = Compute_A_to_cell_center(B, 1, i, j) - 0.5 * Deltax * slope_calc(B, 1, i, j, 0, Deltax, Deltay);
-    double By_iminus1_j_down = Compute_A_to_cell_center(B, 1, i-1, j) + 0.5 * Deltax * slope_calc(B, 1, i-1, j, 0, Deltax, Deltay);
+    double By_ij_up = B[1][i][j] - 0.5 * Deltax * slope_calc(B, 1, i, j, 0, Deltax, Deltay);
+    double By_iminus1_j_down = B[1][i-1][j] + 0.5 * Deltax * slope_calc(B, 1, i-1, j, 0, Deltax, Deltay);
 
     double F_1_up = E[2][i][j] - 0.5 * slope_calc(E, 2, i, j, 0, Deltax, Deltay) * Deltax; 
     double F_1_down = E[2][i-1][j] + 0.5 * slope_calc(E, 2, i-1, j, 0, Deltax, Deltay)  * Deltax;
@@ -680,8 +679,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
 
     //F_2{i-1/2,j-1} calculation (F_2)
 
-    double By_i_jminus1_up = Compute_A_to_cell_center(B, 1, i, j-1) - 0.5 * Deltax * slope_calc(B, 1, i, j-1, 0, Deltax, Deltay);
-    double By_ij_minus1_down = Compute_A_to_cell_center(B, 1, i-1, j-1) + 0.5 * Deltax * slope_calc(B, 1, i-1, j-1, 0, Deltax, Deltay);
+    double By_i_jminus1_up = B[1][i][j-1] - 0.5 * Deltax * slope_calc(B, 1, i, j-1, 0, Deltax, Deltay);
+    double By_ij_minus1_down = B[1][i-1][j-1] + 0.5 * Deltax * slope_calc(B, 1, i-1, j-1, 0, Deltax, Deltay);
 
     double F_2_up = E[2][i][j-1] - 0.5 * slope_calc(E, 2, i, j-1, 0, Deltax, Deltay) * Deltax; 
     double F_2_down = E[2][i-1][j-1] + 0.5 * slope_calc(E, 2, i-1, j-1, 0, Deltax, Deltay) * Deltax;
@@ -693,8 +692,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
     //Fluxes for Ez{i,j+1} aka Ez_{i-1, j+1/2}
     //G_1{i,j+1/2} calculation (G_3)
 
-    double Bx_i_jplus1_up = Compute_A_to_cell_center(B, 0, i, j+1) - 0.5 * Deltay * slope_calc(B, 0, i, j+1, 1, Deltax, Deltay);
-    double Bx_ij_down = Compute_A_to_cell_center(B, 0, i, j) + 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
+    double Bx_i_jplus1_up =  B[0][i][j+1] - 0.5 * Deltay * slope_calc(B, 0, i, j+1, 1, Deltax, Deltay);
+    double Bx_ij_down = B[0][i][j] + 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
     double G_3_up = E[2][i][j+1] - 0.5 * slope_calc(E, 2, i, j+1, 1, Deltax, Deltay) * Deltay; 
@@ -703,8 +702,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
     
     //G_1{i-1,j+1/2} calculation (G_4)
 
-    double Bx_iminus1_jplus1_up = Compute_A_to_cell_center(B, 0, i-1, j+1) - 0.5 * Deltay * slope_calc(B, 0, i-1, j+1, 1, Deltax, Deltay);
-    double Bx_iminus1_j_down = Compute_A_to_cell_center(B, 0, i-1, j) + 0.5 * Deltay * slope_calc(B, 0, i-1, j, 1, Deltax, Deltay);
+    double Bx_iminus1_jplus1_up =  B[0][i-1][j+1] - 0.5 * Deltay * slope_calc(B, 0, i-1, j+1, 1, Deltax, Deltay);
+    double Bx_iminus1_j_down = B[0][i-1][j] + 0.5 * Deltay * slope_calc(B, 0, i-1, j, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
 
@@ -721,8 +720,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & E, 
 
     //F_2{i-1/2,j+1} calculation (F_4)
 
-    double By_i_jplus1_up = Compute_A_to_cell_center(B, 1, i, j+1) - 0.5 * Deltax * slope_calc(B, 1, i, j+1, 0, Deltax, Deltay);
-    double By_iminus1_jplus1_down = Compute_A_to_cell_center(B, 1, i-1, j+1) + 0.5 * Deltax * slope_calc(B, 1, i-1, j+1, 0, Deltax, Deltay);
+    double By_i_jplus1_up = B[1][i][j+1] - 0.5 * Deltax * slope_calc(B, 1, i, j+1, 0, Deltax, Deltay);
+    double By_iminus1_jplus1_down = B[1][i-1][j+1] + 0.5 * Deltax * slope_calc(B, 1, i-1, j+1, 0, Deltax, Deltay);
 
     double F_4_up = E[2][i][j+1] - 0.5 * Deltax * slope_calc(E, 2, i, j+1, 0, Deltax, Deltay); 
     double F_4_down = E[2][i-1][j+1] + 0.5 * Deltax * slope_calc(E, 2, i-1, j+1, 0, Deltax, Deltay);
@@ -750,8 +749,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
     //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
     //G_1{i,j-1/2} calculation (G_1)
 
-    double Bx_ij_up = Compute_A_to_cell_center(B, 0, i, j) - 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
-    double Bx_i_jminus1_down = Compute_A_to_cell_center(B, 0, i, j-1) + 0.5 * Deltay * slope_calc(B, 0, i, j-1, 1, Deltax, Deltay);
+    double Bx_ij_up = B[0][i][j] - 0.5 * Deltay * slope_calc(B, 0, i, j, 1, Deltax, Deltay);
+    double Bx_i_jminus1_down = B[0][i][j-1] + 0.5 * Deltay * slope_calc(B, 0, i, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
     double G_1_up = E[2][i][j] - 0.5 * slope_calc(E, 2, i, j, 1, Deltax, Deltay) * Deltay; 
@@ -761,8 +760,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
 
     //G_1{i-1,j-1/2} calculation (G_2)
 
-    double Bx_iminus1_j_up = Compute_A_to_cell_center(B, 0, i-1, j) - 0.5 * Deltay * slope_calc(B, 0, i-1, j, 1, Deltax, Deltay);
-    double Bx_ijminus1_down = Compute_A_to_cell_center(B, 0, i-1, j-1) + 0.5 * Deltay * slope_calc(B, 0, i-1, j-1, 1, Deltax, Deltay);
+    double Bx_iminus1_j_up = B[0][i-1][j] - 0.5 * Deltay * slope_calc(B, 0, i-1, j, 1, Deltax, Deltay);
+    double Bx_ijminus1_down = B[0][i-1][j-1] + 0.5 * Deltay * slope_calc(B, 0, i-1, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper 
     double G_2_up = E[2][i-1][j] - 0.5 * slope_calc(E, 2, i-1, j, 1, Deltax, Deltay)  * Deltay;
@@ -772,8 +771,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
 
     //F_2{i-1/2,j} calculation (F_1)
 
-    double By_ij_up = Compute_A_to_cell_center(B, 1, i, j) - 0.5 * Deltax * slope_calc(B, 1, i, j, 0, Deltax, Deltay);
-    double By_iminus1_j_down = Compute_A_to_cell_center(B, 1, i-1, j) + 0.5 * Deltax * slope_calc(B, 1, i-1, j, 0, Deltax, Deltay);
+    double By_ij_up = B[1][i][j] - 0.5 * Deltax * slope_calc(B, 1, i, j, 0, Deltax, Deltay);
+    double By_iminus1_j_down = B[1][i-1][j] + 0.5 * Deltax * slope_calc(B, 1, i-1, j, 0, Deltax, Deltay);
 
     double F_1_up = E[2][i][j] - 0.5 * slope_calc(E, 2, i, j, 0, Deltax, Deltay) * Deltax; 
     double F_1_down = E[2][i-1][j] + 0.5 * slope_calc(E, 2, i-1, j, 0, Deltax, Deltay)  * Deltax;
@@ -784,8 +783,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
 
     //F_2{i-1/2,j-1} calculation (F_2)
 
-    double By_i_jminus1_up = Compute_A_to_cell_center(B, 1, i, j-1) - 0.5 * Deltax * slope_calc(B, 1, i, j-1, 0, Deltax, Deltay);
-    double By_ij_minus1_down = Compute_A_to_cell_center(B, 1, i-1, j-1) + 0.5 * Deltax * slope_calc(B, 1, i-1, j-1, 0, Deltax, Deltay);
+    double By_i_jminus1_up = B[1][i][j-1] - 0.5 * Deltax * slope_calc(B, 1, i, j-1, 0, Deltax, Deltay);
+    double By_ij_minus1_down = B[1][i-1][j-1] + 0.5 * Deltax * slope_calc(B, 1, i-1, j-1, 0, Deltax, Deltay);
 
     double F_2_up = E[2][i][j-1] - 0.5 * slope_calc(E, 2, i, j-1, 0, Deltax, Deltay) * Deltax; 
     double F_2_down = E[2][i-1][j-1] + 0.5 * slope_calc(E, 2, i-1, j-1, 0, Deltax, Deltay) * Deltax;
@@ -802,8 +801,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
 
     //G_1{i+1, j-1/2}  calculation (G_4)
 
-    double Bx_iplus1_j_up = Compute_A_to_cell_center(B, 0, i+1, j) - 0.5 * Deltay * slope_calc(B, 0, i+1, j, 1, Deltax, Deltay);
-    double Bx_iplus1_jminus1_down = Compute_A_to_cell_center(B, 0, i+1, j-1) + 0.5 * Deltay * slope_calc(B, 0, i+1, j-1, 1, Deltax, Deltay);
+    double Bx_iplus1_j_up =  B[0][i+1][j] - 0.5 * Deltay * slope_calc(B, 0, i+1, j, 1, Deltax, Deltay);
+    double Bx_iplus1_jminus1_down = B[0][i+1][j-1] + 0.5 * Deltay * slope_calc(B, 0, i+1, j-1, 1, Deltax, Deltay);
 
     double G_4_up = E[2][i+1][j] - 0.5 * Deltay * slope_calc(E, 2, i+1, j, 1, Deltax, Deltay); 
     double G_4_down = E[2][i+1][j-1] + 0.5 * Deltay * slope_calc(E, 2, i+1, j-1, 1, Deltax, Deltay);
@@ -812,8 +811,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
 
     //F_1{i+1/2, j-1} calculation (F_3)
 
-    double By_iplus1_jminus1_up = Compute_A_to_cell_center(B, 1, i+1, j-1) - 0.5 * Deltax * slope_calc(B, 1, i+1, j-1, 0, Deltax, Deltay);
-    double By_i_jminus1_down = Compute_A_to_cell_center(B, 1, i, j-1) + 0.5 * Deltax *  slope_calc(B, 1, i, j-1, 0, Deltax, Deltay);
+    double By_iplus1_jminus1_up =  B[1][i+1][j-1] - 0.5 * Deltax * slope_calc(B, 1, i+1, j-1, 0, Deltax, Deltay);
+    double By_i_jminus1_down =  B[1][i][j-1] + 0.5 * Deltax *  slope_calc(B, 1, i, j-1, 0, Deltax, Deltay);
     
     double F_3_up = E[2][i+1][j-1] - 0.5 * slope_calc(E, 2, i+1, j-1, 0, Deltax, Deltay) * Deltax; 
     double F_3_down = E[2][i][j-1] + 0.5 * slope_calc(E, 2, i, j-1, 0, Deltax, Deltay)  * Deltax;
@@ -822,8 +821,8 @@ std::pair<double, double> Ez_Flux_Calculation_Qy(int i, int j, VectorField & E, 
 
     //F_1{i+1/2,j} calculation (F_4)
 
-    double By_iplus1_j_up = Compute_A_to_cell_center(B, 1, i+1, j) - 0.5 * Deltax * slope_calc(B, 1, i+1, j, 0, Deltax, Deltay);
-    double By_ij_down = Compute_A_to_cell_center(B, 1, i, j) + 0.5 * Deltax * slope_calc(B, 1, i, j, 0, Deltax, Deltay); 
+    double By_iplus1_j_up = B[1][i+1][j] - 0.5 * Deltax * slope_calc(B, 1, i+1, j, 0, Deltax, Deltay);
+    double By_ij_down =  B[1][i][j] + 0.5 * Deltax * slope_calc(B, 1, i, j, 0, Deltax, Deltay); 
 
     double F_4_up = E[2][i+1][j] - 0.5 * slope_calc(E, 2, i+1, j, 0, Deltax, Deltay) * Deltax;
     double F_4_down = E[2][i][j] + 0.5 * slope_calc(E, 2, i, j, 0, Deltax, Deltay)  * Deltax; 
@@ -847,8 +846,8 @@ double Qz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
 
     //G_3{i,j-1/2} calculation G_3
 
-    double G_3_up = Compute_A_to_cell_center(E, 0, i, j) - 0.5 * Deltay * slope_calc(E, 0, i, j, 1, Deltax, Deltay);
-    double G_3_down = Compute_A_to_cell_center(E, 0, i, j-1) + 0.5 * Deltay * slope_calc(E, 0, i, j-1, 1, Deltax, Deltay);
+    double G_3_up = E[0][i][j] - 0.5 * Deltay * slope_calc(E, 0, i, j, 1, Deltax, Deltay);
+    double G_3_down = E[0][i][j-1] + 0.5 * Deltay * slope_calc(E, 0, i, j-1, 1, Deltax, Deltay);
 
     double Bz_ij_up_y = B[2][i][j] - 0.5 * Deltay * slope_calc(B, 2, i, j, 1, Deltax, Deltay);
     double Bz_i_jminus1_down_y = B[2][i][j-1] + 0.5 * Deltay * slope_calc(B, 2, i, j-1, 1, Deltax, Deltay);
@@ -857,8 +856,8 @@ double Qz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
 
     //G_3{i,j+1/2} calculation G_4
 
-    double G_4_up = Compute_A_to_cell_center(E, 0, i, j+1) - 0.5 * Deltay * slope_calc(E, 0, i, j+1, 1, Deltax, Deltay); 
-    double G_4_down = Compute_A_to_cell_center(E, 0, i, j) + 0.5 * Deltay * slope_calc(E, 0, i, j, 1, Deltax, Deltay);
+    double G_4_up = E[0][i][j+1] - 0.5 * Deltay * slope_calc(E, 0, i, j+1, 1, Deltax, Deltay); 
+    double G_4_down = E[0][i][j] + 0.5 * Deltay * slope_calc(E, 0, i, j, 1, Deltax, Deltay);
 
     double Bz_i_jplus1_up_y = B[2][i][j+1] - 0.5 * Deltay * slope_calc(B, 2, i, j+1, 1, Deltax, Deltay);
     double Bz_ij_down_y = B[2][i][j] + 0.5 * Deltay * slope_calc(B, 2, i, j, 1, Deltax, Deltay);
@@ -867,8 +866,8 @@ double Qz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
 
     //F_3{i-1/2,j} calculation (F_3)
 
-    double F_3_up = Compute_A_to_cell_center(E, 1, i, j) - 0.5 * Deltax * slope_calc(E, 1, i, j, 0, Deltax, Deltay);
-    double F_3_down = Compute_A_to_cell_center(E, 1, i-1, j) + 0.5 * Deltax * slope_calc(E, 1, i-1, j, 0, Deltax, Deltay);
+    double F_3_up = E[1][i][j] - 0.5 * Deltax * slope_calc(E, 1, i, j, 0, Deltax, Deltay);
+    double F_3_down = E[1][i-1][j] + 0.5 * Deltax * slope_calc(E, 1, i-1, j, 0, Deltax, Deltay);
     
     double Bz_ij_up_x = B[2][i][j] - 0.5 * Deltax * slope_calc(B, 2, i, j, 0, Deltax, Deltay);
     double Bz_iminus1_j_down_x = B[2][i-1][j] + 0.5 * Deltax * slope_calc(B, 2, i-1, j, 0, Deltax, Deltay);
@@ -877,8 +876,8 @@ double Qz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
     
     //F_3{i+1/2,j} calculation (F_4)
 
-    double F_4_up = Compute_A_to_cell_center(E, 1, i+1, j) - 0.5 * Deltax * slope_calc(E, 1, i+1, j, 0, Deltax, Deltay);
-    double F_4_down = Compute_A_to_cell_center(E, 1, i, j) + 0.5 * Deltax * slope_calc(E, 1, i, j, 0, Deltax, Deltay);
+    double F_4_up =  E[1][i+1][j] - 0.5 * Deltax * slope_calc(E, 1, i+1, j, 0, Deltax, Deltay);
+    double F_4_down = E[1][i][j] + 0.5 * Deltax * slope_calc(E, 1, i, j, 0, Deltax, Deltay);
     
     double Bz_iplus1_j_up_x = B[2][i+1][j] - 0.5 * Deltax * slope_calc(B, 2, i+1, j, 0, Deltax, Deltay);
     double Bz_ij_down_x = B[2][i][j] + 0.5 * Deltax * slope_calc(B, 2, i, j, 0, Deltax, Deltay);
@@ -905,8 +904,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
     //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
     //G_1{i,j-1/2} calculation (G_1)
 
-    double Dx_ij_up = Compute_A_to_cell_center(D, 0, i, j) - 0.5 * Deltay * slope_calc(D, 0, i, j, 1, Deltax, Deltay);
-    double Dx_i_jminus1_down = Compute_A_to_cell_center(D, 0, i, j-1) + 0.5 * Deltay * slope_calc(D, 0, i, j-1, 1, Deltax, Deltay);
+    double Dx_ij_up = D[0][i][j] - 0.5 * Deltay * slope_calc(D, 0, i, j, 1, Deltax, Deltay);
+    double Dx_i_jminus1_down = D[0][i][j-1] + 0.5 * Deltay * slope_calc(D, 0, i, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
     double G_1_up = H[2][i][j] - 0.5 * slope_calc(H, 2, i, j, 1, Deltax, Deltay) * Deltay;
@@ -915,8 +914,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
 
     //G_1{i-1,j-1/2} calculation (G_2)
     
-    double Dx_iminus1_j_up = Compute_A_to_cell_center(D, 0, i-1, j) - 0.5 * Deltay * slope_calc(D, 0, i-1, j, 1, Deltax, Deltay);
-    double Dx_ijminus1_down = Compute_A_to_cell_center(D, 0, i-1, j-1) + 0.5 * Deltay * slope_calc(D, 0, i-1, j-1, 1, Deltax, Deltay);
+    double Dx_iminus1_j_up = D[0][i-1][j] - 0.5 * Deltay * slope_calc(D, 0, i-1, j, 1, Deltax, Deltay);
+    double Dx_ijminus1_down = D[0][i-1][j-1] + 0.5 * Deltay * slope_calc(D, 0, i-1, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper 
     double G_2_up = H[2][i-1][j] - 0.5 * slope_calc(H, 2, i-1, j, 1, Deltax, Deltay)  * Deltay;
@@ -926,8 +925,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
 
     //F_2{i-1/2,j} calculation (F_1)
 
-    double Dy_ij_up = Compute_A_to_cell_center(D, 1, i, j) - 0.5 * Deltax * slope_calc(D, 1, i, j, 0, Deltax, Deltay);
-    double Dy_iminus1_j_down = Compute_A_to_cell_center(D, 1, i-1, j) + 0.5 * Deltax * slope_calc(D, 1, i-1, j, 0, Deltax, Deltay);
+    double Dy_ij_up = D[1][i][j] - 0.5 * Deltax * slope_calc(D, 1, i, j, 0, Deltax, Deltay);
+    double Dy_iminus1_j_down = D[1][i-1][j] + 0.5 * Deltax * slope_calc(D, 1, i-1, j, 0, Deltax, Deltay);
 
     double F_1_up = H[2][i][j] - 0.5 * slope_calc(H, 2, i, j, 0, Deltax, Deltay) * Deltax; 
     double F_1_down = H[2][i-1][j] + 0.5 * slope_calc(H, 2, i-1, j, 0, Deltax, Deltay)  * Deltax;
@@ -938,8 +937,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
 
     //F_2{i-1/2,j-1} calculation (F_2)
 
-    double Dy_i_jminus1_up = Compute_A_to_cell_center(D, 1, i, j-1) - 0.5 * Deltax * slope_calc(D, 1, i, j-1, 0, Deltax, Deltay);
-    double Dy_ij_minus1_down = Compute_A_to_cell_center(D, 1, i-1, j-1) + 0.5 * Deltax * slope_calc(D, 1, i-1, j-1, 0, Deltax, Deltay);
+    double Dy_i_jminus1_up = D[1][i][j-1] - 0.5 * Deltax * slope_calc(D, 1, i, j-1, 0, Deltax, Deltay);
+    double Dy_ij_minus1_down = D[1][i-1][j-1] + 0.5 * Deltax * slope_calc(D, 1, i-1, j-1, 0, Deltax, Deltay);
 
     double F_2_up = H[2][i][j-1] - 0.5 * slope_calc(H, 2, i, j-1, 0, Deltax, Deltay) * Deltax; 
     double F_2_down = H[2][i-1][j-1] + 0.5 * slope_calc(H, 2, i-1, j-1, 0, Deltax, Deltay) * Deltax;
@@ -949,8 +948,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
     //Fluxes for Ez{i,j+1} aka Ez_{i-1, j+1/2}
     //G_1{i,j+1/2} calculation (G_3)
 
-    double Dx_i_jplus1_up = Compute_A_to_cell_center(D, 0, i, j+1) - 0.5 * Deltay * slope_calc(D, 0, i, j+1, 1, Deltax, Deltay);
-    double Dx_ij_down = Compute_A_to_cell_center(D, 0, i, j) + 0.5 * Deltay * slope_calc(D, 0, i, j, 1, Deltax, Deltay);
+    double Dx_i_jplus1_up = D[0][i][j+1] - 0.5 * Deltay * slope_calc(D, 0, i, j+1, 1, Deltax, Deltay);
+    double Dx_ij_down = D[0][i][j] + 0.5 * Deltay * slope_calc(D, 0, i, j, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
     double G_3_up = H[2][i][j+1] - 0.5 * slope_calc(H, 2, i, j+1, 1, Deltax, Deltay) * Deltay; 
@@ -960,8 +959,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
     
     //G_1{i-1,j+1/2} calculation (G_4)
 
-    double Dx_iminus1_jplus1_up = Compute_A_to_cell_center(D, 0, i-1, j+1) - 0.5 * Deltay * slope_calc(D, 0, i-1, j+1, 1, Deltax, Deltay);
-    double Dx_iminus1_j_down = Compute_A_to_cell_center(D, 0, i-1, j) + 0.5 * Deltay * slope_calc(D, 0, i-1, j, 1, Deltax, Deltay);
+    double Dx_iminus1_jplus1_up = D[0][i-1][j+1] - 0.5 * Deltay * slope_calc(D, 0, i-1, j+1, 1, Deltax, Deltay);
+    double Dx_iminus1_j_down = D[0][i-1][j] + 0.5 * Deltay * slope_calc(D, 0, i-1, j, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
 
@@ -978,8 +977,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fx(int i, int j, VectorField & H, 
 
     //F_2{i-1/2,j+1} calculation (F_4)
 
-    double Dy_i_jplus1_up = Compute_A_to_cell_center(D, 1, i, j+1) - 0.5 * Deltax * slope_calc(D, 1, i, j+1, 0, Deltax, Deltay);
-    double Dy_iminus1_jplus1_down = Compute_A_to_cell_center(D, 1, i-1, j+1) + 0.5 * Deltax * slope_calc(D, 1, i-1, j+1, 0, Deltax, Deltay);
+    double Dy_i_jplus1_up = D[1][i][j+1] - 0.5 * Deltax * slope_calc(D, 1, i, j+1, 0, Deltax, Deltay);
+    double Dy_iminus1_jplus1_down = D[1][i-1][j+1] + 0.5 * Deltax * slope_calc(D, 1, i-1, j+1, 0, Deltax, Deltay);
 
     double F_4_up = H[2][i][j+1] - 0.5 * Deltax * slope_calc(H, 2, i, j+1, 0, Deltax, Deltay); 
     double F_4_down = H[2][i-1][j+1] + 0.5 * Deltax * slope_calc(H, 2, i-1, j+1, 0, Deltax, Deltay);
@@ -1021,8 +1020,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fy(int i, int j, VectorField & H, 
     //Fluxes for Ez{i,j} aka Ez_{i-1/2, j-1/2}
     //G_1{i,j-1/2} calculation (G_1)
 
-    double Dx_ij_up = Compute_A_to_cell_center(D, 0, i, j) - 0.5 * Deltay * slope_calc(D, 0, i, j, 1, Deltax, Deltay);
-    double Dx_i_jminus1_down = Compute_A_to_cell_center(D, 0, i, j-1) + 0.5 * Deltay * slope_calc(D, 0, i, j-1, 1, Deltax, Deltay);
+    double Dx_ij_up = D[0][i][j] - 0.5 * Deltay * slope_calc(D, 0, i, j, 1, Deltax, Deltay);
+    double Dx_i_jminus1_down = D[0][i][j-1] + 0.5 * Deltay * slope_calc(D, 0, i, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper
     double G_1_up = H[2][i][j] - 0.5 * slope_calc(H, 2, i, j, 1, Deltax, Deltay) * Deltay; 
@@ -1032,8 +1031,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fy(int i, int j, VectorField & H, 
 
     //G_1{i-1,j-1/2} calculation (G_2)
 
-    double Dx_iminus1_j_up = Compute_A_to_cell_center(D, 0, i-1, j) - 0.5 * Deltay * slope_calc(D, 0, i-1, j, 1, Deltax, Deltay);
-    double Dx_ijminus1_down = Compute_A_to_cell_center(D, 0, i-1, j-1) + 0.5 * Deltay * slope_calc(D, 0, i-1, j-1, 1, Deltax, Deltay);
+    double Dx_iminus1_j_up = D[0][i-1][j] - 0.5 * Deltay * slope_calc(D, 0, i-1, j, 1, Deltax, Deltay);
+    double Dx_ijminus1_down = D[0][i-1][j-1] + 0.5 * Deltay * slope_calc(D, 0, i-1, j-1, 1, Deltax, Deltay);
 
     //Note: Ez is positive in the G matrix in Yu paper 
     double G_2_up = H[2][i-1][j] - 0.5 * slope_calc(H, 2, i-1, j, 1, Deltax, Deltay)  * Deltay;
@@ -1042,8 +1041,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fy(int i, int j, VectorField & H, 
 
     //F_2{i-1/2,j} calculation (F_1)
 
-    double Dy_ij_up = Compute_A_to_cell_center(D, 1, i, j) - 0.5 * Deltax * slope_calc(D, 1, i, j, 0, Deltax, Deltay);
-    double Dy_iminus1_j_down = Compute_A_to_cell_center(D, 1, i-1, j) + 0.5 * Deltax * slope_calc(D, 1, i-1, j, 0, Deltax, Deltay);
+    double Dy_ij_up = D[1][i][j] - 0.5 * Deltax * slope_calc(D, 1, i, j, 0, Deltax, Deltay);
+    double Dy_iminus1_j_down = D[1][i-1][j] + 0.5 * Deltax * slope_calc(D, 1, i-1, j, 0, Deltax, Deltay);
 
     double F_1_up = H[2][i][j] - 0.5 * slope_calc(H, 2, i, j, 0, Deltax, Deltay) * Deltax; 
     double F_1_down = H[2][i-1][j] + 0.5 * slope_calc(H, 2, i-1, j, 0, Deltax, Deltay)  * Deltax;
@@ -1054,8 +1053,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fy(int i, int j, VectorField & H, 
 
     //F_2{i-1/2,j-1} calculation (F_2)
 
-    double Dy_i_jminus1_up = Compute_A_to_cell_center(D, 1, i, j-1) - 0.5 * Deltax * slope_calc(D, 1, i, j-1, 0, Deltax, Deltay);
-    double Dy_ij_minus1_down = Compute_A_to_cell_center(D, 1, i-1, j-1) + 0.5 * Deltax * slope_calc(D, 1, i-1, j-1, 0, Deltax, Deltay);
+    double Dy_i_jminus1_up = D[1][i][j-1] - 0.5 * Deltax * slope_calc(D, 1, i, j-1, 0, Deltax, Deltay);
+    double Dy_ij_minus1_down = D[1][i-1][j-1] + 0.5 * Deltax * slope_calc(D, 1, i-1, j-1, 0, Deltax, Deltay);
 
     double F_2_up = H[2][i][j-1] - 0.5 * slope_calc(H, 2, i, j-1, 0, Deltax, Deltay) * Deltax; 
     double F_2_down = H[2][i-1][j-1] + 0.5 * slope_calc(H, 2, i-1, j-1, 0, Deltax, Deltay) * Deltax;
@@ -1072,8 +1071,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fy(int i, int j, VectorField & H, 
 
     //G_1{i+1, j-1/2}  calculation (G_4)
 
-    double Dx_iplus1_j_up = Compute_A_to_cell_center(D, 0, i+1, j) - 0.5 * Deltay * slope_calc(D, 0, i+1, j, 1, Deltax, Deltay);
-    double Dx_iplus1_jminus1_down = Compute_A_to_cell_center(D, 0, i+1, j-1) + 0.5 * Deltay * slope_calc(D, 0, i+1, j-1, 1, Deltax, Deltay);
+    double Dx_iplus1_j_up = D[0][i+1][j] - 0.5 * Deltay * slope_calc(D, 0, i+1, j, 1, Deltax, Deltay);
+    double Dx_iplus1_jminus1_down = D[0][i+1][j-1] + 0.5 * Deltay * slope_calc(D, 0, i+1, j-1, 1, Deltax, Deltay);
 
     double G_4_up = H[2][i+1][j] - 0.5 * Deltay * slope_calc(H, 2, i+1, j, 1, Deltax, Deltay); 
     double G_4_down = H[2][i+1][j-1] + 0.5 * Deltay * slope_calc(H, 2, i+1, j-1, 1, Deltax, Deltay);
@@ -1082,8 +1081,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fy(int i, int j, VectorField & H, 
 
     //F_1{i+1/2, j-1} calculation (F_3)
 
-    double Dy_iplus1_jminus1_up = Compute_A_to_cell_center(D, 1, i+1, j-1) - 0.5 * Deltax * slope_calc(D, 1, i+1, j-1, 0, Deltax, Deltay);
-    double Dy_i_jminus1_down = Compute_A_to_cell_center(D, 1, i, j-1) + 0.5 * Deltax *  slope_calc(D, 1, i, j-1, 0, Deltax, Deltay);
+    double Dy_iplus1_jminus1_up = D[1][i+1][j-1] - 0.5 * Deltax * slope_calc(D, 1, i+1, j-1, 0, Deltax, Deltay);
+    double Dy_i_jminus1_down = D[1][i][j-1] + 0.5 * Deltax *  slope_calc(D, 1, i, j-1, 0, Deltax, Deltay);
     
     double F_3_up = H[2][i+1][j-1] - 0.5 * slope_calc(H, 2, i+1, j-1, 0, Deltax, Deltay) * Deltax; 
     double F_3_down = H[2][i][j-1] + 0.5 * slope_calc(H, 2, i, j-1, 0, Deltax, Deltay)  * Deltax;
@@ -1092,8 +1091,8 @@ std::pair<double, double> Hz_Flux_Calculation_Fy(int i, int j, VectorField & H, 
 
     //F_1{i+1/2,j} calculation (F_4)
 
-    double Dy_iplus1_j_up = Compute_A_to_cell_center(D, 1, i+1, j) - 0.5 * Deltax * slope_calc(D, 1, i+1, j, 0, Deltax, Deltay);
-    double Dy_ij_down = Compute_A_to_cell_center(D, 1, i, j) + 0.5 * Deltax * slope_calc(D, 1, i, j, 0, Deltax, Deltay); 
+    double Dy_iplus1_j_up = D[1][i+1][j] - 0.5 * Deltax * slope_calc(D, 1, i+1, j, 0, Deltax, Deltay);
+    double Dy_ij_down = D[1][i][j] + 0.5 * Deltax * slope_calc(D, 1, i, j, 0, Deltax, Deltay); 
 
     double F_4_up = H[2][i+1][j] - 0.5 * slope_calc(H, 2, i+1, j, 0, Deltax, Deltay) * Deltax;
     double F_4_down = H[2][i][j] + 0.5 * slope_calc(H, 2, i, j, 0, Deltax, Deltay)  * Deltax; 
@@ -1118,8 +1117,8 @@ double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
 
     //G_3{i,j-1/2} calculation G_3
 
-    double G_3_up = Compute_A_to_cell_center(E, 0, i, j) - 0.5 * Deltay *  slope_calc(E, 0, i, j, 1, Deltax, Deltay);
-    double G_3_down = Compute_A_to_cell_center(E, 0, i, j-1) + 0.5 * Deltay * slope_calc(E, 0, i, j-1, 1, Deltax, Deltay);
+    double G_3_up = E[0][i][j] - 0.5 * Deltay *  slope_calc(E, 0, i, j, 1, Deltax, Deltay);
+    double G_3_down = E[0][i][j-1] + 0.5 * Deltay * slope_calc(E, 0, i, j-1, 1, Deltax, Deltay);
 
     double Bz_ij_up_y = B[2][i][j] - 0.5 * Deltay * slope_calc(B, 2, i, j, 1, Deltax, Deltay); 
     double Bz_i_jminus1_down_y = B[2][i][j-1] + 0.5 * Deltay * slope_calc(B, 2, i, j-1, 1, Deltax, Deltay);
@@ -1128,8 +1127,8 @@ double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
 
     //G_3{i,j+1/2} calculation G_4
 
-    double G_4_up = Compute_A_to_cell_center(E, 0, i, j+1) - 0.5 * Deltay * slope_calc(E, 0, i, j+1, 1, Deltax, Deltay); 
-    double G_4_down = Compute_A_to_cell_center(E, 0, i, j) + 0.5 * Deltay * slope_calc(E, 0, i, j, 1, Deltax, Deltay);
+    double G_4_up = E[0][i][j+1] - 0.5 * Deltay * slope_calc(E, 0, i, j+1, 1, Deltax, Deltay); 
+    double G_4_down = E[0][i][j] + 0.5 * Deltay * slope_calc(E, 0, i, j, 1, Deltax, Deltay);
 
     double Bz_i_jplus1_up_y = B[2][i][j+1] - 0.5 * Deltay * slope_calc(B, 2, i, j+1, 1, Deltax, Deltay);
     double Bz_ij_down_y = B[2][i][j] + 0.5 * Deltay * slope_calc(B, 2, i, j, 1, Deltax, Deltay);
@@ -1138,8 +1137,8 @@ double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
 
     //F_3{i-1/2,j} calculation (F_3)
 
-    double F_3_up = Compute_A_to_cell_center(E, 1, i, j) - 0.5 * Deltax * slope_calc(E, 1, i, j, 0, Deltax, Deltay);
-    double F_3_down = Compute_A_to_cell_center(E, 1, i-1, j) + 0.5 * Deltax * slope_calc(E, 1, i-1, j, 0, Deltax, Deltay);
+    double F_3_up = E[1][i][j] - 0.5 * Deltax * slope_calc(E, 1, i, j, 0, Deltax, Deltay);
+    double F_3_down = E[1][i-1][j] + 0.5 * Deltax * slope_calc(E, 1, i-1, j, 0, Deltax, Deltay);
     
     double Bz_ij_up_x = B[2][i][j] - 0.5 * Deltax * slope_calc(B, 2, i, j, 0, Deltax, Deltay);
     double Bz_iminus1_j_down_x = B[2][i-1][j] + 0.5 * Deltax * slope_calc(B, 2, i-1, j, 0, Deltax, Deltay);
@@ -1148,8 +1147,8 @@ double Fz_reconstruction(int i, int j, VectorField & E, VectorField & B, double 
     
     //F_3{i+1/2,j} calculation (F_4)
 
-    double F_4_up = Compute_A_to_cell_center(E, 1, i+1, j) - 0.5 * Deltax * slope_calc(E, 1, i+1, j, 0, Deltax, Deltay);
-    double F_4_down = Compute_A_to_cell_center(E, 1, i, j) + 0.5 * Deltax * slope_calc(E, 1, i, j, 0, Deltax, Deltay);
+    double F_4_up = E[1][i+1][j] - 0.5 * Deltax * slope_calc(E, 1, i+1, j, 0, Deltax, Deltay);
+    double F_4_down = E[1][i][j] + 0.5 * Deltax * slope_calc(E, 1, i, j, 0, Deltax, Deltay);
     
     double Bz_iplus1_j_up_x = B[2][i+1][j] - 0.5 * Deltax * slope_calc(B, 2, i+1, j, 0, Deltax, Deltay);
     double Bz_ij_down_x = B[2][i][j] + 0.5 * Deltax * slope_calc(B, 2, i, j, 0, Deltax, Deltay); 
@@ -1357,8 +1356,8 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
 
     const double EPSILON = 1e-14;
 
-    for(size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC - 1; i++){
-      for(size_t j = dm.N_GC; j < D.shape()[2] - dm.N_GC - 1; j++){
+    for(size_t i = dm.N_GC; i < D.shape()[1] - dm.N_GC; i++){
+      for(size_t j = dm.N_GC; j < D.shape()[2] - dm.N_GC; j++){
 
             //For Dx component
             double Bx = B[0][i][j];
@@ -1479,89 +1478,108 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 {
 
     Compute_EH_from_DB(E, H, D, B, params, dm);
-    
-
-    
-
     exchng2Vector(E, dm.N_GC, ps.comm1D, ps.nbrleft, ps.nbrright);
     exchng2Vector(H, dm.N_GC, ps.comm1D, ps.nbrleft, ps.nbrright);
+
+    VectorField B_avg(boost::extents[3][dm.Nx+2*dm.N_GC][ps.MyE-ps.MyS+2*dm.N_GC]);
+    VectorField D_avg(boost::extents[3][dm.Nx+2*dm.N_GC][ps.MyE-ps.MyS+2*dm.N_GC]);
+    
+
+    for (size_t i = dm.N_GC - 2; i < B.shape()[1] - dm.N_GC -2 ; i++){
+        for (size_t j = dm.N_GC - 2; j < B.shape()[2] - dm.N_GC -2; j++){
+
+            D_avg[0][i][j] = Compute_A_to_cell_center(D, 0, i, j);
+            D_avg[1][i][j] = Compute_A_to_cell_center(D, 1, i, j);
+            D_avg[2][i][j] = D[2][i][j];
+
+            B_avg[0][i][j] = Compute_A_to_cell_center(B, 0, i, j);
+            B_avg[1][i][j] = Compute_A_to_cell_center(B, 1, i, j);
+            B_avg[2][i][j] = B[2][i][j];
+
+
+
+    }
+}
+
+    
 
     double max_dm_x = *std::max_element(dm.x.begin(), dm.x.end());
 
     for(size_t i=dm.N_GC; i<D.shape()[1]-dm.N_GC; i++){
         for(size_t j=dm.N_GC; j<D.shape()[2]-dm.N_GC; j++){
+
             
-            //Change everything from E to D and H to B
-            double Bx_avg_ij = Compute_A_to_cell_center(B, 0, i, j);
-            double Bx_avg_iplus1_j = Compute_A_to_cell_center(B, 0, i+1, j);
-            double Bx_avg_i_jplus1 = Compute_A_to_cell_center(B, 0, i, j+1);
-            double Bx_avg_i_jplus2 = Compute_A_to_cell_center(B, 0, i, j+2);
-            double Bx_avg_iplus2_j = Compute_A_to_cell_center(B, 0, i+2, j);
-            double By_avg_ij = Compute_A_to_cell_center(B, 1, i, j);
-            double By_avg_iplus1_j = Compute_A_to_cell_center(B, 1, i+1, j);
-            double By_avg_i_jplus1 = Compute_A_to_cell_center(B, 1, i, j+1);
-            double By_avg_i_jplus2 = Compute_A_to_cell_center(B, 1, i, j+2);
+            
+            double Bx_avg_ij = B_avg[0][i][j];
+            double Bx_avg_iplus1_j = B_avg[0][i+1][j];
+            double Bx_avg_i_jplus1 = B_avg[0][i][j+1];
+            double Bx_avg_i_jplus2 = B_avg[0][i][j+2];
+            double Bx_avg_iplus2_j = B_avg[0][i+2][j];
 
+            double By_avg_ij = B_avg[1][i][j];
+            double By_avg_iplus1_j = B_avg[1][i+1][j];
+            double By_avg_i_jplus1 = B_avg[1][i][j+1];
+            double By_avg_i_jplus2 = B_avg[1][i][j+2];
 
-            double Dx_avg_ij = Compute_A_to_cell_center(D, 0, i, j);
-            double Dx_avg_iplus1_j = Compute_A_to_cell_center(D, 0, i+1, j);
-            double Dx_avg_iplus2_j = Compute_A_to_cell_center(D, 0, i+2, j);
-            double Dx_avg_i_jplus1 = Compute_A_to_cell_center(D, 0, i, j+1);
-            double Dx_avg_i_jplus2 = Compute_A_to_cell_center(D, 0, i, j+2);
-            double Dy_avg_ij = Compute_A_to_cell_center(D, 1, i, j);
-            double Dy_avg_i_jplus1 = Compute_A_to_cell_center(D, 1, i, j+1);
-            double Dy_avg_i_jplus2 = Compute_A_to_cell_center(D, 1, i, j+2);
+            double Dx_avg_ij = D_avg[0][i][j]; 
+            double Dx_avg_iplus1_j = D_avg[0][i+1][j];
+            double Dx_avg_iplus2_j = D_avg[0][i+2][j];
+            double Dx_avg_i_jplus1 = D_avg[0][i][j+1];
+            double Dx_avg_i_jplus2 = D_avg[0][i][j+2];
+
+            double Dy_avg_ij = D_avg[1][i][j];
+            double Dy_avg_i_jplus1 = D_avg[1][i][j+1];
+            double Dy_avg_i_jplus2 = D_avg[1][i][j+2];
 
    
             //Used for calculating (curl(H) dot B - curl(E) dot D)_ij 
             
-            auto [Ez_Qx_left_bottom, Ez_Qx_left_top] = Ez_Flux_Calculation_Qx(i, j, E, B, dm.Deltax[i], dm.Deltay); //For i-1/2, j face
-            auto [Ez_Qx_right_bottom, Ez_Qx_right_top] = Ez_Flux_Calculation_Qx(i+1, j, E, B, dm.Deltax[i], dm.Deltay); //For i+1/2, j face
+            auto [Ez_Qx_left_bottom, Ez_Qx_left_top] = Ez_Flux_Calculation_Qx(i, j, E, B_avg, dm.Deltax[i], dm.Deltay); //For i-1/2, j face
+            auto [Ez_Qx_right_bottom, Ez_Qx_right_top] = Ez_Flux_Calculation_Qx(i+1, j, E, B_avg, dm.Deltax[i], dm.Deltay); //For i+1/2, j face
             
-            auto [Ez_Qy_left_bottom, Ez_Qy_right_bottom] = Ez_Flux_Calculation_Qy(i, j, E, B, dm.Deltax[i], dm.Deltay); //For i, j-1/2 face
-            auto[Ez_Qy_left_top, Ez_Qy_right_top] = Ez_Flux_Calculation_Qy(i, j+1, E, B, dm.Deltax[i], dm.Deltay); //For i, j+1/2 face
+            auto [Ez_Qy_left_bottom, Ez_Qy_right_bottom] = Ez_Flux_Calculation_Qy(i, j, E, B_avg, dm.Deltax[i], dm.Deltay); //For i, j-1/2 face
+            auto[Ez_Qy_left_top, Ez_Qy_right_top] = Ez_Flux_Calculation_Qy(i, j+1, E, B_avg, dm.Deltax[i], dm.Deltay); //For i, j+1/2 face
             
-            auto [Hz_Fx_left_bottom, Hz_Fx_left_top] = Hz_Flux_Calculation_Fx(i, j, H, D, dm.Deltax[i], dm.Deltay); //For i-1/2, j face
-            auto [Hz_Fx_right_bottom, Hz_Fx_right_top] = Hz_Flux_Calculation_Fx(i+1, j, H, D, dm.Deltax[i], dm.Deltay); //For i+1/2, j face
+            auto [Hz_Fx_left_bottom, Hz_Fx_left_top] = Hz_Flux_Calculation_Fx(i, j, H, D_avg, dm.Deltax[i], dm.Deltay); //For i-1/2, j face
+            auto [Hz_Fx_right_bottom, Hz_Fx_right_top] = Hz_Flux_Calculation_Fx(i+1, j, H, D_avg, dm.Deltax[i], dm.Deltay); //For i+1/2, j face
 
-            auto [Hz_Fy_left_bottom, Hz_Fy_right_bottom] = Hz_Flux_Calculation_Fy(i, j, H, D, dm.Deltax[i], dm.Deltay); //For i, j-1/2 face
-            auto[Hz_Fy_left_top, Hz_Fy_right_top] = Hz_Flux_Calculation_Fy(i, j+1, H, D, dm.Deltax[i], dm.Deltay); //For i, j+1/2 face
+            auto [Hz_Fy_left_bottom, Hz_Fy_right_bottom] = Hz_Flux_Calculation_Fy(i, j, H, D_avg, dm.Deltax[i], dm.Deltay); //For i, j-1/2 face
+            auto[Hz_Fy_left_top, Hz_Fy_right_top] = Hz_Flux_Calculation_Fy(i, j+1, H, D_avg, dm.Deltax[i], dm.Deltay); //For i, j+1/2 face
 
             //Used for calculating (curl(H) dot B - curl(E) dot D)_iplus1_j
             
-            auto [Ez_Qx_right2_bottom, Ez_Qx_right2_top] = Ez_Flux_Calculation_Qx(i+2, j, E, B, dm.Deltax[i], dm.Deltay); // For i+3/2, j face
-            auto [Hz_Qx_right2_bottom, Hz_Qx_right2_top] = Hz_Flux_Calculation_Fx(i+2, j, H, D, dm.Deltax[i], dm.Deltay); // For i+3/2, j face
+            auto [Ez_Qx_right2_bottom, Ez_Qx_right2_top] = Ez_Flux_Calculation_Qx(i+2, j, E, B_avg, dm.Deltax[i], dm.Deltay); // For i+3/2, j face
+            auto [Hz_Qx_right2_bottom, Hz_Qx_right2_top] = Hz_Flux_Calculation_Fx(i+2, j, H, D_avg, dm.Deltax[i], dm.Deltay); // For i+3/2, j face
 
-            auto[Ez_Qy_left2_bottom, Ez_Qy_right2_bottom] = Ez_Flux_Calculation_Qy(i+1, j, E, B, dm.Deltax[i], dm.Deltay); //For i+1/2, j-1/2 face
-            auto[Hz_Fy_left2_bottom, Hz_Fy_right2_bottom] = Hz_Flux_Calculation_Fy(i+1, j, H, D, dm.Deltax[i], dm.Deltay); //For i+1/2, j-1/2 face
+            auto[Ez_Qy_left2_bottom, Ez_Qy_right2_bottom] = Ez_Flux_Calculation_Qy(i+1, j, E, B_avg, dm.Deltax[i], dm.Deltay); //For i+1/2, j-1/2 face
+            auto[Hz_Fy_left2_bottom, Hz_Fy_right2_bottom] = Hz_Flux_Calculation_Fy(i+1, j, H, D_avg, dm.Deltax[i], dm.Deltay); //For i+1/2, j-1/2 face
 
-            auto[Ez_Qy_left2_top, Ez_Qy_right2_top] = Ez_Flux_Calculation_Qy(i+1, j+1, E, B, dm.Deltax[i], dm.Deltay); //For i+1/2, j+1/2 face
-            auto[Hz_Fy_left2_top, Hz_Fy_right2_top] = Hz_Flux_Calculation_Fy(i+1, j+1, H, D, dm.Deltax[i], dm.Deltay); //For i+1/2, j+1/2 face
+            auto[Ez_Qy_left2_top, Ez_Qy_right2_top] = Ez_Flux_Calculation_Qy(i+1, j+1, E, B_avg, dm.Deltax[i], dm.Deltay); //For i+1/2, j+1/2 face
+            auto[Hz_Fy_left2_top, Hz_Fy_right2_top] = Hz_Flux_Calculation_Fy(i+1, j+1, H, D_avg, dm.Deltax[i], dm.Deltay); //For i+1/2, j+1/2 face
 
             //Used for calculating (curl(H) dot B - curl(E) dot D)_i_jplus1
 
-            auto [Ez_Qx_left3_bottom, Ez_Qx_left3_top] = Ez_Flux_Calculation_Qx(i, j+1, E, B, dm.Deltax[i], dm.Deltay); //For i-1/2, j+1
-            auto [Hz_Fx_left3_bottom, Hz_Fx_left3_top] = Hz_Flux_Calculation_Fx(i, j+1, H, D, dm.Deltax[i], dm.Deltay); //For i-1/2, j+1
+            auto [Ez_Qx_left3_bottom, Ez_Qx_left3_top] = Ez_Flux_Calculation_Qx(i, j+1, E, B_avg, dm.Deltax[i], dm.Deltay); //For i-1/2, j+1
+            auto [Hz_Fx_left3_bottom, Hz_Fx_left3_top] = Hz_Flux_Calculation_Fx(i, j+1, H, D_avg, dm.Deltax[i], dm.Deltay); //For i-1/2, j+1
 
-            auto [Ez_Qx_right3_bottom, Ez_Qx_right3_top] = Ez_Flux_Calculation_Qx(i+1, j+1, E, B, dm.Deltax[i], dm.Deltay); //For i+1/2, j+1
-            auto [Hz_Fx_right3_bottom, Hz_Fx_right3_top] = Hz_Flux_Calculation_Fx(i+1, j+1, H, D, dm.Deltax[i], dm.Deltay); //For i+1/2, j+1
+            auto [Ez_Qx_right3_bottom, Ez_Qx_right3_top] = Ez_Flux_Calculation_Qx(i+1, j+1, E, B_avg, dm.Deltax[i], dm.Deltay); //For i+1/2, j+1
+            auto [Hz_Fx_right3_bottom, Hz_Fx_right3_top] = Hz_Flux_Calculation_Fx(i+1, j+1, H, D_avg, dm.Deltax[i], dm.Deltay); //For i+1/2, j+1
 
-            auto[Ez_Qy_left3_bottom, Ez_Qy_right3_bottom] = Ez_Flux_Calculation_Qy(i, j+1, E, B, dm.Deltax[i], dm.Deltay); //For i, j+1/2 face
-            auto[Hz_Fy_left3_bottom, Hz_Fy_right3_bottom] = Hz_Flux_Calculation_Fy(i, j+1, H, D, dm.Deltax[i], dm.Deltay); //For i, j+1/2 face
+            auto[Ez_Qy_left3_bottom, Ez_Qy_right3_bottom] = Ez_Flux_Calculation_Qy(i, j+1, E, B_avg, dm.Deltax[i], dm.Deltay); //For i, j+1/2 face
+            auto[Hz_Fy_left3_bottom, Hz_Fy_right3_bottom] = Hz_Flux_Calculation_Fy(i, j+1, H, D_avg, dm.Deltax[i], dm.Deltay); //For i, j+1/2 face
 
-            auto[Ez_Qy_left3_top, Ez_Qy_right3_top] = Ez_Flux_Calculation_Qy(i, j+2, E, B, dm.Deltax[i], dm.Deltay); //For i, j+3/2 face
-            auto[Hz_Fy_left3_top, Hz_Fy_right3_top] = Hz_Flux_Calculation_Fy(i, j+2, H, D, dm.Deltax[i], dm.Deltay); //For i, j+3/2 face
+            auto[Ez_Qy_left3_top, Ez_Qy_right3_top] = Ez_Flux_Calculation_Qy(i, j+2, E, B_avg, dm.Deltax[i], dm.Deltay); //For i, j+3/2 face
+            auto[Hz_Fy_left3_top, Hz_Fy_right3_top] = Hz_Flux_Calculation_Fy(i, j+2, H, D_avg, dm.Deltax[i], dm.Deltay); //For i, j+3/2 face
             
-
             //ExB calculations
 
-            double E_cross_B_x_ij = E[1][i][j] * B[2][i][j] - E[2][i][j] * Compute_A_to_cell_center(B, 1, i, j);
-            double E_cross_B_x_iplus1_j =  E[1][i+1][j] * B[2][i+1][j] - E[2][i+1][j] * Compute_A_to_cell_center(B, 1, i+1, j);
+            double E_cross_B_x_ij = E[1][i][j] * B[2][i][j] - E[2][i][j] * By_avg_ij;
+            double E_cross_B_x_iplus1_j =  E[1][i+1][j] * B[2][i+1][j] - E[2][i+1][j] * By_avg_iplus1_j;
 
-            double E_cross_B_y_ij = E[2][i][j] * Compute_A_to_cell_center(B, 0, i, j) - E[0][i][j] * Compute_A_to_cell_center(B, 2, i, j);
-            double E_cross_B_y_i_jplus1 =  E[2][i][j+1] * Compute_A_to_cell_center(B, 0, i, j+1) - E[0][i][j+1] * Compute_A_to_cell_center(B, 2, i, j+1);
+            double E_cross_B_y_ij = E[2][i][j] * Bx_avg_ij - E[0][i][j] * B_avg[2][i][j];
+            double E_cross_B_y_i_jplus1 =  E[2][i][j+1] * Bx_avg_i_jplus1 - E[0][i][j+1] * B_avg[2][i][j+1];
 
-            double E_cross_B_z_ij = E[0][i][j] * Compute_A_to_cell_center(B, 1, i, j) - E[1][i][j] * Compute_A_to_cell_center(B, 0, i, j);
+            double E_cross_B_z_ij = E[0][i][j] * By_avg_ij - E[1][i][j] * Bx_avg_ij;
 
             //B^2 calculations
 
@@ -1583,8 +1601,8 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             double curl_E_y_bottom_ij = (Ez_Qy_right_bottom - Ez_Qy_left_bottom)/(dm.Deltax[i]);  //For i, j-1/2 face
             double curl_E_y_top_ij = (Ez_Qy_right_top - Ez_Qy_left_top)/(dm.Deltax[i]); //For i, j+1/2 face
 
-            double curl_H_z_ij = Fz_reconstruction(i, j, H, D, dm.Deltax[i], dm.Deltay);
-            double curl_E_z_ij = Qz_reconstruction(i, j, E, B, dm.Deltax[i], dm.Deltay);
+            double curl_H_z_ij = Fz_reconstruction(i, j, H, D_avg, dm.Deltax[i], dm.Deltay);
+            double curl_E_z_ij = Qz_reconstruction(i, j, E, B_avg, dm.Deltax[i], dm.Deltay);
 
 
             double curl_H_curl_E_ij = 0.5 * (curl_H_x_left_ij * Bx_avg_ij + curl_H_x_right_ij * Bx_avg_iplus1_j) + 0.5 * (curl_H_y_bottom_ij * By_avg_ij + curl_H_y_top_ij * By_avg_i_jplus1) + curl_H_z_ij * B[2][i][j] - 0.5 * (curl_E_x_left_ij * Dx_avg_ij + curl_E_x_right_ij * Dx_avg_iplus1_j) - 0.5 * (curl_E_y_bottom_ij * Dy_avg_ij + curl_E_y_top_ij * Dy_avg_i_jplus1) - curl_E_z_ij * D[2][i][j];
@@ -1603,8 +1621,8 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             double curl_E_y_bottom_iplus1_j = (Ez_Qy_right2_bottom - Ez_Qy_left2_bottom)/(dm.Deltax[i]);  //For i+1, j-1/2 face
             double curl_E_y_top_iplus1_j = (Ez_Qy_right2_top - Ez_Qy_left2_top)/(dm.Deltax[i]); //For i+1, j+1/2 face
 
-            double curl_H_z_iplus1_j = Fz_reconstruction(i+1, j, H, D, dm.Deltax[i], dm.Deltay);
-            double curl_E_z_iplus1_j = Qz_reconstruction(i+1, j, E, B, dm.Deltax[i], dm.Deltay);
+            double curl_H_z_iplus1_j = Fz_reconstruction(i+1, j, H, D_avg, dm.Deltax[i], dm.Deltay);
+            double curl_E_z_iplus1_j = Qz_reconstruction(i+1, j, E, B_avg, dm.Deltax[i], dm.Deltay);
 
             double curl_H_curl_E_iplus1_j = 0.5 * (curl_H_x_left_iplus1_j * Bx_avg_iplus1_j + curl_H_x_right_iplus1_j * Bx_avg_iplus2_j) + 0.5 * (curl_H_y_bottom_iplus1_j * By_avg_i_jplus1 + curl_H_y_top_iplus1_j * By_avg_i_jplus2) + curl_H_z_iplus1_j * B[2][i+1][j] - 0.5 * (curl_E_x_left_iplus1_j * Dx_avg_iplus1_j + curl_E_x_right_iplus1_j * Dx_avg_iplus2_j) - 0.5 * (curl_E_y_bottom_iplus1_j * Dy_avg_i_jplus1 + curl_E_y_top_iplus1_j * Dy_avg_i_jplus2) - curl_E_z_iplus1_j * D[2][i+1][j];
 
@@ -1622,8 +1640,8 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             double curl_E_y_bottom_i_jplus1 = (Ez_Qy_right3_bottom - Ez_Qy_left3_bottom)/(dm.Deltax[i]);  //For i, j+1/2 face
             double curl_E_y_top_i_jplus1 = (Ez_Qy_right3_top - Ez_Qy_left3_top)/(dm.Deltax[i]); //For i, j+3/2 face
 
-            double curl_H_z_i_jplus1 = Fz_reconstruction(i, j+1, H, D, dm.Deltax[i], dm.Deltay);
-            double curl_E_z_i_jplus1 = Qz_reconstruction(i, j+1, E, B, dm.Deltax[i], dm.Deltay);
+            double curl_H_z_i_jplus1 = Fz_reconstruction(i, j+1, H, D_avg, dm.Deltax[i], dm.Deltay);
+            double curl_E_z_i_jplus1 = Qz_reconstruction(i, j+1, E, B_avg, dm.Deltax[i], dm.Deltay);
 
             double curl_H_curl_E_i_jplus1 = 0.5 * (curl_H_x_left_i_jplus1 * Bx_avg_i_jplus1 + curl_H_x_right_i_jplus1 * Bx_avg_i_jplus2) + 0.5 * (curl_H_y_bottom_i_jplus1 * By_avg_i_jplus1 + curl_H_y_top_i_jplus1 * By_avg_i_jplus2) + curl_H_z_i_jplus1 * B[2][i][j+1] - 0.5 * (curl_E_x_left_i_jplus1 * Dx_avg_i_jplus1 + curl_E_x_right_i_jplus1 * Dx_avg_i_jplus2) - 0.5 * (curl_E_y_bottom_i_jplus1 * Dy_avg_i_jplus1 + curl_E_y_top_i_jplus1 * Dy_avg_i_jplus2) - curl_E_z_i_jplus1 * D[2][i][j+1];
 
