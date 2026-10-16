@@ -36,16 +36,9 @@ const H5std_string FILE_EXT( ".h5" );
 
 #include <cmath>
 
-bool has_nan(const VectorField& F, const Domain& dm) {
-    for (size_t c = 0; c < 3; c++)
-        for (size_t i = 0; i < F.shape()[1]; i++)
-            for (size_t j = 0; j < F.shape()[2]; j++)
-                if (std::isnan(F[c][i][j]) || std::isinf(F[c][i][j]))
-                    return true;
-    return false;
-}
 
-void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t);
+
+void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t);
 int main(int argc, char **argv)
 {
 
@@ -85,7 +78,7 @@ int main(int argc, char **argv)
         Sets number of ghost cells needed at end of each simulation domain. Using
         monotonised central difference limiter (MC) method, so need two at each edge.
     */
-    const size_t N_GC = 2;
+    const size_t N_GC = 3;
 
     //Define problem domain in reduced units
     size_t Nx = simparams.Nx; //number of finite volume cells in x-direction, excluding ghost cells
@@ -205,6 +198,8 @@ int main(int argc, char **argv)
     struct Domain domain = {Nx, Ny, N_GC, Lx, Ly, Deltay, Deltax, x, y, Deltat, Ny_locs, starts};
     struct Process process = {simparams.RK_order, world_rank, nbrleft, nbrright, MyS, MyE, comm1D};
 
+    //std::cout << "Deltax = " << Deltax.size() << std::endl;
+
     // std::cout << "y_size = " << y.size() << std::endl;
 
     //Compute initial magnetic field and create VectorField objects to hold electric field and updated magnetic field
@@ -219,7 +214,7 @@ int main(int argc, char **argv)
     VectorField D_np1(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of D in reduced units at next time step
     
     //VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of E times c in reduced units (E*c/(B_0*L_0/t_0))
-    VectorField J(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of J in reduced units (J*L_0/B_0)
+    //VectorField J(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of J in reduced units (J*L_0/B_0)
 
     //Initializes the charge density Rho
     ScalarField Rho(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
@@ -249,6 +244,10 @@ int main(int argc, char **argv)
     D_BoundaryConditions(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, domain);
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);  
 
+    std::cout << "D.shape()[1]= " << D.shape()[1] << std::endl;
+    std::cout << "D.shape()[2]= " << D.shape()[2] << std::endl;
+    std::cout << "B.shape()[1]= " << B.shape()[1] << std::endl;
+    std::cout << "B.shape()[2]= " << B.shape()[2] << std::endl;
    
 
     //double max_dm_x = *std::max_element(x.begin(), x.end());
@@ -256,6 +255,7 @@ int main(int argc, char **argv)
 
     VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]);
     VectorField H(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]);
+
 
 
     
@@ -514,7 +514,7 @@ int main(int argc, char **argv)
 
         iter++;
 
-        RK_Step(H, B, E, J, D, B_np1, D_np1, Rho, domain, process, bparams, simparams, t);
+        RK_Step(H, B, E, D, B_np1, D_np1, Rho, domain, process, bparams, simparams, t);
 
         //Update time and magnetic field
         t = t + Deltat;
@@ -807,7 +807,7 @@ int main(int argc, char **argv)
           //     t: time in reduced units
         //Output: B_np1: updated magnetic field
 
-void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t)
+void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t)
 {
     size_t Ny = dm.Ny;
     size_t N_GC = dm.N_GC;
@@ -848,7 +848,6 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, simparams, dm, process, t); 
         // Check Compute_RHS's output directly
 
-
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -858,7 +857,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         
         //Computes intermediate value in Huen's methods for B and D
         for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
+          for(size_t j=0; j<B.shape()[2]; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
                 B_1[1][i][j] = B[1][i][j] + Deltat*Qy[i][j];
                 B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
@@ -888,6 +887,8 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
         Compute_Rho(D_1, Rho, dm);
 
         Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D_1, B_1, simparams, dm, process, t_next);
+
+
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -1000,7 +1001,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & J,
 
         B_BoundaryConditions(B_2, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
         //Compute_J(B_2, J, N_GC, dm);
-        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
+        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
         //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
         //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
         //B_torEvolve(Qz, B_2, J, vc, tC, N_GC, t, dm, bparams);

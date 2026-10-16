@@ -205,7 +205,7 @@ ax2.set_title(rf'$D_{{\mathrm{{pol}}}}$ (lines) and $D_{{z,{BScale:.0f}}}$ (colo
 ΨBcontours = np.linspace( np.amin(ΨBi), (np.amax(ΨBi)-np.amin(ΨBi)), 26 )
 # ΨDcontours = np.linspace( np.amin(ΨDi), (np.amax(ΨDi)-np.amin(ΨDi)), 26 )
 #ΨDcontours = 0.00001*ΨBcontours #can change this, but must guarantee that it is not all zeroes
-ΨDcontours = 2e-7*ΨBcontours
+ΨDcontours = 2e-9*ΨBcontours
 
 
 if( np.amax(np.abs(Bz)) <= 1e-16 ):
