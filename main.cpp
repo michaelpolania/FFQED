@@ -38,7 +38,9 @@ const H5std_string FILE_EXT( ".h5" );
 
 
 
-void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t);
+void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D, VectorField & J, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t);
+
+
 int main(int argc, char **argv)
 {
 
@@ -192,6 +194,7 @@ int main(int argc, char **argv)
     //double Deltat = simparams.k_C*DeltaL*L_0/(c * t_0); //CFL limit in reduced units
     double Deltat = simparams.k_C * DeltaL;
     //std::cout << Deltat <<std::endl;
+    //std::cout << t_max << std::endl;
     //std::cout << Lx<< std::endl;
     //std::cout << Ly << std::endl;
     //Define structs domain and process, containing data about the overall simulation domain and the current individual process, respectively
@@ -214,7 +217,7 @@ int main(int argc, char **argv)
     VectorField D_np1(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-face average values of D in reduced units at next time step
     
     //VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of E times c in reduced units (E*c/(B_0*L_0/t_0))
-    //VectorField J(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of J in reduced units (J*L_0/B_0)
+    VectorField J(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]); //Cell-edge average values of J in reduced units (J*L_0/B_0)
 
     //Initializes the charge density Rho
     ScalarField Rho(boost::extents[Nx+2*N_GC][MyE-MyS+2*N_GC]);
@@ -225,8 +228,8 @@ int main(int argc, char **argv)
     driver.y_width  = simparams.v_y_width;
     driver.f        = simparams.v_f;
 
-    std::cout << "x_size = " << x.size() << std::endl;
-     std::cout << "y_size = " << y.size() << std::endl;
+    //std::cout << "x_size = " << x.size() << std::endl;
+     //std::cout << "y_size = " << y.size() << std::endl;
 
     
     //InitializeV(x, y, N_GC, V);
@@ -246,8 +249,8 @@ int main(int argc, char **argv)
 
     std::cout << "D.shape()[1]= " << D.shape()[1] << std::endl;
     std::cout << "D.shape()[2]= " << D.shape()[2] << std::endl;
-    std::cout << "B.shape()[1]= " << B.shape()[1] << std::endl;
-    std::cout << "B.shape()[2]= " << B.shape()[2] << std::endl;
+    //std::cout << "B.shape()[1]= " << B.shape()[1] << std::endl;
+    //std::cout << "B.shape()[2]= " << B.shape()[2] << std::endl;
    
 
     //double max_dm_x = *std::max_element(x.begin(), x.end());
@@ -514,7 +517,7 @@ int main(int argc, char **argv)
 
         iter++;
 
-        RK_Step(H, B, E, D, B_np1, D_np1, Rho, domain, process, bparams, simparams, t);
+        RK_Step(H, B, E, D, J, B_np1, D_np1, Rho, domain, process, bparams, simparams, t);
 
         //Update time and magnetic field
         t = t + Deltat;
@@ -807,7 +810,7 @@ int main(int argc, char **argv)
           //     t: time in reduced units
         //Output: B_np1: updated magnetic field
 
-void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t)
+void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D, VectorField & J, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t)
 {
     size_t Ny = dm.Ny;
     size_t N_GC = dm.N_GC;
@@ -845,7 +848,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         Compute_Rho(D, Rho, dm);
         
         //std::cout << "Makes it here" << std::endl;
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, simparams, dm, process, t); 
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, J, simparams, dm, process, t); 
         // Check Compute_RHS's output directly
 
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
@@ -856,8 +859,11 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         exchng2Scalar(Fz, N_GC, comm1D, nbrleft, nbrright);
         
         //Computes intermediate value in Huen's methods for B and D
-        for(size_t i=0; i<B.shape()[1]; i++){
-          for(size_t j=0; j<B.shape()[2]; j++){
+        //for(size_t i=0; i<B.shape()[1]; i++){
+          //for(size_t j=0; j<B.shape()[2]; j++){
+
+          for (size_t i = dm.N_GC; i < B.shape()[1] - dm.N_GC; i++){
+            for (size_t j = dm.N_GC; j < B.shape()[2] - dm.N_GC; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
                 B_1[1][i][j] = B[1][i][j] + Deltat*Qy[i][j];
                 B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
@@ -871,11 +877,11 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
 
         Force_Free_Constraint(B_1, D_1, dm, process);
     
-        exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
+        //exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
         exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
 
         
-        B_BoundaryConditions(B_1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
+        B_BoundaryConditions(B_1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft ,nbrright, dm);
         //LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
         //UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
 
@@ -886,7 +892,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
 
         Compute_Rho(D_1, Rho, dm);
 
-        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D_1, B_1, simparams, dm, process, t_next);
+        Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D_1, B_1, J, simparams, dm, process, t_next);
 
 
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
@@ -897,8 +903,11 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         exchng2Scalar(Fz, N_GC, comm1D, nbrleft, nbrright);
 
         //Computes final value in Huen's method for B and D
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
+        //for(size_t i=0; i<B.shape()[1]; i++){
+          //  for(size_t j=0; j<B.shape()[2]; j++){
+        for (size_t i = dm.N_GC; i < B.shape()[1] - dm.N_GC; i++){
+            for (size_t j = dm.N_GC; j < B.shape()[2] - dm.N_GC; j++){
+
                 B_np1[0][i][j] = 0.5*( B[0][i][j] + B_1[0][i][j] + Deltat*Qx[i][j] );
                 B_np1[1][i][j] = 0.5*( B[1][i][j] + B_1[1][i][j] + Deltat*Qy[i][j] );
                 B_np1[2][i][j] = 0.5*( B[2][i][j] + B_1[2][i][j] + Deltat*Qz[i][j] );
@@ -911,7 +920,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
 
     
     Force_Free_Constraint(B_np1, D_np1, dm, process);
-    exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
+    //exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
     exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
     
     B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);

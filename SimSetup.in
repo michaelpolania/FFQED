@@ -11,7 +11,7 @@ varying_mesh: false
 QED_corrections: false
 
 # Resolution in x-direction
-Nx: 200
+Nx: 800
 
 # Resolution in y-direction
 Ny: 60

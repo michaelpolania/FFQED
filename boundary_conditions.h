@@ -19,13 +19,14 @@ void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t 
 
 // D field
 //void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver);
-void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, const Domain & dm);
-void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver);
+//void LowerBoundary_D(std::vector<double> &y, VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, const Domain & dm);
+//void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver);
+void D_BoundaryConditions(std::vector<double> &y, VectorField & D, VectorField & B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, const Domain & dm);
 
 // E field
-void E_BoundaryConditions(VectorField & E, const BandBCParams & bparams, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright);
+//void E_BoundaryConditions(VectorField & E, const BandBCParams & bparams, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright);
 
 // H field
-void H_BoundaryConditions(VectorField & H, const BandBCParams & bparams, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright);
+//void H_BoundaryConditions(VectorField & H, const BandBCParams & bparams, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright);
 
 #endif // BOUNDARY_CONDITIONS_H_INCLUDED
