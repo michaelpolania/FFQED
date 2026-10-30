@@ -39,7 +39,7 @@ constexpr double L_0 = 1e6; //characteristic length scale (cm), radius of neutro
 constexpr double t_0 = (L_0)/(c); //characteristic timescale (s). Taken as the light crossing time.
 constexpr double T_0 = 1e8; //characteristic temperature (K)
 constexpr double s_0 = 1e18; //characteristic entropy density (erg/K/cm^3)
-constexpr double E_0 = B_0*L_0/(c*t_0); //characteristic electric field (statV/cm)
+//constexpr double E_0 = B_0*L_0/(c*t_0); //characteristic electric field (statV/cm)
 
 /*
     Load simulation parameters from SimSetup.in

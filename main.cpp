@@ -36,9 +36,70 @@ const H5std_string FILE_EXT( ".h5" );
 
 #include <cmath>
 
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <string>
 
 
 void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D, VectorField & J, VectorField & B_np1, VectorField & D_np1, ScalarField & Rho, const Domain & dm, const Process & process, const BandBCParams & bparams, const SimParams & simparams, double t);
+
+
+
+
+#include <fstream>
+#include <iostream>
+#include <iomanip>
+#include <string>
+
+// Single process print function
+void printFieldsToFile(int step,
+                        double t,
+                        const VectorField& D, 
+                        const VectorField& B, 
+                        const ScalarField& Rho, 
+                        int N_GC) {
+    
+    // Generates files like fields_step_100.txt, fields_step_200.txt, etc.
+    std::string filename = "fields_step_" + std::to_string(step) + ".txt";
+    
+    std::ofstream outFile(filename);
+    if (!outFile.is_open()) {
+        std::cerr << "Error: Could not open file " << filename << std::endl;
+        return;
+    }
+
+    outFile << std::scientific << std::setprecision(6);
+    outFile << "# Simulation Time t = " << t << "\n\n";
+
+    // Set up table header
+    outFile << std::setw(6)  << "i"    << std::setw(6)  << "j"
+            << std::setw(15) << "Dx"   << std::setw(15) << "Dy"   << std::setw(15) << "Dz"
+            << std::setw(15) << "Bx"   << std::setw(15) << "By"   << std::setw(15) << "Bz" 
+            << std::setw(15) << "Rho"  << "\n";
+
+    int dim_x = D.shape()[1]; // Outer spatial dimension length
+    int dim_y = D.shape()[2]; // Inner spatial dimension length
+
+    // Loop through the inner physical domain (stripping out ghost cells)
+    for (int i = N_GC; i < dim_x - N_GC; ++i) {
+        for (int j = N_GC; j < dim_y - N_GC; ++j) {
+            outFile << std::setw(6)  << i 
+                    << std::setw(6)  << j
+                    << std::setw(15) << D[0][i][j] // Dx
+                    << std::setw(15) << D[1][i][j] // Dy
+                    << std::setw(15) << D[2][i][j] // Dz
+                    << std::setw(15) << B[0][i][j] // Bx
+                    << std::setw(15) << B[1][i][j] // By
+                    << std::setw(15) << B[2][i][j] // Bz
+                    << std::setw(15) << Rho[i][j]  << "\n";
+        }
+        outFile << "\n"; // Clean visual split between X rows
+    }
+    outFile.close();
+}
+
+    
 
 
 int main(int argc, char **argv)
@@ -227,31 +288,23 @@ int main(int argc, char **argv)
     driver.y_center = simparams.v_y_center;
     driver.y_width  = simparams.v_y_width;
     driver.f        = simparams.v_f;
-
-    //std::cout << "x_size = " << x.size() << std::endl;
-     //std::cout << "y_size = " << y.size() << std::endl;
-
-    
-    //InitializeV(x, y, N_GC, V);
     
     InitializeD(x, y, N_GC, D, domain, Deltax, Deltay);
     InitializeB(x, y, bparams, domain, N_GC, Deltax, Deltay, B);
+
+    //printFieldsToFile("initial_fields.txt", 0.0, D, B, Rho, N_GC);
+
+    
 
     B_BoundaryConditions(B, bparams, Ny, N_GC, 0.0, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, domain);
     exchng2Vector(B, N_GC, comm1D, nbrleft, nbrright); 
 
     //initialize E and H
 
-    //LowerBoundary_D(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, domain);
-    //UpperBoundary_D(D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver);
     D_BoundaryConditions(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, domain);
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);  
 
-    std::cout << "D.shape()[1]= " << D.shape()[1] << std::endl;
-    std::cout << "D.shape()[2]= " << D.shape()[2] << std::endl;
-    //std::cout << "B.shape()[1]= " << B.shape()[1] << std::endl;
-    //std::cout << "B.shape()[2]= " << B.shape()[2] << std::endl;
-   
+   //printFieldsToFile("initial_fields.txt", 0.0, D, B, Rho, N_GC);
 
     //double max_dm_x = *std::max_element(x.begin(), x.end());
     //std::cout << max_dm_x << std::endl;
@@ -517,12 +570,18 @@ int main(int argc, char **argv)
 
         iter++;
 
+        //std::cout << "iter = " << iter << std::endl;
+
         RK_Step(H, B, E, D, J, B_np1, D_np1, Rho, domain, process, bparams, simparams, t);
 
         //Update time and magnetic field
         t = t + Deltat;
         B = B_np1;
         D = D_np1;
+
+        if (iter <= 115) {
+    printFieldsToFile(iter, t, D, B, Rho, N_GC);
+}
         
         //std::cout << t << std::endl;
 
@@ -851,6 +910,10 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, J, simparams, dm, process, t); 
         // Check Compute_RHS's output directly
 
+        //printFieldsToFile("initial_fields.txt", t, D, B, Rho, N_GC);
+
+        
+
         exchng2Scalar(Qx, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qy, N_GC, comm1D, nbrleft, nbrright);
         exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
@@ -859,11 +922,11 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         exchng2Scalar(Fz, N_GC, comm1D, nbrleft, nbrright);
         
         //Computes intermediate value in Huen's methods for B and D
-        //for(size_t i=0; i<B.shape()[1]; i++){
-          //for(size_t j=0; j<B.shape()[2]; j++){
+        for(size_t i=0; i<B.shape()[1]; i++){
+          for(size_t j=0; j<B.shape()[2]; j++){
 
-          for (size_t i = dm.N_GC; i < B.shape()[1] - dm.N_GC; i++){
-            for (size_t j = dm.N_GC; j < B.shape()[2] - dm.N_GC; j++){
+          //for (size_t i = dm.N_GC; i < B.shape()[1] - dm.N_GC; i++){
+            //for (size_t j = dm.N_GC; j < B.shape()[2] - dm.N_GC; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
                 B_1[1][i][j] = B[1][i][j] + Deltat*Qy[i][j];
                 B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
@@ -875,10 +938,10 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         }
 
 
-        Force_Free_Constraint(B_1, D_1, dm, process);
+        //Force_Free_Constraint(B_1, D_1, dm, process);
     
         //exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
-        exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
+        //exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
 
         
         B_BoundaryConditions(B_1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft ,nbrright, dm);
@@ -903,10 +966,10 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         exchng2Scalar(Fz, N_GC, comm1D, nbrleft, nbrright);
 
         //Computes final value in Huen's method for B and D
-        //for(size_t i=0; i<B.shape()[1]; i++){
-          //  for(size_t j=0; j<B.shape()[2]; j++){
-        for (size_t i = dm.N_GC; i < B.shape()[1] - dm.N_GC; i++){
-            for (size_t j = dm.N_GC; j < B.shape()[2] - dm.N_GC; j++){
+        for(size_t i=0; i<B.shape()[1]; i++){
+          for(size_t j=0; j<B.shape()[2]; j++){
+        //for (size_t i = dm.N_GC; i < B.shape()[1] - dm.N_GC; i++){
+          //  for (size_t j = dm.N_GC; j < B.shape()[2] - dm.N_GC; j++){
 
                 B_np1[0][i][j] = 0.5*( B[0][i][j] + B_1[0][i][j] + Deltat*Qx[i][j] );
                 B_np1[1][i][j] = 0.5*( B[1][i][j] + B_1[1][i][j] + Deltat*Qy[i][j] );
@@ -919,9 +982,9 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         }
 
     
-    Force_Free_Constraint(B_np1, D_np1, dm, process);
+    //Force_Free_Constraint(B_np1, D_np1, dm, process);
     //exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
-    exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
+    //exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
     
     B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
     //LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
@@ -931,108 +994,11 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
     exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
     exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
 
-    Compute_Rho(D_np1, Rho, dm);
-   
-//        std::fstream Dataout;
-//        std::string timestr = std::to_string(t*t_0/yr);
-////        if(iter%100 == 0){
-//        Dataout.open("BzCheck_"+timestr+".dat",std::fstream::out);
-//        for(size_t i = 0; i < B.shape()[1]; i++){
-//            Dataout << i << std::endl;
-//            for(size_t j = 0; j < B.shape()[2]; j++){
-//                Dataout << std::setprecision(10) << B[2][i][j] << "   ";
-//            }
-//            Dataout << std::endl;
-//            Dataout << " " << std::endl;
-//        }
-//        Dataout.close();
-//        Dataout.open("Bz_np1Check_"+timestr+".dat",std::fstream::out);
-//        for(size_t i = 0; i < B.shape()[1]; i++){
-//            Dataout << i << std::endl;
-//            for(size_t j = 0; j < B.shape()[2]; j++){
-//                Dataout << std::setprecision(10) << B[2][i][j] << "   ";
-//            }
-//            Dataout << std::endl;
-//            Dataout << " " << std::endl;
-//        }
-//        Dataout.close();
-    }
-    else if(order == 3){
-
-        static ScalarField Qx(boost::extents[B.shape()[1]][B.shape()[2]]); //RHS of Faraday's Law (EMF), x-component
-        static ScalarField Qy(boost::extents[B.shape()[1]][B.shape()[2]]); //RHS of Faraday's Law (EMF), y-component
-        static ScalarField Qz(boost::extents[B.shape()[1]][B.shape()[2]]); //RHS of Faraday's Law, z-component (toroidal field)
-        static VectorField B_1(boost::extents[3][B.shape()[1]][B.shape()[2]]); //Updated B after first step
-        static VectorField B_2(boost::extents[3][B.shape()[1]][B.shape()[2]]); //Updated B after second step
-
-//        Compute_J(B, J, N_GC, dm); //this is already computed outside RKStep
-//        exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright); //this is already computed outside RKStep
-        //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        //B_torEvolve(Qz, B, J, vc, tC, N_GC, t, dm, bparams);
-        exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
-                B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
-            }
-        }
-        //Compute_E(B, B_1, E, J, vc, tC, N_GC, t, dm, bparams);
-        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_RHS(Qx,Qy, Qz, Fx, Fy, Fz, E, H, J, D, B, N_GC, Deltax, Deltay);
-        for(size_t i=N_GC; i<B.shape()[1]; i++){
-            for(size_t j=N_GC; j<B.shape()[2]-1; j++){
-                B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
-                B_1[1][i][j] = B[1][i][j] + Deltat*Qy[i][j];
-            }
-        }
-        B_BoundaryConditions(B_1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-
-        //Compute_J(B_1, J, N_GC, dm);
-        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        //B_torEvolve(Qz, B_1, J, vc, tC, N_GC, t, dm, bparams);
-        exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
-                B_2[2][i][j] = 0.25*( 3.*B[2][i][j] + B_1[2][i][j] + Deltat*Qz[i][j] );
-            }
-        }
-        //Compute_E(B_1, B_2, E, J, vc, tC, N_GC, t, dm, bparams);
-        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
-                B_2[0][i][j] = 0.25*( 3.*B[0][i][j] + B_1[0][i][j] + Deltat*Qx[i][j] );
-                B_2[1][i][j] = 0.25*( 3.*B[1][i][j] + B_1[1][i][j] + Deltat*Qy[i][j] );
-            }
-        }
-
-        B_BoundaryConditions(B_2, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-        //Compute_J(B_2, J, N_GC, dm);
-        //exchng2Vector(J, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_vc(B, vc, J, tC, N_GC, t, dm, bparams, world_rank);
-        //exchng2Vector(vc, N_GC, comm1D, nbrleft, nbrright);
-        //B_torEvolve(Qz, B_2, J, vc, tC, N_GC, t, dm, bparams);
-        exchng2Scalar(Qz, N_GC, comm1D, nbrleft, nbrright);
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
-                B_np1[2][i][j] = 1./3.*( B[2][i][j] + 2.*B_2[2][i][j] + 2.*Deltat*Qz[i][j] );
-            }
-        }
-        //Compute_E(B_2, B_np1, E, J, vc, tC, N_GC, t, dm, bparams);
-        //E_BoundaryConditions(E, bparams, N_GC, comm1D, nbrleft, nbrright);
-        //Compute_EMF(Qx, Qy, E, N_GC, Deltax, Deltay);
-        for(size_t i=0; i<B.shape()[1]; i++){
-            for(size_t j=0; j<B.shape()[2]; j++){
-                B_np1[0][i][j] = 1./3.*( B[0][i][j] + 2.*B_2[0][i][j] + 2.*Deltat*Qx[i][j] );
-                B_np1[1][i][j] = 1./3.*( B[1][i][j] + 2.*B_2[1][i][j] + 2.*Deltat*Qy[i][j] );
-            }
-        }
-        B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
-        exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
+    
 
     }
+    
+    
     else{
         std::cout << "Invalid Runge-Kutta timestepping scheme order" << std::endl;
     }
@@ -1041,91 +1007,4 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
 
 }
 
-        ////////////////////////////////Print block/////////////////////////////////////////////////
-//        std::fstream Dataout;
-//        std::string timestr = std::to_string(t*t_0/yr);
-//        if(iter%100 == 0){
-//            Dataout.open("BzCheck_"+RANK_NAME+"_"+timestr+".dat",std::fstream::out);
-//            for(size_t i = 0; i < B.shape()[1]; i++){
-//                for(size_t j = 0; j < B.shape()[2]; j++){
-//                    Dataout << std::setprecision(10) << B[2][i][j] << "   ";
-//                }
-//                Dataout << std::endl;
-//                Dataout << " " << std::endl;
-//            }
-//            Dataout.close();
-//
-//            Dataout.open("ByCheck_"+RANK_NAME+"_"+timestr+".dat",std::fstream::out);
-//            for(size_t i = 0; i < B.shape()[1]; i++){
-//                for(size_t j = 0; j < B.shape()[2]; j++){
-//                    Dataout << std::setprecision(10) << B[1][i][j] << "   ";
-//                }
-//                Dataout << std::endl;
-//                Dataout << " " << std::endl;
-//            }
-//            Dataout.close();
-//
-//            Dataout.open("BxCheck_"+RANK_NAME+"_nprocs="+PROCS+"_"+timestr+".dat",std::fstream::out);
-//            for(size_t i = 0; i < B.shape()[1]; i++){
-//                for(size_t j = 0; j < B.shape()[2]; j++){
-//                    Dataout << std::setprecision(10) << B[0][i][j] << "   ";
-//                }
-//                Dataout << std::endl;
-//                Dataout << " " << std::endl;
-//            }
-//            Dataout.close();
-//
-//            Dataout.open("JyCheck"+RANK_NAME+"_"+timestr+".dat",std::fstream::out);
-//            for(size_t i = 0; i < B.shape()[1]; i++){
-//                for(size_t j = 0; j < B.shape()[2]; j++){
-//                    Dataout << J[1][i][j] << "   ";
-//                }
-//                Dataout << std::endl;
-//                Dataout << " " << std::endl;
-//            }
-//            Dataout.close();
-//        }
-
-        ////////////////////////////////Print block/////////////////////////////////////////////////
-//    std::fstream Dataout;
-//    Dataout.open("vczCheck_"+RANK_NAME+"_Initial.dat",std::fstream::out);
-//    for(size_t i = 0; i < B.shape()[1]; i++){
-//        for(size_t j = 0; j < B.shape()[2]; j++){
-//            Dataout << std::setprecision(10) << vc[2][i][j] << "   ";
-//        }
-//        Dataout << std::endl;
-//        Dataout << " " << std::endl;
-//    }
-//    Dataout.close();
-////
-//    Dataout.open("vcyCheck_"+RANK_NAME+"_Initial.dat",std::fstream::out);
-//    for(size_t i = 0; i < B.shape()[1]; i++){
-//        for(size_t j = 0; j < B.shape()[2]; j++){
-//            Dataout << std::setprecision(10) << vc[1][i][j] << "   ";
-//        }
-//        Dataout << std::endl;
-//        Dataout << " " << std::endl;
-//    }
-//    Dataout.close();
-//
-//    Dataout.open("JyCheck_"+RANK_NAME+"_Initial.dat",std::fstream::out);
-//    for(size_t i = 0; i < J.shape()[1]; i++){
-//        for(size_t j = 0; j < J.shape()[2]; j++){
-//            Dataout << std::setprecision(10) << J[1][i][j] << "   ";
-//        }
-//        Dataout << std::endl;
-//        Dataout << " " << std::endl;
-//    }
-//    Dataout.close();
-//
-//    Dataout.open("JxCheck_"+RANK_NAME+"_Initial.dat",std::fstream::out);
-//    for(size_t i = 0; i < J.shape()[1]; i++){
-//        for(size_t j = 0; j < J.shape()[2]; j++){
-//            Dataout << std::setprecision(10) << J[0][i][j] << "   ";
-//        }
-//        Dataout << std::endl;
-//        Dataout << " " << std::endl;
-//    }
-//    Dataout.close();
-
-
+  

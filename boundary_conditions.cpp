@@ -63,10 +63,15 @@ void D_BoundaryConditions(std::vector<double> &y, VectorField & D, VectorField &
             double DBC_y = -( 0.5 * Initialvz(y_j, t, &driver) * B[0][N_GC][j] + 0.5 * Initialvz(y_j_minus_1, t, &driver) * B[0][N_GC][j-1] );
             double DBC_z = 0.0;
 
-
+            //Lower boundary x = 0
             D[0][N_GC-1-i][j] = 2.*DBC_x  - D[0][N_GC+1+i][j];
             D[1][N_GC-1-i][j] = 2.*DBC_y - D[1][N_GC+i][j];
             D[2][N_GC-1-i][j] = 2.*DBC_z - D[2][N_GC+i][j];
+
+            //Upper boundary x = Lx (continous)
+            D[0][D.shape()[1]-N_GC+i][j] = D[0][D.shape()[1]-N_GC-2-i][j];
+            D[1][D.shape()[1]-N_GC-1+i][j] = D[1][D.shape()[1]-N_GC-2-i][j];
+            D[2][D.shape()[1]-N_GC-1+i][j] = D[2][D.shape()[1]-N_GC-2-i][j];
    
 
         }

@@ -1,16 +1,7 @@
 #ifndef FIELD_EVOLUTION_H_INCLUDED
 #define FIELD_EVOLUTION_H_INCLUDED
 
-struct Fields;
-double compute_A1_x(int i, int j, const Fields & f);
-double compute_A1_y(int i, int j, const Fields & f);
-double compute_A1_z(int i, int j, const Fields & f);
-double compute_A2_x(int i, int j, const Fields & f);
-double compute_A2_y(int i, int j, const Fields & f);
-double compute_A2_z(int i, int j, const Fields & f);
-double compute_A3_x(int i, int j, const Fields & f);
-double compute_A3_y(int i, int j, const Fields & f);
-double compute_A3_z(int i, int j, const Fields & f);
+
 void Compute_Rho(VectorField & D, ScalarField & Rho, const Domain & dm);
 void Compute_J(VectorField & B, VectorField & E, VectorField & H, VectorField & D, ScalarField & Rho, VectorField & J, size_t N_GC, const Domain & dm);
 std::pair<double, double> Ez_Flux_Calculation_Qx(int i, int j, VectorField & D, VectorField & B, const SimParams & params, double Deltax, double Deltay);
@@ -25,7 +16,7 @@ void Force_Free_Constraint(VectorField & B, VectorField & D, const Domain & dm, 
 double Compute_A_to_cell_center(VectorField & A, int component_index, int i_offset, int j_offset);
 double Solve_lambda_Newton(double D_squared, double B_squared, double kappa, int max_iter, double tol);
 double Solve_Lambda_Cubic(double D_squared, double B_squared);
-double Compute_EH_from_BD(int i_offset, int j_offset, int component_index, int E_or_H, int plus_or_minus, int slope_direction, VectorField & B, VectorField & D, const SimParams & params, double Deltax, double Deltay);
+double Compute_EH_from_BD(int i_offset, int j_offset, int component_index, const std::string field, const std::string plus_or_minus, const std::string slope_direction, VectorField & B, VectorField & D, const SimParams & params, double Deltax, double Deltay);
 double slope_calc (VectorField & A, int component_index, int i_offset, int j_offset, int slope_direction, double Deltax, double Deltay);
 double Compute_Damping_Term(int i, const Domain & dm);
 double Compute_E_from_D(int i_offset, int j_offset, int component_index, VectorField & B, VectorField & D, const SimParams & params);
