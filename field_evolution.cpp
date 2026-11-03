@@ -24,7 +24,7 @@ void Compute_Rho(VectorField & D, ScalarField & Rho, const Domain & dm)
        //for (size_t i = dm.N_GC - 2; i < D.shape()[1] - dm.N_GC + 2 ; i++){
         //for (size_t j = dm.N_GC - 2; j < D.shape()[2] - dm.N_GC + 2; j++){
 
-            //Rho[i][j] = (D[0][i+1][j] - D[0][i][j])/(4.*pi*dm.Deltax[i]) + (D[1][i][j+1] - D[1][i][j])/(4.*pi*dm.Deltay);
+            Rho[i][j] = (D[0][i+1][j] - D[0][i][j])/(4.*pi*dm.Deltax[i]) + (D[1][i][j+1] - D[1][i][j])/(4.*pi*dm.Deltay);
            // std::cout << "D[0][i][j] = " << D[0][i][j] << std::endl;
             // std::cout << "D[0][i][j] = " << D[0][i][j] << std::endl;
             //std::cout << "D[0][i+1][j] = " << D[0][i+1][j] << std::endl;
@@ -844,7 +844,7 @@ double Compute_Damping_Term(int i, const Domain & dm){
     double max_dm_x = *std::max_element(dm.x.begin(), dm.x.end());
 
     //Numerical parameter that controls damping strength
-    double K_abs = 20.0;
+    double K_abs = 2.0;
 
     double damping_term = (K_abs)/(dm.Deltat) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x)) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x)) * ((dm.x[i] - 0.9 * max_dm_x)/(max_dm_x - 0.9 * max_dm_x));
     
@@ -1212,16 +1212,20 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 
             double Jz_ij = (Rho[i][j] * E_cross_B_z_ij)/(B_squared_ij) + (curl_H_curl_E_ij * B[2][i][j])/(B_squared_ij);
 
-            //std::cout << "Rho[i][j] = " << Rho[i][j] << std::endl;
-            if (Jx_avg != 0 || Jy_avg != 0 || Jz_ij !=0){
-                //std::cout << "Jx_avg= " << Jx_avg << std::endl;
-                //std::cout << "Jy_avg= " << Jy_avg << std::endl;
-                //std::cout << "Jz_avg= " << Jz_ij << std::endl;
-                //std::cout << "t = " << t << std::endl;
+            if (dm.x[i] >= 0.9 * max_dm_x && i < dm.x.size() - 2){
+            
+            Qx[i][j] = -(Compute_Damping_Term(i, dm) * B_avg[0][i][j]) - curl_E_x_left_ij;
+            Qy[i][j] = -(Compute_Damping_Term(i, dm) * B_avg[1][i][j]) + curl_E_y_bottom_ij;
+            Qz[i][j] = -(Compute_Damping_Term(i, dm) * B[2][i][j]) + curl_E_z_ij;
 
+            Fx[i][j] = -(Compute_Damping_Term(i, dm) * D_avg[0][i][j]) + curl_H_x_left_ij - Jx_avg;
+            Fy[i][j] = -(Compute_Damping_Term(i, dm) * D_avg[1][i][j]) - curl_H_y_bottom_ij - Jy_avg;
+            Fz[i][j] = -(Compute_Damping_Term(i, dm) * D[2][i][j]) + curl_H_z_ij - Jz_ij;
 
             }
-            
+
+            else{
+
             Qx[i][j] = -curl_E_x_left_ij;
             Qy[i][j] = curl_E_y_bottom_ij;
             Qz[i][j] = curl_E_z_ij;
@@ -1229,6 +1233,7 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             Fx[i][j] = curl_H_x_left_ij - Jx_avg;
             Fy[i][j] = -curl_H_y_bottom_ij - Jy_avg;
             Fz[i][j] = curl_H_z_ij - Jz_ij;
+            }
 
             //J[0][i][j] = Jx_avg;
             //J[1][i][j] = Jy_avg;

@@ -38,7 +38,7 @@ t_day = 3600*24 #1 day in seconds
 L_km = 1e5 #1 km in cm
 yr = 3600*24*365 #1 year in seconds
 B_0Local = 1e13 #in G. Must be of the form 10^X for integer X
-Rstar = 12*L_km #assumed stellar radius in cm
+Rstar = 10*L_km
 t_cr = Rstar/c #light crossing time in s
 
 OutputFolder = 'EMHD_Sim_Data_ShortTime'
@@ -206,7 +206,7 @@ ax2.set_title(rf'$D_{{\mathrm{{pol}}}}$ (lines) and $D_{{z,{BScale:.0f}}}$ (colo
 # ΨDcontours = np.linspace( np.amin(ΨDi), (np.amax(ΨDi)-np.amin(ΨDi)), 26 )
 #ΨDcontours = 0.00001*ΨBcontours #can change this, but must guarantee that it is not all zeroes
 
-ΨDcontours = 2e-8*ΨBcontours
+ΨDcontours = 2e-10*ΨBcontours
 if( np.amax(np.abs(Bz)) <= 1e-16 ):
     cntrf1 = ax1.pcolormesh(yi, xi, Bzi, vmin=-0.1, vmax=0.1, cmap="Spectral_r")
 else:
@@ -385,7 +385,17 @@ anim = animation.FuncAnimation(fig, partial(BFieldPolTorPlot,B=B,t=t,Nfrac=Nfrac
 #max_stable_frame = 40  # last frame before Dz blow-up (frame 111 onward is NaN/Inf)
 #anim = animation.FuncAnimation(fig, partial(BFieldPolTorPlot,B=B,t=t,Nfrac=Nfrac), frames = max_stable_frame + 1, interval = 5, blit=False)
 #plt.savefig('ContourMagEvo'+outputFolderSuffix+'Dumb.pdf',bbox_inches = 'tight',pad_inches = 0.07)
-writerVideo = animation.FFMpegWriter(fps=30)
+#writerVideo = animation.FFMpegWriter(fps=30)
+
+writerVideo = animation.FFMpegWriter(
+    fps=30,
+    codec='libx264',
+    extra_args=[
+        '-pix_fmt', 'yuv420p',                          # Fixes QuickTime codec mismatch
+        '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2'     # Safeguards against odd-pixel size crashes
+    ]
+)
+
 
 # writerVideo =  animation.FFMpegWriter(fps=30, codec='libx264', extra_args=['-pix_fmt', 'yuv420p'])
 anim.save('FieldEvoEBPolTor'+OutputFolder+'.mp4',writer=writerVideo)#,savefig_kwargs={"bbox_inches":"tight"})

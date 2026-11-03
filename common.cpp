@@ -404,7 +404,7 @@ void exchng2Scalar(ScalarField & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, i
            comm1D: MPI communicator for processes organized into Cartesian grid
            nbrleft, nbrright: which processes are to the left and right of this one
 */
-void exchng2StdVector(std::vector<double> A, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright)
+void exchng2StdVector(std::vector<double> & A, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright)
 {
     size_t Ny_loc = A.size();
 

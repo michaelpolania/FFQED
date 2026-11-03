@@ -312,6 +312,22 @@ int main(int argc, char **argv)
     VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]);
     VectorField H(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]);
 
+    //std::cout << "D.shape()[1]= " << D.shape()[1] << std::endl;
+    //std::cout << "x length = " << x.size() << std::endl;
+    //std::cout << "max x = " <<  *std::max_element(x.begin(), x.end())<< std::endl;
+
+    /*
+    for(size_t i=N_GC; i<D.shape()[1]-N_GC; i++){
+    if (x[i] >= 0.9 * *std::max_element(x.begin(), x.end())){
+
+        std::cout << "x = " << x[i] << std::endl;
+        std::cout << "i = " << i << std::endl;
+
+
+    }
+}
+*/
+
 
 
     
@@ -982,9 +998,9 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         }
 
     
-    //Force_Free_Constraint(B_np1, D_np1, dm, process);
+    Force_Free_Constraint(B_np1, D_np1, dm, process);
     //exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
-    //exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
+    exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
     
     B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
     //LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
