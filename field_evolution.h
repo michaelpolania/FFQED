@@ -18,6 +18,9 @@ double Solve_lambda_Newton(double D_squared, double B_squared, double kappa, int
 double Solve_Lambda_Cubic(double D_squared, double B_squared);
 double Compute_EH_from_BD(int i_offset, int j_offset, int component_index, const std::string field, const std::string plus_or_minus, const std::string slope_direction, VectorField & B, VectorField & D, const SimParams & params, double Deltax, double Deltay);
 double slope_calc (VectorField & A, int component_index, int i_offset, int j_offset, int slope_direction, double Deltax, double Deltay);
-double Compute_Damping_Term(int i, const Domain & dm);
+double Compute_Damping_Term(double x, const Domain & dm);
+void Set_Damping_Background(const VectorField & B, const VectorField & D);
+double Ez_Corner(int i, int j, VectorField & D, VectorField & B, const SimParams & params, double Deltax, double Deltay);
+double Hz_Corner(int i, int j, VectorField & B, VectorField & D, const SimParams & params, double Deltax, double Deltay);
 double Compute_E_from_D(int i_offset, int j_offset, int component_index, VectorField & B, VectorField & D, const SimParams & params);
 #endif

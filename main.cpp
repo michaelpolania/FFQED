@@ -304,6 +304,9 @@ int main(int argc, char **argv)
     D_BoundaryConditions(y, D, B, N_GC, comm1D, nbrleft, nbrright, 0.0, driver, domain);
     exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);  
 
+    //Store the initial state as the reference the absorbing layer relaxes towards
+    Set_Damping_Background(B, D);
+
    //printFieldsToFile("initial_fields.txt", 0.0, D, B, Rho, N_GC);
 
     //double max_dm_x = *std::max_element(x.begin(), x.end());
