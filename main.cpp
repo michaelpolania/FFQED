@@ -214,7 +214,9 @@ int main(int argc, char **argv)
 
     int isperiodic[1];
     isperiodic[0] = 1; // 1 stands for true in MPI
-    int reorder = true; //whether to allow MPI to reorder the partial domains
+    //Do not let MPI reorder ranks: the output file names, the MPI_COMM_WORLD gathers below and the
+    //post-processing scripts all assume that the rank in MPI_COMM_WORLD equals the sub-domain index.
+    int reorder = false; //whether to allow MPI to reorder the partial domains
     MPI_Comm comm1D;
     MPI_Cart_create( MPI_COMM_WORLD, n_dims, dims, isperiodic, reorder, &comm1D ); //creates communicator comm1D
 
@@ -229,8 +231,16 @@ int main(int argc, char **argv)
     std::vector<int> starts(num_procs); //Vector of the starting indices (in decomposed domain direction) of each partial domain
     std::vector<int> Ny_locs(num_procs); //Vectors of the extent (in decomposed domain direction) of each partial domain
     //Send starts and Ny_locs to each process.
-    MPI_Allgather(&MyS, 1, MPI_INT, starts.data(), 1, MPI_INT, MPI_COMM_WORLD);
+    int MyS_int = int(MyS); //MyS is a size_t; it must not be sent as MPI_INT directly
+    MPI_Allgather(&MyS_int, 1, MPI_INT, starts.data(), 1, MPI_INT, MPI_COMM_WORLD);
     int Ny_loc = int(MyE - MyS);
+
+    //The halo exchange copies N_GC interior columns to each neighbour, so every sub-domain needs at
+    //least N_GC interior cells in y.
+    if (Ny_loc < int(N_GC)){
+        if (world_rank == 0) printf("ERROR: %d processes leave fewer than N_GC = %zu cells in y on some process (Ny = %zu). Use fewer processes or larger Ny.\n", num_procs, N_GC, Ny);
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
     MPI_Allgather(&Ny_loc, 1, MPI_INT, Ny_locs.data(), 1, MPI_INT, MPI_COMM_WORLD);
 
     std::vector<double> x(xFull.begin(), xFull.end() ); //Local domain cell mid-points in x-direction. Unsplit
@@ -242,6 +252,13 @@ int main(int argc, char **argv)
         y.push_back(0.);
     }
     exchng2StdVector(y, N_GC, comm1D, nbrleft, nbrright);
+    //Across the periodic seam the exchanged ghost coordinates come from the other end of the domain
+    //(e.g. y_max - Deltay/2 below y_min). Use the unwrapped coordinates instead, so position-dependent
+    //boundary data (the velocity driver) is evaluated at the right place on every process.
+    for(size_t k=0; k<N_GC; k++){
+        y[k] = y[N_GC] - double(N_GC-k)*Deltay;
+        y[y.size()-1-k] = y[y.size()-1-N_GC] + double(N_GC-k)*Deltay;
+    }
 
     std::vector<double> ydomain(yFull.begin() + MyS, yFull.begin() + MyE ); //Local domain cell mid-points in y-direction. Split based on the start and end indices computed by MPE_Decomp1D. Excludes ghost cells. Used for h5 file.
 

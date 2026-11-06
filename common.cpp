@@ -337,8 +337,11 @@ void MPE_Decomp1D( size_t N, int num_procs, int MyID, size_t &s, size_t &e )
     deficit = N % num_procs;
     s = s + std::min(MyID,(int)deficit);
 
+    //The first `deficit` ranks each take one extra cell. (This previously read `nlocal = nlocal;`,
+    //a no-op, so whenever N % num_procs != 0 some cells belonged to no rank and the halo
+    //exchange glued together sub-domains that are not neighbours.)
     if (MyID < (int)deficit){
-      nlocal = nlocal;
+      nlocal = nlocal + 1;
     }
     e = s + nlocal;
     if( (e > N) || (MyID == num_procs-1)){
