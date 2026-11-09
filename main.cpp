@@ -82,8 +82,8 @@ void printFieldsToFile(int step,
     int dim_y = D.shape()[2]; // Inner spatial dimension length
 
     // Loop through the inner physical domain (stripping out ghost cells)
-    for (int i = N_GC; i < dim_x - N_GC; ++i) {
-        for (int j = N_GC; j < dim_y - N_GC; ++j) {
+    for (int i = 0; i < dim_x; ++i) {
+        for (int j = 0; j < dim_y; ++j) {
             outFile << std::setw(6)  << i 
                     << std::setw(6)  << j
                     << std::setw(15) << D[0][i][j] // Dx
@@ -921,6 +921,7 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         static VectorField D_1(boost::extents[3][D.shape()[1]][D.shape()[2]]); //Updated D after first step aka intermediate value
 
         Compute_Rho(D, Rho, dm);
+        exchng2Scalar(Rho, N_GC, comm1D, nbrleft, nbrright);
         
         //std::cout << "Makes it here" << std::endl;
         Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D, B, J, simparams, dm, process, t); 
@@ -941,8 +942,6 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         for(size_t i=0; i<B.shape()[1]; i++){
           for(size_t j=0; j<B.shape()[2]; j++){
 
-          //for (size_t i = dm.N_GC; i < B.shape()[1] - dm.N_GC; i++){
-            //for (size_t j = dm.N_GC; j < B.shape()[2] - dm.N_GC; j++){
                 B_1[0][i][j] = B[0][i][j] + Deltat*Qx[i][j];
                 B_1[1][i][j] = B[1][i][j] + Deltat*Qy[i][j];
                 B_1[2][i][j] = B[2][i][j] + Deltat*Qz[i][j];
@@ -954,22 +953,27 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         }
 
 
-        //Force_Free_Constraint(B_1, D_1, dm, process);
-    
-        //exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
-        //exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
-
         
         B_BoundaryConditions(B_1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft ,nbrright, dm);
+        exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
+
+        Force_Free_Constraint(B_1, D_1, dm, process);
+    
+        //exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
+        exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
+
+        
+        
         //LowerBoundary_D(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
         //UpperBoundary_D(D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
 
         D_BoundaryConditions(y, D_1, B_1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
-        exchng2Vector(B_1, N_GC, comm1D, nbrleft, nbrright);
+        
         exchng2Vector(D_1, N_GC, comm1D, nbrleft, nbrright);
 
 
         Compute_Rho(D_1, Rho, dm);
+        exchng2Scalar(Rho, N_GC, comm1D, nbrleft, nbrright);
 
         Compute_RHS(Qx, Qy, Qz, Fx, Fy, Fz, Rho, E, H, D_1, B_1, J, simparams, dm, process, t_next);
 
@@ -998,16 +1002,20 @@ void RK_Step(VectorField & H, VectorField & B, VectorField & E, VectorField & D,
         }
 
     
-    Force_Free_Constraint(B_np1, D_np1, dm, process);
-    //exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
-    exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
+    
     
     B_BoundaryConditions(B_np1, bparams, Ny, N_GC, t_next, comm1D, world_rank, Ny_locs, starts, nbrleft, nbrright, dm);
+    exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
+    
+    Force_Free_Constraint(B_np1, D_np1, dm, process);
+    exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
+    
+    
     //LowerBoundary_D(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
     //UpperBoundary_D(D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver);
     D_BoundaryConditions(y, D_np1, B_np1, N_GC, comm1D, nbrleft, nbrright, t_next, driver, dm);
 
-    exchng2Vector(B_np1, N_GC, comm1D, nbrleft, nbrright);
+   
     exchng2Vector(D_np1, N_GC, comm1D, nbrleft, nbrright);
 
     

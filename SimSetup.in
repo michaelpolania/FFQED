@@ -11,10 +11,10 @@ varying_mesh: false
 QED_corrections: false
 
 # Resolution in x-direction
-Nx: 60
+Nx: 30
 
 # Resolution in y-direction
-Ny: 40
+Ny: 10
 
 # Lower limit of simulation domain in x-direction in cm
 x_min: 0
@@ -29,7 +29,7 @@ y_min: -5e5
 y_max: 5e5
 
 # Maximum time in years, originally 5e2 1.057e-11
-t_max: 1.0e-11
+t_max: 1.0e-10
 
 # Courant number
 k_C: 0.50

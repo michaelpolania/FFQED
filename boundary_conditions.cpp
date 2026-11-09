@@ -24,7 +24,7 @@ double Initialvz(double y, double t, void *driver)
     double y_width  = p->y_width;
     double f        = p->f;
     
-    return -v_max * exp(-pow(y - y_center, 2.0) / (2.0 * y_width * y_width)) * sin(2.0 * M_PI * f * t);   
+    return -v_max * exp(-pow(y - y_center, 2.0) / (2.0 * y_width * y_width)) * sin(2.0 * M_PI * f * t);  
 }
 
 
@@ -43,6 +43,7 @@ double Initialvz(double y, double t, void *driver)
                dm: Domain object containing information about the simulation domain
         Output: D with updated boundary values
 */
+
 
 void D_BoundaryConditions(std::vector<double> &y, VectorField & D, VectorField & B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver, const Domain & dm)
 {
@@ -81,52 +82,7 @@ void D_BoundaryConditions(std::vector<double> &y, VectorField & D, VectorField &
     return;
 }
 
-    
-    
-/*
-        Sets upper boundary condition on Displacement field (enforces value is zero at boundary)
-        Inputs: D: magnetic field as a vector field
-               bparams: BandBCParams object containing information about boundary conditions
-               Ny: extent of combined domain in partitioned direction
-               N_GC: number of ghost cells
-               t: time in reduced units
-               comm1D: MPI communicator for decomposed domain
-               world_rank: rank of current process
-               Ny_locs and starts: vectors containing the extent and starting indices of the domain in the decomposed direction
-               nbrleft and nbrright: the ranks of the processes to the left and right of the current process
-               dm: Domain object containing information about the simulation domain
-        Output: D with updated boundary values
-*/
 
-/*
-void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm comm1D, int nbrleft, int nbrright, double t, vConfig_params& driver)
-{
-    //Exchange ghost cells
-    //exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
-
-    //Loops all the way up to last physical cell in the y-direction
-    for(size_t i=0; i<N_GC; i++){
-        for(size_t j=N_GC; j<D.shape()[2]-N_GC; j++){
-
-            
-            //D[0][D.shape()[1] - 2*N_GC + N_GC + i][j] = -D[0][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
-            //D[1][D.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = -D[1][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
-            //D[2][D.shape()[1] - 2*N_GC + N_GC - 1 + i][j] = -D[2][D.shape()[1] - 2*N_GC + N_GC - 2 - i][j];
-            
-            //Continous boundary condition
-            D[0][D.shape()[1]-N_GC+i][j] = D[0][D.shape()[1]-N_GC-2-i][j];
-            D[1][D.shape()[1]-N_GC-1+i][j] = D[1][D.shape()[1]-N_GC-2-i][j];
-            D[2][D.shape()[1]-N_GC-1+i][j] = D[2][D.shape()[1]-N_GC-2-i][j];
-
-}
-
-    }
-
-    exchng2Vector(D, N_GC, comm1D, nbrleft, nbrright);
-    return;
-}
-
-*/
 /*
         Sets boundary condition on magnetic field (continous boundary condition)
         Inputs: B: magnetic field as a vector field
@@ -141,6 +97,9 @@ void UpperBoundary_D(VectorField& D, const VectorField& B, size_t N_GC, MPI_Comm
                dm: Domain object containing information about the simulation domain
         Output: B with updated boundary values
 */
+
+
+
 void B_BoundaryConditions(VectorField & B, const BandBCParams & bparams, size_t Ny, size_t N_GC, double t, MPI_Comm comm1D, int world_rank, std::vector<int> & Ny_locs, std::vector<int> & starts, int nbrleft, int nbrright, const Domain & dm)
 {
     //Exchange ghost cells in a periodic manner in the y-direction
