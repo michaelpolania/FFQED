@@ -615,9 +615,9 @@ int main(int argc, char **argv)
         B = B_np1;
         D = D_np1;
 
-        if (iter <= 115) {
-    printFieldsToFile(iter, t, D, B, Rho, N_GC);
-}
+//         if (iter <= 115) {
+//     printFieldsToFile(iter, t, D, B, Rho, N_GC);
+// }
         
         //std::cout << t << std::endl;
 

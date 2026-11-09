@@ -1,5 +1,5 @@
 # File name for output H5 file (excluding file extension)
-OutputFile: EMHD_Sim_Data_ShortTime
+OutputFile: EMHD_Sim_Data_ShortTime4
 
 # Order of Runge-Kutta timestep method (2 or 3)
 RK_order: 2
@@ -11,7 +11,7 @@ varying_mesh: false
 QED_corrections: false
 
 # Resolution in x-direction
-Nx: 60
+Nx: 120
 
 # Resolution in y-direction
 Ny: 40
@@ -29,10 +29,10 @@ y_min: -5e5
 y_max: 5e5
 
 # Maximum time in years, originally 5e2 1.057e-11
-t_max: 1.0e-11
+t_max: 1.0e-9
 
 # Courant number
-k_C: 0.50
+k_C: 0.30
 
 # Maximum number of snapshots to save to H5 file 500
 saves_number: 1000

@@ -24,7 +24,7 @@ void Compute_Rho(VectorField & D, ScalarField & Rho, const Domain & dm)
     for(size_t i=0; i<D.shape()[1]-1; i++){
       for(size_t j=0; j<D.shape()[2]-1; j++){
 
-            Rho[i][j] = (D[0][i+1][j] - D[0][i][j])/(4.*pi*dm.Deltax[i]) + (D[1][i][j+1] - D[1][i][j])/(4.*pi*dm.Deltay);
+            Rho[i][j] = (D[0][i+1][j] - D[0][i][j])/dm.Deltax[i] + (D[1][i][j+1] - D[1][i][j])/dm.Deltay;
            // std::cout << "D[0][i][j] = " << D[0][i][j] << std::endl;
             // std::cout << "D[0][i][j] = " << D[0][i][j] << std::endl;
             //std::cout << "D[0][i+1][j] = " << D[0][i+1][j] << std::endl;
@@ -1106,7 +1106,7 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
     static ScalarField Hz_c(boost::extents[Sx][Sy]);   //corner Hz
     static ScalarField Qz_c(boost::extents[Sx][Sy]);   //-curl(E)_z at centres
     static ScalarField Fz_c(boost::extents[Sx][Sy]);   // curl(H)_z at centres
-    static VectorField J4pi_c(boost::extents[3][Sx][Sy]); //cell-centred 4 pi J
+    static VectorField J_c(boost::extents[3][Sx][Sy]); //cell-centred 4 pi J
 
     /*
         Cell-centred B and D over every cell for which the face average exists.
@@ -1179,15 +1179,15 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             const double B_squared = Bxc*Bxc + Byc*Byc + Bzc*Bzc;
 
             if (B_squared > 0.0){
-                const double divD = 4. * pi * Rho[i][j]; //Rho = div(D)/(4 pi)
+                const double divD = Rho[i][j];
                 const double par = B_dot_curlH - D_dot_curlE;
 
-                J4pi_c[0][i][j] = (divD * (Eyc*Bzc - Ezc*Byc) + par * Bxc) / B_squared;
-                J4pi_c[1][i][j] = (divD * (Ezc*Bxc - Exc*Bzc) + par * Byc) / B_squared;
-                J4pi_c[2][i][j] = (divD * (Exc*Byc - Eyc*Bxc) + par * Bzc) / B_squared;
+                J_c[0][i][j] = (divD * (Eyc*Bzc - Ezc*Byc) + par * Bxc) / B_squared;
+                J_c[1][i][j] = (divD * (Ezc*Bxc - Exc*Bzc) + par * Byc) / B_squared;
+                J_c[2][i][j] = (divD * (Exc*Byc - Eyc*Bxc) + par * Bzc) / B_squared;
             }
             else{
-                J4pi_c[0][i][j] = J4pi_c[1][i][j] = J4pi_c[2][i][j] = 0.0;
+                J_c[0][i][j] = J_c[1][i][j] = J_c[2][i][j] = 0.0;
             }
         }
     }
@@ -1203,9 +1203,9 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             const double curlH_y = -(Hz_c[i+1][j] - Hz_c[i][j]) / Deltax;
 
             //Current averaged onto the location of each D component
-            const double Jx = 0.5 * (J4pi_c[0][i-1][j] + J4pi_c[0][i][j]); //x-face (i-1/2, j)
-            const double Jy = 0.5 * (J4pi_c[1][i][j-1] + J4pi_c[1][i][j]); //y-face (i, j-1/2)
-            const double Jz = J4pi_c[2][i][j];                             //centre
+            const double Jx = 0.5 * (J_c[0][i-1][j] + J_c[0][i][j]); //x-face (i-1/2, j)
+            const double Jy = 0.5 * (J_c[1][i][j-1] + J_c[1][i][j]); //y-face (i, j-1/2)
+            const double Jz = J_c[2][i][j];                             //centre
 
             Qx[i][j] = -curlE_x;
             Qy[i][j] = -curlE_y;
@@ -1215,9 +1215,9 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
             Fy[i][j] = curlH_y - Jy;
             Fz[i][j] = Fz_c[i][j] - Jz;
 
-            J[0][i][j] = Jx / (4. * pi);
-            J[1][i][j] = Jy / (4. * pi);
-            J[2][i][j] = Jz / (4. * pi);
+            J[0][i][j] = Jx;
+            J[1][i][j] = Jy;
+            J[2][i][j] = Jz;
 
             //Absorbing layer: relax the perturbation towards the background state
             const size_t ip = i - G; //index into dm.x, which has no ghost cells
