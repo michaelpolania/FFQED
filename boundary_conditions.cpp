@@ -59,7 +59,7 @@ void D_BoundaryConditions(std::vector<double> &y, VectorField & D, VectorField &
             //double DBC_x = 0.5 * (0.5 * Initialvz(y_j, t, &driver) * (B[1][N_GC][j] + B[1][N_GC][j+1]) + 0.5 * Initialvz(y_j_minus_1, t, &driver) * (B[1][N_GC - 1][j] + B[1][N_GC - 1][j+1]));
             //double DBC_y = -0.5 * (0.5 * Initialvz(y_j, t, &driver) * (B[0][N_GC][j] + B[0][N_GC + 1][j]) + 0.5 * Initialvz(y_j_minus_1, t, &driver) * (B[0][N_GC][j-1] + B[0][N_GC + 1][j-1]));
 
-            double DBC_x = 0.25 * Initialvz(y_j, t, &driver) * (B[1][N_GC][j-1] + B[1][N_GC][j] + B[1][N_GC-1][j] + B[1][N_GC-1][j-1]);
+            double DBC_x = 0.25 * Initialvz(y_j, t, &driver) * (B[1][N_GC][j] + B[1][N_GC][j+1] + B[1][N_GC-1][j] + B[1][N_GC-1][j+1]);
             // double DBC_y = 0.5 * Initialvz(y[j-N_GC], t, &driver) * (B[0][N_GC][j] + B[0][N_GC][j-1]);
             double DBC_y = -( 0.5 * Initialvz(y_j, t, &driver) * B[0][N_GC][j] + 0.5 * Initialvz(y_j_minus_1, t, &driver) * B[0][N_GC][j-1] );
             double DBC_z = 0.0;

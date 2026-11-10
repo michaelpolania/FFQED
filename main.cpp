@@ -309,6 +309,7 @@ int main(int argc, char **argv)
     //double max_dm_x = *std::max_element(x.begin(), x.end());
     //std::cout << max_dm_x << std::endl;
 
+
     VectorField E(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]);
     VectorField H(boost::extents[3][Nx+2*N_GC][MyE-MyS+2*N_GC]);
 

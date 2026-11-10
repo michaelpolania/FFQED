@@ -20,4 +20,5 @@ double Compute_EH_from_BD(int i_offset, int j_offset, int component_index, const
 double slope_calc (VectorField & A, int component_index, int i_offset, int j_offset, int slope_direction, double Deltax, double Deltay);
 double Compute_Damping_Term(int i, const Domain & dm);
 double Compute_E_from_D(int i_offset, int j_offset, int component_index, VectorField & B, VectorField & D, const SimParams & params);
+void Compute_curl_H_curl_E(ScalarField & result, VectorField & B, VectorField & D, VectorField & B_avg, VectorField & D_avg, const SimParams & params, const Domain & dm);
 #endif
