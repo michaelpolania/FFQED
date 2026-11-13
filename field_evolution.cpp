@@ -1098,6 +1098,9 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 }
     ScalarField curl_H_E(boost::extents[D.shape()[1]][D.shape()[2]]);
     Compute_curl_H_curl_E(curl_H_E, B, D, B_avg, D_avg, params, dm);
+    exchng2Scalar(curl_H_E, dm.N_GC, ps.comm1D, ps.nbrleft, ps.nbrright);
+
+    
 
     
 
@@ -1202,7 +1205,7 @@ void Compute_RHS(ScalarField & Qx, ScalarField & Qy, ScalarField & Qz, ScalarFie
 
             Qx[i][j] = -curl_E_x_ij;
             Qy[i][j] = curl_E_y_ij;
-            Qz[i][j] = curl_E_z_ij;
+            Qz[i][j] = -curl_E_z_ij;
 
             Fx[i][j] = curl_H_x_ij - Jx_avg;
             Fy[i][j] = -curl_H_y_ij - Jy_avg;
@@ -1252,56 +1255,50 @@ return;
 
 } 
 
-void Compute_curl_H_curl_E(ScalarField & result, VectorField & B, VectorField & D, VectorField & B_avg, VectorField & D_avg, const SimParams & params, const Domain & dm)
-{
+void Compute_curl_H_curl_E(ScalarField & result, VectorField & B, VectorField & D, VectorField & B_avg, VectorField & D_avg, const SimParams & params, const Domain & dm) {
+    
     const size_t nx = D.shape()[1];
     const size_t ny = D.shape()[2];
-    const size_t g  = dm.N_GC;
+    const size_t g = dm.N_GC; // g = 3
 
-    ScalarField cHx(boost::extents[nx][ny]), cEx(boost::extents[nx][ny]);   // at (i-1/2, j)
-    ScalarField cHy(boost::extents[nx][ny]), cEy(boost::extents[nx][ny]);   // at (i, j-1/2)
-    ScalarField cHz(boost::extents[nx][ny]), cEz(boost::extents[nx][ny]);   // at (i, j)
+    std::fill(result.data(), result.data() + result.num_elements(), 0.0);
 
-    for (size_t i = 0; i < nx; i++) {
-        for (size_t j = 0; j < ny; j++) {
-            result[i][j] = cHx[i][j] = cEx[i][j] = 0.0;
-            cHy[i][j] = cEy[i][j] = cHz[i][j] = cEz[i][j] = 0.0;
-        }
-    }
+    ScalarField cHx(boost::extents[nx][ny]), cEx(boost::extents[nx][ny]); // at (i-1/2, j)
+    ScalarField cHy(boost::extents[nx][ny]), cEy(boost::extents[nx][ny]); // at (i, j-1/2)
+    ScalarField cHz(boost::extents[nx][ny]), cEz(boost::extents[nx][ny]); // at (i, j)
 
-    for (size_t i = g-1; i < nx - g + 1; i++) {
-        for (size_t j = g-1; j < ny - g + 1; j++) {
-
+    
+    for (size_t i = g - 1; i < nx - g + 1; i++) {
+        for (size_t j = g - 1; j < ny - g + 1; j++) {
             auto [Hx_b, Hx_t] = Hz_Flux_Calculation_Fx(i, j, B_avg, D_avg, params, dm.Deltax[i], dm.Deltay);
             auto [Ex_b, Ex_t] = Ez_Flux_Calculation_Qx(i, j, D_avg, B_avg, params, dm.Deltax[i], dm.Deltay);
             cHx[i][j] = (Hx_t - Hx_b) / dm.Deltay;
-            cEx[i][j] = -(Ex_t - Ex_b) / dm.Deltay;
+            cEx[i][j] = (Ex_t - Ex_b) / dm.Deltay;
 
             auto [Hy_L, Hy_R] = Hz_Flux_Calculation_Fy(i, j, B_avg, D_avg, params, dm.Deltax[i], dm.Deltay);
             auto [Ey_L, Ey_R] = Ez_Flux_Calculation_Qy(i, j, D_avg, B_avg, params, dm.Deltax[i], dm.Deltay);
             cHy[i][j] = -(Hy_R - Hy_L) / dm.Deltax[i];
-            cEy[i][j] = (Ey_R - Ey_L) / dm.Deltax[i];
+            cEy[i][j] = -(Ey_R - Ey_L) / dm.Deltax[i];
 
             cHz[i][j] = Fz_reconstruction(i, j, D_avg, B_avg, params, dm.Deltax[i], dm.Deltay);
-            cEz[i][j] = Qz_reconstruction(i, j, D_avg, B_avg, params, dm.Deltax[i], dm.Deltay);
+            cEz[i][j] = -Qz_reconstruction(i, j, D_avg, B_avg, params, dm.Deltax[i], dm.Deltay);
         }
     }
-
-    // Pass 2: face-centered dot product, one ghost layer around the interior
-    for (size_t i = g - 1; i < nx - g + 1; i++) {
-        for (size_t j = g - 1; j < ny - g + 1; j++) {
-            result[i][j] =
-                0.5 * (cHx[i][j] * B[0][i][j] + cHx[i+1][j] * B[0][i+1][j])
-              + 0.5 * (cHy[i][j] * B[1][i][j] + cHy[i][j+1] * B[1][i][j+1])
-              + cHz[i][j] * B[2][i][j]
-              - 0.5 * (cEx[i][j] * D[0][i][j] + cEx[i+1][j] * D[0][i+1][j])
-              - 0.5 * (cEy[i][j] * D[1][i][j] + cEy[i][j+1] * D[1][i][j+1])
-              - cEz[i][j] * D[2][i][j];
+    
+    for (size_t i = g - 1; i < nx - g; i++) {
+        for (size_t j = g - 1; j < ny - g; j++) {
+            result[i][j] = 0.5 * (cHx[i][j] * B[0][i][j] + cHx[i+1][j] * B[0][i+1][j])
+                         + 0.5 * (cHy[i][j] * B[1][i][j] + cHy[i][j+1] * B[1][i][j+1])
+                         + cHz[i][j] * B[2][i][j]
+                         - 0.5 * (cEx[i][j] * D[0][i][j] + cEx[i+1][j] * D[0][i+1][j])
+                         - 0.5 * (cEy[i][j] * D[1][i][j] + cEy[i][j+1] * D[1][i][j+1])
+                         - cEz[i][j] * D[2][i][j];
         }
     }
 
     return;
 }
+
 
 /*
 
